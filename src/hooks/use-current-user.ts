@@ -1,7 +1,6 @@
 "use client";
 
 import { useCurrentUserQuery } from "@/features/auth/api/auth.queries";
-import { useReviewers } from "@/hooks/use-reviewer-data";
 import { useAppSelector } from "@/store";
 import { isDefaultReviewer } from "@/lib/domain";
 
@@ -13,12 +12,12 @@ export function useCurrentUser(): PublicReviewer | null {
 }
 
 /**
- * The signed-in reviewer with live account data (the Super Admin can change
- * Default-Reviewer status at any time, which changes what this reviewer sees).
+ * The signed-in reviewer with live account data — `/auth/me` is fetched
+ * fresh (subject to the query's staleTime) each time, so this reflects
+ * Default-Reviewer changes the Super Admin makes without needing a
+ * separate cross-reference against the (unrelated, mock) reviewers list.
  */
 export function useMe() {
-  const session = useCurrentUser();
-  const { data: reviewers } = useReviewers();
-  const me = reviewers?.find((r) => r.id === session?.id) ?? session;
+  const me = useCurrentUser();
   return { me, isDefault: isDefaultReviewer(me) };
 }

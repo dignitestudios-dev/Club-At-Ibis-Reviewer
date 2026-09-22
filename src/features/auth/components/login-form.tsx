@@ -30,13 +30,12 @@ export default function LoginForm() {
   } = useForm<LoginCredentials>({
     mode: "onChange",
     resolver: zodResolver(loginSchema),
-    defaultValues: { email: "marcus.vance@clubatibis.com", password: "reviewer123" },
+    defaultValues: { email: "", password: "" },
   });
 
   function onSubmit(data: LoginCredentials) {
     login(data, {
-      onSuccess: (user) => {
-        const token = crypto.randomUUID();
+      onSuccess: ({ token, user }) => {
         localStorage.removeItem("carv.logged-out");
         localStorage.setItem("rv-auth-token", token);
         localStorage.setItem("rv-auth-user", JSON.stringify(user));
@@ -61,7 +60,7 @@ export default function LoginForm() {
         </p>
       </div>
 
-      <form onSubmit={handleSubmit(onSubmit)} noValidate>
+      <form onSubmit={handleSubmit(onSubmit)} noValidate autoComplete="off">
         <FieldGroup>
           <div className="auth-field-enter auth-stagger-2">
             <Field data-invalid={!!errors.email}>

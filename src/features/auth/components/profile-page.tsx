@@ -5,6 +5,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { PersonAvatar } from "@/components/shared/person-avatar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import ChangePasswordForm from "@/features/auth/components/change-password-form";
 import { useMe } from "@/hooks/use-current-user";
 import { useRequests } from "@/hooks/use-reviewer-data";
 import { IN_FLIGHT } from "@/lib/domain";
@@ -75,6 +76,15 @@ export default function ProfilePage() {
             <Detail icon={CalendarDays} label="Member since">{formatDate(me.createdAt)}</Detail>
             <Detail icon={Clock} label="Last sign-in">{me.lastLoginAt ? formatDateTime(me.lastLoginAt) : "—"}</Detail>
           </dl>
+        </CardContent>
+      </Card>
+
+      <Card className="shadow-2xs">
+        <CardHeader className="border-b border-border/70 pb-3">
+          <CardTitle className="font-heading text-lg font-medium">Change password</CardTitle>
+        </CardHeader>
+        <CardContent className="pt-5">
+          <ChangePasswordForm />
         </CardContent>
       </Card>
 

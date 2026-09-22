@@ -17,6 +17,12 @@ interface ResetPasswordPayload {
   confirmPassword: string;
 }
 
+interface ChangePasswordPayload {
+  currentPassword: string;
+  newPassword: string;
+  confirmNewPassword: string;
+}
+
 interface AuthState {
   user: PublicReviewer | null;
   status: "idle" | "loading" | "authenticated" | "unauthenticated";

@@ -1,70 +1,113 @@
-import { db, delay } from "@/lib/mock/store";
+import axiosInstance from "@/lib/axios";
 
-function toPublic(reviewer: Reviewer): PublicReviewer {
-  const { password: _password, ...rest } = reviewer;
-  return rest;
+/** Shape the backend's `publicUser` presenter returns for a REVIEWER account. */
+interface ReviewerApiUser {
+  _id: string;
+  firstName: string;
+  lastName: string;
+  employeeNumber: string;
+  designation?: string | null;
+  email: string;
+  accountStatus: string;
+  credentialStatus: string;
+  isDefaultReviewer: boolean;
+  createdAt: string;
+  lastLoginAt: string | null;
+}
+
+function toPublicReviewer(u: ReviewerApiUser): PublicReviewer {
+  return {
+    id: u._id,
+    name: `${u.firstName ?? ""} ${u.lastName ?? ""}`.trim(),
+    employeeNumber: u.employeeNumber ?? "",
+    designation: u.designation ?? "",
+    email: u.email,
+    receiveNewRequests: !!u.isDefaultReviewer,
+    loginEnabled: u.accountStatus !== "DISABLED" && u.accountStatus !== "DELETED",
+    inviteStatus: u.credentialStatus === "SET" ? "active" : "invited",
+    createdAt: u.createdAt,
+    lastLoginAt: u.lastLoginAt ?? undefined,
+  };
 }
 
 export async function getCurrentUser(): Promise<PublicReviewer | null> {
   if (typeof window === "undefined") return null;
-  if (localStorage.getItem("carv.logged-out") === "true") return null;
-
-  const stored = localStorage.getItem("rv-auth-user");
-  if (!stored) return null;
+  if (!localStorage.getItem("rv-auth-token")) return null;
   try {
-    const parsed = JSON.parse(stored) as PublicReviewer;
-    const found = db.getReviewers().find((r) => r.id === parsed?.id && r.loginEnabled);
-    return delay(found ? toPublic(found) : null, 40);
+    const { data } = await axiosInstance.get("/auth/me");
+    return toPublicReviewer(data.data.user);
   } catch {
     return null;
   }
 }
 
-export async function loginUser(credentials: LoginCredentials): Promise<PublicReviewer> {
-  const match = db.getReviewers().find((r) => r.email.toLowerCase() === credentials.email.trim().toLowerCase());
-  if (!match || !match.password || match.password !== credentials.password) {
-    await delay(null, 150);
-    if (match && match.inviteStatus === "invited") {
-      throw new Error("Your account is not set up yet. Use the invitation link emailed to you to create a password.");
-    }
-    throw new Error("Invalid email or password.");
+/** Real login. Callers store `token` (as `rv-auth-token`) themselves — see login-form.tsx. */
+export async function loginUser(credentials: LoginCredentials): Promise<{ token: string; user: PublicReviewer }> {
+  const { data } = await axiosInstance.post("/auth/login", { ...credentials, role: "REVIEWER" });
+  return { token: data.data.token, user: toPublicReviewer(data.data.user) };
+}
+
+export async function logoutUser(): Promise<void> {
+  const token = typeof window !== "undefined" ? localStorage.getItem("rv-auth-token") : null;
+  if (!token) return;
+  try {
+    await axiosInstance.post("/auth/logout", null, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+  } catch {
+    // Best-effort — the caller clears the local session regardless.
   }
-  if (!match.loginEnabled) {
-    await delay(null, 150);
-    throw new Error("This account is inactive. Contact the Super Admin to have it reactivated.");
-  }
-  const reviewers = db.getReviewers();
-  db.setReviewers(reviewers.map((r) => (r.id === match.id ? { ...r, lastLoginAt: new Date().toISOString() } : r)));
-  return delay(toPublic({ ...match, lastLoginAt: new Date().toISOString() }), 180);
 }
 
 export async function requestPasswordReset({ email }: ForgotPasswordPayload): Promise<void> {
-  const match = db.getReviewers().find((r) => r.email.toLowerCase() === email.trim().toLowerCase() && r.loginEnabled);
-  // Always resolve the same way so the form never reveals which emails exist.
-  if (match) {
-    console.info(`[mock email] Password reset link: /auth/reset-password?token=${btoa(match.id)}`);
-  }
-  return delay(undefined, 200);
+  // Always resolves the same way regardless of whether the email exists —
+  // the backend never reveals that, and the form doesn't either.
+  await axiosInstance.post("/auth/password-reset-requests", { email, role: "REVIEWER" });
 }
 
-/** Used by both "reset password" and the first-time "create password" invitation link. */
-export async function resetPassword({ token, password }: ResetPasswordPayload): Promise<void> {
-  let reviewerId: string;
-  try {
-    reviewerId = atob(token);
-  } catch {
-    await delay(null, 150);
-    throw new Error("This link is invalid or has expired.");
-  }
-  const reviewers = db.getReviewers();
-  const idx = reviewers.findIndex((r) => r.id === reviewerId);
-  if (idx === -1) {
-    await delay(null, 150);
-    throw new Error("This link is invalid or has expired.");
-  }
-  const next = [...reviewers];
-  next[idx] = { ...next[idx], password, inviteStatus: "active" };
-  db.setReviewers(next);
-  return delay(undefined, 180);
+export interface TokenInspectionResult {
+  expiresAt: string;
 }
 
+/** Verify/preview a reviewer invitation link without consuming the token. */
+export async function inspectInvitation(token: string): Promise<TokenInspectionResult> {
+  const { data } = await axiosInstance.get("/auth/reviewer-invitations", {
+    params: { token },
+  });
+  return data.data;
+}
+
+/** Accept a reviewer invitation and create first-time credentials. */
+export async function acceptInvitation(payload: { token: string; password: string }): Promise<{ user: PublicReviewer }> {
+  const { data } = await axiosInstance.post("/auth/reviewer-invitations/accept", payload);
+  return { user: toPublicReviewer(data.data.user) };
+}
+
+/**
+ * Used by both "reset password" (mode="reset") and the first-time "create
+ * password" invitation link (mode="invite") — these are two different
+ * backend endpoints with different semantics (a reset only works for an
+ * account that already has credentials; an invitation accept is how a
+ * freshly-invited reviewer sets credentials for the first time), so the
+ * caller's `invite` flag picks between them rather than guessing from the
+ * token shape.
+ */
+export async function resetPassword({ token, password, invite }: ResetPasswordPayload & { invite?: boolean }): Promise<void> {
+  if (invite) {
+    await acceptInvitation({ token, password });
+  } else {
+    await axiosInstance.post("/auth/password-resets", { token, newPassword: password });
+  }
+}
+
+/**
+ * Changing your own password revokes the token that made this very request
+ * (the backend invalidates every token issued before the change) — the
+ * caller must treat success as an implicit logout, not just a toast.
+ */
+export async function changePassword(payload: ChangePasswordPayload): Promise<void> {
+  await axiosInstance.post("/auth/password-changes", {
+    currentPassword: payload.currentPassword,
+    newPassword: payload.newPassword,
+  });
+}
