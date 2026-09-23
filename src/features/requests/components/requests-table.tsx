@@ -40,13 +40,13 @@ export function RequestsTable({
       <Table>
         <TableHeader>
           <TableRow className="bg-muted/40 hover:bg-muted/40">
-            <TableHead className="pl-4">Request</TableHead>
-            <TableHead>Resident</TableHead>
-            <TableHead>Property</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead>Next step</TableHead>
-            {showReviewer && <TableHead>Reviewer</TableHead>}
-            <TableHead>Submitted</TableHead>
+            <TableHead className="pl-4 max-w-[190px]">Request</TableHead>
+            <TableHead className="max-w-[180px]">Resident</TableHead>
+            <TableHead className="max-w-[190px]">Property</TableHead>
+            <TableHead className="max-w-[130px]">Status</TableHead>
+            <TableHead className="max-w-[150px]">Next step</TableHead>
+            {showReviewer && <TableHead className="max-w-[160px]">Reviewer</TableHead>}
+            <TableHead className="max-w-[130px]">Submitted</TableHead>
             {renderActions && (
               <TableHead className="text-right">
                 <span className="sr-only">Actions</span>
@@ -61,43 +61,47 @@ export function RequestsTable({
           {rows.map((req) => {
             const step = nextStep(req);
             const reviewer = req.assignedReviewerId ? reviewerById.get(req.assignedReviewerId) : undefined;
+            const resName = residentFullName(residentById.get(req.residentId));
             return (
               <TableRow key={req.id} className="group cursor-pointer" onClick={() => router.push(`/requests/${req.id}`)}>
-                <TableCell className="pl-4">
+                <TableCell className="pl-4 max-w-[190px]">
                   <Link
                     href={`/requests/${req.id}`}
                     onClick={(e) => e.stopPropagation()}
-                    className="block font-mono text-xs font-semibold text-primary hover:underline dark:text-amber-300"
+                    className="block font-mono text-xs font-semibold text-primary hover:underline dark:text-amber-300 truncate"
+                    title={req.code}
                   >
                     {req.code}
                   </Link>
-                  <span className="block max-w-[190px] truncate text-sm font-medium text-foreground">{req.categoryName}</span>
+                  <span className="block max-w-[190px] truncate text-sm font-medium text-foreground" title={req.categoryName}>{req.categoryName}</span>
                 </TableCell>
-                <TableCell className="text-sm whitespace-nowrap">{residentFullName(residentById.get(req.residentId))}</TableCell>
-                <TableCell>
-                  <span className="block max-w-[190px] truncate text-sm text-muted-foreground">{req.fieldValues.propertyAddress}</span>
+                <TableCell className="text-sm max-w-[180px]">
+                  <span className="block truncate" title={resName}>{resName}</span>
                 </TableCell>
-                <TableCell>
+                <TableCell className="max-w-[190px]">
+                  <span className="block max-w-[190px] truncate text-sm text-muted-foreground" title={req.fieldValues.propertyAddress}>{req.fieldValues.propertyAddress}</span>
+                </TableCell>
+                <TableCell className="max-w-[130px]">
                   <StatusBadge status={req.status} />
                 </TableCell>
-                <TableCell>
-                  <span className={cn("text-xs font-medium", TONE[step.tone])}>{step.label}</span>
+                <TableCell className="max-w-[150px]">
+                  <span className={cn("text-xs font-medium truncate block", TONE[step.tone])} title={step.label}>{step.label}</span>
                 </TableCell>
                 {showReviewer && (
-                  <TableCell>
+                  <TableCell className="max-w-[160px]">
                     {reviewer ? (
-                      <div className="flex items-center gap-2">
-                        <PersonAvatar name={reviewer.name} className="size-7" fallbackClassName="text-[10px]" />
-                        <span className="text-sm whitespace-nowrap">{reviewer.name}</span>
+                      <div className="flex items-center gap-2 min-w-0" title={reviewer.name}>
+                        <PersonAvatar name={reviewer.name} className="size-7 shrink-0" fallbackClassName="text-[10px]" />
+                        <span className="text-sm truncate">{reviewer.name}</span>
                       </div>
                     ) : (
                       <span className="text-xs text-muted-foreground italic">Unassigned</span>
                     )}
                   </TableCell>
                 )}
-                <TableCell className="whitespace-nowrap">
-                  <span className="block text-sm">{formatRelative(req.submittedAt)}</span>
-                  <span className="block text-[11px] text-muted-foreground">{format(new Date(req.submittedAt), "MMM d, yyyy")}</span>
+                <TableCell className="whitespace-nowrap max-w-[130px] truncate" title={format(new Date(req.submittedAt), "PPP")}>
+                  <span className="block text-sm truncate">{formatRelative(req.submittedAt)}</span>
+                  <span className="block text-[11px] text-muted-foreground truncate">{format(new Date(req.submittedAt), "MMM d, yyyy")}</span>
                 </TableCell>
                 {renderActions && (
                   <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>

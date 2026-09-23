@@ -158,6 +158,8 @@ export default function ResetPasswordForm({ token, mode = "reset" }: { token: st
                     <PasswordInput
                       id="password"
                       showStrength
+                      maxLength={128}
+                      disabled={isResetting}
                       value={field.value}
                       onChange={field.onChange}
                       onBlur={field.onBlur}
@@ -179,6 +181,8 @@ export default function ResetPasswordForm({ token, mode = "reset" }: { token: st
                   <FieldContent>
                     <PasswordInput
                       id="confirmPassword"
+                      maxLength={128}
+                      disabled={isResetting}
                       value={field.value}
                       onChange={field.onChange}
                       onBlur={field.onBlur}
@@ -263,6 +267,8 @@ export default function ResetPasswordForm({ token, mode = "reset" }: { token: st
                   type="email"
                   autoComplete="email"
                   placeholder="name@clubatibis.com"
+                  maxLength={320}
+                  disabled={isResending}
                   aria-invalid={!!resendErrors.email}
                   {...registerResend("email")}
                 />
@@ -327,6 +333,8 @@ export default function ResetPasswordForm({ token, mode = "reset" }: { token: st
                   <PasswordInput
                     id="password"
                     showStrength
+                    maxLength={128}
+                    disabled={isResetting}
                     value={field.value}
                     onChange={field.onChange}
                     onBlur={field.onBlur}
@@ -348,6 +356,8 @@ export default function ResetPasswordForm({ token, mode = "reset" }: { token: st
                 <FieldContent>
                   <PasswordInput
                     id="confirmPassword"
+                    maxLength={128}
+                    disabled={isResetting}
                     value={field.value}
                     onChange={field.onChange}
                     onBlur={field.onBlur}

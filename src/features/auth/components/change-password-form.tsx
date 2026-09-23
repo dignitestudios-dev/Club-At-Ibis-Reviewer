@@ -49,7 +49,7 @@ export default function ChangePasswordForm() {
             <Field data-invalid={!!errors.currentPassword}>
               <FieldLabel htmlFor="currentPassword">Current password<RequiredMark /></FieldLabel>
               <FieldContent>
-                <PasswordInput id="currentPassword" autoComplete="current-password" value={field.value} onChange={field.onChange} onBlur={field.onBlur} ref={field.ref} />
+                <PasswordInput id="currentPassword" autoComplete="current-password" maxLength={128} disabled={isPending} value={field.value} onChange={field.onChange} onBlur={field.onBlur} ref={field.ref} />
                 <FieldError errors={errors.currentPassword ? [errors.currentPassword] : []} />
               </FieldContent>
             </Field>
@@ -62,7 +62,7 @@ export default function ChangePasswordForm() {
             <Field data-invalid={!!errors.newPassword}>
               <FieldLabel htmlFor="newPassword">New password<RequiredMark /></FieldLabel>
               <FieldContent>
-                <PasswordInput id="newPassword" autoComplete="new-password" showStrength value={field.value} onChange={field.onChange} onBlur={field.onBlur} ref={field.ref} />
+                <PasswordInput id="newPassword" autoComplete="new-password" showStrength maxLength={128} disabled={isPending} value={field.value} onChange={field.onChange} onBlur={field.onBlur} ref={field.ref} />
                 <FieldError errors={errors.newPassword ? [errors.newPassword] : []} />
               </FieldContent>
             </Field>
@@ -75,7 +75,7 @@ export default function ChangePasswordForm() {
             <Field data-invalid={!!errors.confirmNewPassword}>
               <FieldLabel htmlFor="confirmNewPassword">Confirm new password<RequiredMark /></FieldLabel>
               <FieldContent>
-                <PasswordInput id="confirmNewPassword" autoComplete="new-password" value={field.value} onChange={field.onChange} onBlur={field.onBlur} ref={field.ref} />
+                <PasswordInput id="confirmNewPassword" autoComplete="new-password" maxLength={128} disabled={isPending} value={field.value} onChange={field.onChange} onBlur={field.onBlur} ref={field.ref} />
                 <FieldError errors={errors.confirmNewPassword ? [errors.confirmNewPassword] : []} />
               </FieldContent>
             </Field>
