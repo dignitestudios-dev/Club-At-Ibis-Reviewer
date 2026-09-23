@@ -14,7 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 
 export default function ChangePasswordForm() {
   const toast = useToast();
-  const logout = useLogout();
+  const { logout } = useLogout();
   const { mutate, isPending } = useChangePasswordMutation();
   const {
     control,
