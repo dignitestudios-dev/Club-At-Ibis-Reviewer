@@ -201,7 +201,7 @@ export default function FormComparePage({ id }: { id: string }) {
 
           <Card className="shadow-2xs">
             <CardHeader className="border-b border-border/70 pb-3">
-              <CardTitle className="font-heading text-lg font-medium">Field by field</CardTitle>
+              <CardTitle className="font-heading text-lg font-medium">Field by Field</CardTitle>
               <p className="text-xs text-muted-foreground">Highlighted properties are the ones that differ.</p>
             </CardHeader>
             <CardContent className="pt-2">
@@ -253,7 +253,7 @@ export default function FormComparePage({ id }: { id: string }) {
 
       <Card className="shadow-2xs">
         <CardHeader className="border-b border-border/70 pb-3">
-          <CardTitle className="font-heading text-lg font-medium">Requests on this form</CardTitle>
+          <CardTitle className="font-heading text-lg font-medium">Requests on This Form</CardTitle>
           <p className="text-xs text-muted-foreground">
             {isDefault ? "All requests" : "Your requests"} for {category.name}: {visibleRequests.length} total, {outdated.length} submitted on an older version (they keep their original form).
           </p>

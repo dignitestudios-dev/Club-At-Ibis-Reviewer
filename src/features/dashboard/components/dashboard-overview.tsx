@@ -155,7 +155,7 @@ export default function DashboardOverview() {
           )}
           <Button nativeButton={false} render={<Link href="/my-requests" />} className="shadow-xs">
             <ListChecks className="size-4" />
-            My assigned requests
+            My Assigned Requests
           </Button>
         </div>
       </div>
@@ -165,7 +165,7 @@ export default function DashboardOverview() {
         <div className="flex flex-wrap items-end justify-between gap-2">
           <div>
             <h2 id="attention-heading" className="font-heading text-xl font-medium text-foreground">
-              Needs your attention
+              Needs Your Attention
             </h2>
             <p className="text-xs text-muted-foreground">Work that is waiting on you right now.</p>
           </div>
@@ -224,9 +224,9 @@ export default function DashboardOverview() {
           Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-32 rounded-2xl" />)
         ) : (
           <>
-            <StatCard label="Open requests" value={openCount} icon={ListChecks} accent="navy" href="/my-requests" hint="Assigned to me" />
-            <StatCard label="Under review" value={counts.under_review + counts.resubmitted} icon={Search} accent="blue" href="/my-requests?status=under_review" hint="Including resubmissions" />
-            <StatCard label="Waiting on residents" value={counts.changes_required} icon={Hourglass} accent="amber" href="/my-requests?status=changes_required" hint="Changes required" />
+            <StatCard label="Open Requests" value={openCount} icon={ListChecks} accent="navy" href="/my-requests" hint="Assigned to me" />
+            <StatCard label="Under Review" value={counts.under_review + counts.resubmitted} icon={Search} accent="blue" href="/my-requests?status=under_review" hint="Including resubmissions" />
+            <StatCard label="Waiting on Residents" value={counts.changes_required} icon={Hourglass} accent="amber" href="/my-requests?status=changes_required" hint="Changes required" />
             <StatCard label="Completed" value={counts.completed} icon={ClipboardCheck} accent="emerald" href="/my-requests?tab=history&status=completed" hint="Finished by me" />
           </>
         )}
@@ -236,16 +236,16 @@ export default function DashboardOverview() {
         {/* Up next */}
         <Card className="shadow-2xs lg:col-span-3">
           <CardHeader className="border-b border-border/70 pb-3">
-            <CardTitle className="font-heading text-lg font-medium">Up next</CardTitle>
+            <CardTitle className="font-heading text-lg font-medium">Up Next</CardTitle>
             <p className="text-xs text-muted-foreground">Requests that need an action from you, longest-waiting first.</p>
             <CardAction>
               <Button variant="ghost" size="sm" nativeButton={false} render={<Link href="/my-requests" />}>
-                All requests
+                All Requests
                 <ArrowRight className="size-3.5" />
               </Button>
             </CardAction>
           </CardHeader>
-          <CardContent className="pt-2">
+          <CardContent className="pt-3">
             {upNext.length === 0 ? (
               <p className="py-10 text-center text-sm text-muted-foreground">Nothing needs your action. New assignments will appear here.</p>
             ) : (
@@ -277,7 +277,7 @@ export default function DashboardOverview() {
         {/* Status mix */}
         <Card className="shadow-2xs lg:col-span-2">
           <CardHeader className="border-b border-border/70 pb-3">
-            <CardTitle className="font-heading text-lg font-medium">My requests by status</CardTitle>
+            <CardTitle className="font-heading text-lg font-medium">My Requests by Status</CardTitle>
             <p className="text-xs text-muted-foreground">{a.mine.length} assigned overall</p>
           </CardHeader>
           <CardContent className="pt-5">
@@ -307,14 +307,14 @@ export default function DashboardOverview() {
       <section>
         <Card className="shadow-2xs">
           <CardHeader className="border-b border-border/70 pb-3">
-            <CardTitle className="font-heading text-lg font-medium">Recent notifications</CardTitle>
+            <CardTitle className="font-heading text-lg font-medium">Recent Notifications</CardTitle>
             <p className="text-xs text-muted-foreground">
               {unread.length > 0 ? `${unread.length} unread` : "You're up to date"}
             </p>
             <CardAction>
               <Button variant="ghost" size="sm" nativeButton={false} render={<Link href="/notifications" />}>
                 <Bell className="size-3.5" />
-                All notifications
+                All Notifications
               </Button>
             </CardAction>
           </CardHeader>

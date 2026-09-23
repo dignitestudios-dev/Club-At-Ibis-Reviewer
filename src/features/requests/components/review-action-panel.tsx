@@ -81,7 +81,7 @@ export function ReviewActionPanel({
     <Card className="shadow-2xs">
       <CardHeader className="border-b border-border/70 pb-3">
         <div className="flex items-center justify-between gap-3">
-          <CardTitle className="font-heading text-lg font-medium">Review &amp; decision</CardTitle>
+          <CardTitle className="font-heading text-lg font-medium">Review &amp; Decision</CardTitle>
           <StatusBadge status={request.status} />
         </div>
       </CardHeader>
@@ -248,7 +248,7 @@ export function ReviewActionPanel({
       <Dialog open={revising} onOpenChange={setRevising}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle className="font-heading text-xl font-medium">Request revision</DialogTitle>
+            <DialogTitle className="font-heading text-xl font-medium">Request Revision</DialogTitle>
             <DialogDescription>
               The status becomes <span className="font-semibold text-foreground">Changes Required</span> and the resident is notified. Only the {progress.flagged.length} flagged item{progress.flagged.length === 1 ? " becomes" : "s become"} editable.
             </DialogDescription>
@@ -289,7 +289,7 @@ export function ReviewActionPanel({
               }}
             >
               {revise.isPending && <Spinner className="size-4" />}
-              Send revision request
+              Send Revision Request
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -299,7 +299,7 @@ export function ReviewActionPanel({
       <Dialog open={rejecting} onOpenChange={setRejecting}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle className="font-heading text-xl font-medium">Reject request</DialogTitle>
+            <DialogTitle className="font-heading text-xl font-medium">Reject Request</DialogTitle>
             <DialogDescription>
               The request becomes <span className="font-semibold text-foreground">Rejected</span> and the resident is notified with your reason. This cannot be undone.
             </DialogDescription>

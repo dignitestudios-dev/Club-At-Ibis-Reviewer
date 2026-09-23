@@ -256,7 +256,7 @@ export default function RequestDetailPage({ id }: { id: string }) {
 
                   <Card className="rounded-xl border border-border/70 bg-transparent shadow-none ring-0">
                     <CardHeader className="border-b border-border/70 pb-3">
-                      <CardTitle className="font-heading text-lg font-medium">Project information</CardTitle>
+                      <CardTitle className="font-heading text-lg font-medium">Project Information</CardTitle>
                       <p className="text-xs text-muted-foreground">Fields as configured when the request was submitted (form v{req.formVersion}).</p>
                     </CardHeader>
                     <CardContent className="space-y-3 pt-4">{infoFields.map(renderField)}</CardContent>
@@ -264,7 +264,7 @@ export default function RequestDetailPage({ id }: { id: string }) {
 
                   <Card className="rounded-xl border border-border/70 bg-transparent shadow-none ring-0">
                     <CardHeader className="border-b border-border/70 pb-3">
-                      <CardTitle className="font-heading text-lg font-medium">Submitted documents &amp; photos</CardTitle>
+                      <CardTitle className="font-heading text-lg font-medium">Submitted Documents &amp; Photos</CardTitle>
                       <p className="text-xs text-muted-foreground">Open a preview to inspect each file. You can view an item again and re-flag it until the request is approved.</p>
                     </CardHeader>
                     <CardContent className="space-y-3 pt-4">
@@ -279,7 +279,7 @@ export default function RequestDetailPage({ id }: { id: string }) {
                         <CheckCircle2 className="size-4" aria-hidden="true" />
                       </span>
                       <div>
-                        <p className="text-sm font-semibold text-foreground">HOA approval confirmed</p>
+                        <p className="text-sm font-semibold text-foreground">HOA Approval Confirmed</p>
                         <p className="text-xs text-muted-foreground">Resident checked “I have HOA Approval” at submission · {formatDateTime(req.hoaConfirmedAt)}</p>
                       </div>
                     </CardContent>
@@ -288,7 +288,7 @@ export default function RequestDetailPage({ id }: { id: string }) {
                   {req.revisions.length > 0 && (
                     <Card className="rounded-xl border border-border/70 bg-transparent shadow-none ring-0">
                       <CardHeader className="border-b border-border/70 pb-3">
-                        <CardTitle className="font-heading text-lg font-medium">Earlier versions retained</CardTitle>
+                        <CardTitle className="font-heading text-lg font-medium">Earlier Versions Retained</CardTitle>
                         <p className="text-xs text-muted-foreground">Replaced during resubmission — kept in the request history.</p>
                       </CardHeader>
                       <CardContent className="space-y-3 pt-4">
@@ -318,7 +318,7 @@ export default function RequestDetailPage({ id }: { id: string }) {
                 <TabsContent value="history" className="pt-4">
                   <Card className="rounded-xl border border-border/70 bg-transparent shadow-none ring-0">
                     <CardHeader className="border-b border-border/70 pb-3">
-                      <CardTitle className="font-heading text-lg font-medium">Activity timeline</CardTitle>
+                      <CardTitle className="font-heading text-lg font-medium">Activity Timeline</CardTitle>
                       <p className="text-xs text-muted-foreground">Oldest to newest. Every event records the action, the actual person, the date and time, and relevant details.</p>
                     </CardHeader>
                     <CardContent className="pt-5">

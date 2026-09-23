@@ -65,7 +65,7 @@ export default function ProfilePage() {
 
       <Card className="shadow-2xs">
         <CardHeader className="border-b border-border/70 pb-3">
-          <CardTitle className="font-heading text-lg font-medium">Account details</CardTitle>
+          <CardTitle className="font-heading text-lg font-medium">Account Details</CardTitle>
         </CardHeader>
         <CardContent className="pt-5">
           <dl className="grid gap-x-6 gap-y-5 sm:grid-cols-2">
@@ -81,7 +81,7 @@ export default function ProfilePage() {
 
       <Card className="shadow-2xs">
         <CardHeader className="border-b border-border/70 pb-3">
-          <CardTitle className="font-heading text-lg font-medium">Change password</CardTitle>
+          <CardTitle className="font-heading text-lg font-medium">Change Password</CardTitle>
         </CardHeader>
         <CardContent className="pt-5">
           <ChangePasswordForm />
