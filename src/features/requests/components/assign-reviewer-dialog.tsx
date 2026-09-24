@@ -8,10 +8,9 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Spinner } from "@/components/ui/spinner";
 import { PersonAvatar } from "@/components/shared/person-avatar";
 import { SearchInput } from "@/components/shared/search-input";
-import { useAssignRequest, useRequests, useReviewers } from "@/hooks/use-reviewer-data";
+import { useAssignRequest, useReviewers } from "@/hooks/use-reviewer-data";
 import { useMe } from "@/hooks/use-current-user";
 import { useToast } from "@/hooks/use-toast";
-import { IN_FLIGHT } from "@/lib/domain";
 import { cn } from "@/utils/cn";
 
 /** A default reviewer takes ownership of an incoming request, assigns it, or reassigns one in progress. */
@@ -25,7 +24,6 @@ export function AssignReviewerDialog({
   const toast = useToast();
   const assign = useAssignRequest();
   const { data: reviewers } = useReviewers();
-  const { data: requests } = useRequests();
   const { me } = useMe();
   const [selected, setSelected] = useState("");
   const [query, setQuery] = useState("");
@@ -37,19 +35,11 @@ export function AssignReviewerDialog({
     }
   }, [request]);
 
-  const workload = useMemo(() => {
-    const map = new Map<string, number>();
-    (requests ?? []).forEach((r) => {
-      if (r.assignedReviewerId && IN_FLIGHT.includes(r.status)) map.set(r.assignedReviewerId, (map.get(r.assignedReviewerId) ?? 0) + 1);
-    });
-    return map;
-  }, [requests]);
-
   const q = query.trim().toLowerCase();
   const options = (reviewers ?? [])
-    .filter((r) => r.loginEnabled)
-    .filter((r) => !q || `${r.name} ${r.designation} ${r.employeeNumber}`.toLowerCase().includes(q))
-    .sort((a, b) => (workload.get(a.id) ?? 0) - (workload.get(b.id) ?? 0));
+    .filter((r) => r.loginEnabled && r.inviteStatus === "active")
+    .filter((r) => !q || `${r.name} ${r.email} ${r.designation} ${r.employeeNumber}`.toLowerCase().includes(q))
+    .sort((a, b) => a.name.localeCompare(b.name));
 
   if (!request) return null;
   const current = request.assignedReviewerId ? reviewers?.find((r) => r.id === request.assignedReviewerId) : undefined;
@@ -59,7 +49,11 @@ export function AssignReviewerDialog({
   function submit() {
     if (!request || !chosen) return;
     assign.mutate(
-      { requestId: request.id, reviewerId: chosen.id },
+      {
+        requestId: request.id,
+        reviewerId: chosen.id,
+        expectedAssignmentVersion: request.assignmentVersion ?? 0,
+      },
       {
         onSuccess: () => {
           toast.success(current ? "Request reassigned" : isSelf ? "Ownership taken" : "Request assigned", isSelf ? `${request.code} is now yours.` : `${request.code} is now with ${chosen.name}.`);
@@ -86,7 +80,7 @@ export function AssignReviewerDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <SearchInput value={query} onChange={setQuery} placeholder="Search active reviewers…" />
+        <SearchInput value={query} onChange={setQuery} placeholder="Search active reviewers by name, email, designation…" />
 
         <RadioGroup value={selected} onValueChange={(v) => setSelected(String(v))} className="grid max-h-64 gap-2 overflow-y-auto pr-1 custom-scrollbar">
           {options.length === 0 && <p className="py-6 text-center text-sm text-muted-foreground">No active reviewers match.</p>}
@@ -108,11 +102,16 @@ export function AssignReviewerDialog({
                     <span className="truncate text-sm font-medium">{r.name}{r.id === me?.id && <span className="font-normal text-muted-foreground"> (you)</span>}</span>
                     {r.receiveNewRequests && <span className="rounded-full bg-brand-gold/15 px-1.5 py-px text-[9px] font-bold tracking-wider text-brand-gold uppercase">Default</span>}
                   </span>
-                  <span className="block truncate text-xs text-muted-foreground">{r.designation}</span>
+                  <span className="block truncate text-xs text-muted-foreground font-mono">{r.email}</span>
+                  {r.designation && <span className="block truncate text-[11px] text-muted-foreground/80">{r.designation}</span>}
                 </span>
-                <span className="shrink-0 text-right text-xs text-muted-foreground">
-                  {isCurrent ? <span className="font-semibold text-foreground">Current</span> : <><span className="font-semibold tabular-nums text-foreground">{workload.get(r.id) ?? 0}</span> active</>}
-                </span>
+                {isCurrent ? (
+                  <span className="shrink-0 text-right text-xs font-semibold text-foreground">Current</span>
+                ) : (r as any).activeRequestsCount !== undefined ? (
+                  <span className="shrink-0 text-right text-xs text-muted-foreground">
+                    <span className="font-semibold tabular-nums text-foreground">{(r as any).activeRequestsCount}</span> active
+                  </span>
+                ) : null}
               </label>
             );
           })}

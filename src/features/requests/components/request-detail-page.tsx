@@ -20,7 +20,7 @@ import { HistoryTimeline } from "@/features/requests/components/history-timeline
 import { RequestJourney } from "@/features/requests/components/request-journey";
 import { ReviewActionPanel } from "@/features/requests/components/review-action-panel";
 import { ReviewItem } from "@/features/requests/components/review-item";
-import { useAssignRequest, useCategories, useRequests, useResidents, useReviewers } from "@/hooks/use-reviewer-data";
+import { useAssignRequest, useCategories, useRequest, useResidents, useReviewers } from "@/hooks/use-reviewer-data";
 import { useMe } from "@/hooks/use-current-user";
 import { useToast } from "@/hooks/use-toast";
 import { IN_FLIGHT, changedFieldIds, currentSubmissionNumber, needsRefundOutcome, residentFullName, reviewItems } from "@/lib/domain";
@@ -31,7 +31,7 @@ type Section = "review" | "completion" | "history";
 export default function RequestDetailPage({ id }: { id: string }) {
   const toast = useToast();
   const { me, isDefault } = useMe();
-  const { data: requests, isLoading } = useRequests();
+  const { data: req, isLoading } = useRequest(id);
   const { data: residents } = useResidents();
   const { data: reviewers } = useReviewers();
   const { data: categories } = useCategories();
@@ -50,7 +50,6 @@ export default function RequestDetailPage({ id }: { id: string }) {
     );
   }
 
-  const req = requests?.find((r) => r.id === id);
   const isOwner = !!req && req.assignedReviewerId === me.id;
   const backHref = isOwner || !isDefault ? "/my-requests" : "/oversight";
 
@@ -73,13 +72,27 @@ export default function RequestDetailPage({ id }: { id: string }) {
     );
   }
 
-  const resident = residents?.find((r) => r.id === req.residentId);
+  const resident = req.resident
+    ? {
+        id: req.resident.id,
+        residentIdNumber: req.resident.residentId || req.resident.residentIdNumber || "",
+        firstName: req.resident.firstName || "",
+        lastName: req.resident.lastName || "",
+        displayName: req.resident.displayName || "",
+        email: req.resident.email || "",
+        phone: req.resident.phone || "",
+        active: true,
+        address: req.property?.address || req.fieldValues?.propertyAddress || "",
+        lotNo: req.property?.lotNo || req.fieldValues?.lotNo || "",
+        createdAt: "",
+      }
+    : residents?.find((r) => r.id === req.residentId);
   const owner = reviewers?.find((r) => r.id === req.assignedReviewerId);
   const category = categories?.find((c) => c.id === req.categoryId);
   const currentCategoryVersion = category?.version ?? req.formVersion;
   const canReview = isOwner && (req.status === "under_review" || req.status === "resubmitted");
 
-  const fields = [...req.formSnapshot].sort((a, b) => a.order - b.order);
+  const fields = [...(req.formSnapshot || [])].sort((a, b) => a.order - b.order);
   const provided = new Set(reviewItems(req).map((f) => f.id));
   const changed = changedFieldIds(req);
   const previousOf = (fieldId: string) => [...req.revisions].reverse().find((r) => r.fieldId === fieldId)?.previous;
@@ -99,6 +112,9 @@ export default function RequestDetailPage({ id }: { id: string }) {
         <span className="text-xs text-muted-foreground italic">{field.type === "file" ? "No file uploaded" : "Not provided"}</span>
       </div>
     );
+
+  const propAddress = req.property?.address || req.fieldValues?.propertyAddress || "—";
+  const propLot = req.property?.lotNo || req.fieldValues?.lotNo || "—";
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
@@ -131,9 +147,9 @@ export default function RequestDetailPage({ id }: { id: string }) {
               <span className="rounded-full bg-slate-200 px-2 py-px text-[10px] font-bold tracking-wider text-slate-700 uppercase dark:bg-slate-700 dark:text-slate-200">Archived category</span>
             )}
             <span aria-hidden="true">·</span>
-            <span>{req.fieldValues.propertyAddress}</span>
+            <span>{propAddress}</span>
             <span aria-hidden="true">·</span>
-            <span>{req.fieldValues.lotNo}</span>
+            <span>{propLot}</span>
           </div>
         </div>
       </div>

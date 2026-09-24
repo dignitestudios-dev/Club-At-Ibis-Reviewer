@@ -2,21 +2,24 @@
 
 import { useMemo } from "react";
 import Link from "next/link";
-import { ChevronRight, FileDiff, LayoutTemplate } from "lucide-react";
+import { ChevronRight, FileDiff, LayoutTemplate, RefreshCw } from "lucide-react";
 import { PageHeader } from "@/components/shared/page-header";
 import { EmptyState } from "@/components/shared/empty-state";
 import { SearchInput } from "@/components/shared/search-input";
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useCategories, useRequests } from "@/hooks/use-reviewer-data";
 import { useMe } from "@/hooks/use-current-user";
+import { useToast } from "@/hooks/use-toast";
 import { useUrlSearch } from "@/hooks/use-url-params";
 import { formatRelative } from "@/utils/format";
 import { cn } from "@/utils/cn";
 
 /** Every form the board uses, with what changed in its latest version. */
 export default function FormsPage() {
+  const toast = useToast();
   const { me, isDefault } = useMe();
-  const { data: categories, isLoading } = useCategories();
+  const { data: categories, isLoading, isFetching, refetch } = useCategories();
   const { data: requests } = useRequests();
   const [search, setSearch] = useUrlSearch("q");
 
@@ -36,6 +39,27 @@ export default function FormsPage() {
       <PageHeader
         title="Form Updates"
         description="When the Super Admin edits a category form, a new version is created. Compare what a form was with what it is now."
+        actions={
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={async () => {
+              try {
+                await refetch();
+                toast.success("Forms refreshed");
+              } catch {
+                toast.error("Failed to refresh forms");
+              }
+            }}
+            disabled={isFetching}
+            className="h-8 gap-1.5"
+            aria-label="Refresh forms"
+            title="Refresh forms"
+          >
+            <RefreshCw className={cn("size-3.5", isFetching && "animate-spin")} />
+            <span>Refresh</span>
+          </Button>
+        }
       />
       <SearchInput value={search} onChange={setSearch} placeholder="Search forms…" className="sm:max-w-sm" />
 

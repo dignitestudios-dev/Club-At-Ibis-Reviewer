@@ -61,7 +61,23 @@ export function RequestsTable({
           {rows.map((req) => {
             const step = nextStep(req);
             const reviewer = req.assignedReviewerId ? reviewerById.get(req.assignedReviewerId) : undefined;
-            const resName = residentFullName(residentById.get(req.residentId));
+            const resident = req.resident
+              ? {
+                  id: req.resident.id,
+                  residentIdNumber: req.resident.residentId || req.resident.residentIdNumber || "",
+                  firstName: req.resident.firstName || "",
+                  lastName: req.resident.lastName || "",
+                  displayName: req.resident.displayName || "",
+                  email: req.resident.email || "",
+                  phone: req.resident.phone || "",
+                  active: true,
+                  address: req.property?.address || req.fieldValues?.propertyAddress || "",
+                  lotNo: req.property?.lotNo || req.fieldValues?.lotNo || "",
+                  createdAt: "",
+                }
+              : residentById.get(req.residentId);
+            const resName = residentFullName(resident);
+            const propAddress = req.property?.address || req.fieldValues?.propertyAddress || "—";
             return (
               <TableRow key={req.id} className="group cursor-pointer" onClick={() => router.push(`/requests/${req.id}`)}>
                 <TableCell className="pl-4 max-w-[190px]">
@@ -79,7 +95,7 @@ export function RequestsTable({
                   <span className="block truncate" title={resName}>{resName}</span>
                 </TableCell>
                 <TableCell className="max-w-[190px]">
-                  <span className="block max-w-[190px] truncate text-sm text-muted-foreground" title={req.fieldValues.propertyAddress}>{req.fieldValues.propertyAddress}</span>
+                  <span className="block max-w-[190px] truncate text-sm text-muted-foreground" title={propAddress}>{propAddress}</span>
                 </TableCell>
                 <TableCell className="max-w-[130px]">
                   <StatusBadge status={req.status} />

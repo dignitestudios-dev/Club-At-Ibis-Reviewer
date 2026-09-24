@@ -1,7 +1,14 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { getCategories, getRequests, getResidents, getReviewers } from "@/features/requests/api/requests.service";
+import {
+  getCategories,
+  getIncomingRequests,
+  getRequestById,
+  getRequests,
+  getResidents,
+  getReviewers,
+} from "@/features/requests/api/requests.service";
 import {
   acceptItems,
   approveRequest,
@@ -18,13 +25,18 @@ import {
   startReview,
   uploadLetter,
 } from "@/features/requests/api/review.service";
-import { getNotifications, markAllNotificationsRead, markNotificationRead } from "@/features/notifications/api/notifications.service";
+import {
+  getNotifications,
+  markAllNotificationsRead,
+  markNotificationRead,
+} from "@/features/notifications/api/notifications.service";
 
 export const keys = {
   reviewers: ["reviewers"] as const,
   residents: ["residents"] as const,
   categories: ["categories"] as const,
   requests: ["requests"] as const,
+  incomingRequests: ["requests", "incoming"] as const,
   notifications: ["notifications"] as const,
 };
 
@@ -33,7 +45,11 @@ export const keys = {
 export const useReviewers = () => useQuery({ queryKey: keys.reviewers, queryFn: getReviewers });
 export const useResidents = () => useQuery({ queryKey: keys.residents, queryFn: getResidents });
 export const useCategories = () => useQuery({ queryKey: keys.categories, queryFn: getCategories });
-export const useRequests = () => useQuery({ queryKey: keys.requests, queryFn: getRequests });
+export const useRequests = () => useQuery({ queryKey: keys.requests, queryFn: () => getRequests() });
+export const useRequest = (id: string) =>
+  useQuery({ queryKey: [...keys.requests, id], queryFn: () => getRequestById(id), enabled: !!id });
+export const useIncomingRequests = () =>
+  useQuery({ queryKey: keys.incomingRequests, queryFn: () => getIncomingRequests() });
 export const useNotifications = () => useQuery({ queryKey: keys.notifications, queryFn: getNotifications });
 
 /* ----------------------------- mutations ----------------------------- */
@@ -43,7 +59,12 @@ function useRequestMutation<TVars>(fn: (vars: TVars) => Promise<unknown>) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: fn,
-    onSuccess: () => Promise.all([keys.requests, keys.notifications].map((queryKey) => qc.invalidateQueries({ queryKey }))),
+    onSuccess: () =>
+      Promise.all([
+        qc.invalidateQueries({ queryKey: keys.requests }),
+        qc.invalidateQueries({ queryKey: keys.incomingRequests }),
+        qc.invalidateQueries({ queryKey: keys.notifications }),
+      ]),
   });
 }
 

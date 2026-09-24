@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import { Filter, History, ListChecks } from "lucide-react";
+import { Filter, History, ListChecks, RefreshCw } from "lucide-react";
 import { PageHeader } from "@/components/shared/page-header";
 import { EmptyState } from "@/components/shared/empty-state";
 import { FilterCombobox } from "@/components/shared/filter-combobox";
@@ -15,14 +15,17 @@ import { RequestsTable } from "@/features/requests/components/requests-table";
 import { useRequests, useResidents } from "@/hooks/use-reviewer-data";
 import { useMe } from "@/hooks/use-current-user";
 import { usePageSize } from "@/hooks/use-page-size";
+import { useToast } from "@/hooks/use-toast";
 import { useUrlParams, useUrlSearch } from "@/hooks/use-url-params";
 import { IN_FLIGHT, STATUS_LABEL, STATUS_ORDER, residentFullName } from "@/lib/domain";
+import { cn } from "@/utils/cn";
 
 type Tab = "active" | "history";
 
 export default function MyRequestsPage() {
+  const toast = useToast();
   const { me } = useMe();
-  const { data: requests, isLoading } = useRequests();
+  const { data: requests, isLoading, isFetching, refetch } = useRequests();
   const { data: residents } = useResidents();
   const { values, set } = useUrlParams({ tab: "active", status: "all", category: "all", page: "1" });
   const [search, setSearch] = useUrlSearch("q");
@@ -61,7 +64,31 @@ export default function MyRequestsPage() {
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
-      <PageHeader title="My Assigned Requests" description="Requests you own. Open one to review its information and documents, and to record your decision." />
+      <PageHeader
+        title="My Assigned Requests"
+        description="Requests you own. Open one to review its information and documents, and to record your decision."
+        actions={
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={async () => {
+              try {
+                await refetch();
+                toast.success("Requests refreshed");
+              } catch {
+                toast.error("Failed to refresh requests");
+              }
+            }}
+            disabled={isFetching}
+            className="h-8 gap-1.5"
+            aria-label="Refresh requests"
+            title="Refresh requests"
+          >
+            <RefreshCw className={cn("size-3.5", isFetching && "animate-spin")} />
+            <span>Refresh</span>
+          </Button>
+        }
+      />
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <SegmentedTabs
