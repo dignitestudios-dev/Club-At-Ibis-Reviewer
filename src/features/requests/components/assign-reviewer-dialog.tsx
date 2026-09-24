@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
 import { UserRoundCheck } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -9,6 +9,7 @@ import { Spinner } from "@/components/ui/spinner";
 import { PersonAvatar } from "@/components/shared/person-avatar";
 import { SearchInput } from "@/components/shared/search-input";
 import { useAssignRequest, useReviewers } from "@/hooks/use-reviewer-data";
+import { useDebounce } from "@/hooks/use-debounce";
 import { useMe } from "@/hooks/use-current-user";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/utils/cn";
@@ -23,10 +24,12 @@ export function AssignReviewerDialog({
 }) {
   const toast = useToast();
   const assign = useAssignRequest();
+  const isSubmittingRef = useRef(false);
   const [selected, setSelected] = useState("");
   const [query, setQuery] = useState("");
+  const debouncedSearch = useDebounce(query.trim(), 250);
   const { data: reviewers, isLoading: isLoadingReviewers, isFetching: isFetchingReviewers } = useReviewers({
-    search: query.trim() || undefined,
+    search: debouncedSearch || undefined,
     limit: 50,
   });
   const { me } = useMe();
@@ -46,7 +49,8 @@ export function AssignReviewerDialog({
   const isSelf = chosen?.id === me?.id;
 
   function submit() {
-    if (!request || !chosen) return;
+    if (!request || !chosen || isSubmittingRef.current || assign.isPending) return;
+    isSubmittingRef.current = true;
     assign.mutate(
       {
         requestId: request.id,
@@ -55,10 +59,17 @@ export function AssignReviewerDialog({
       },
       {
         onSuccess: () => {
+          isSubmittingRef.current = false;
           toast.success(current ? "Request reassigned" : isSelf ? "Ownership taken" : "Request assigned", isSelf ? `${request.code} is now yours.` : `${request.code} is now with ${chosen.name}.`);
           onOpenChange(false);
         },
-        onError: (e: Error) => toast.error("Could not assign", e.message),
+        onError: (e: Error) => {
+          isSubmittingRef.current = false;
+          toast.error("Could not assign", e.message);
+        },
+        onSettled: () => {
+          isSubmittingRef.current = false;
+        },
       }
     );
   }

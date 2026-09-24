@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { AlertTriangle, Ban, Banknote, Check, CheckCircle2, Clock, Eye, FileCheck2, Lock, Mail, ReceiptText, RefreshCw, Undo2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -111,12 +111,28 @@ export function CompletionPanel({
 
   const fail = (title: string) => (e: Error) => toast.error(title, e.message);
 
+  const isSubmittingRef = useRef(false);
+
   function saveDeposit() {
-    if (choice === "") return;
+    if (choice === "" || isSubmittingRef.current || setDeposit.isPending) return;
     if (choice === "no") {
+      isSubmittingRef.current = true;
       setDeposit.mutate(
         { requestId: request.id, required: false },
-        { onSuccess: () => { setEditingDeposit(false); toast.success("Deposit not required"); }, onError: fail("Could not save") }
+        {
+          onSuccess: () => {
+            isSubmittingRef.current = false;
+            setEditingDeposit(false);
+            toast.success("Deposit not required");
+          },
+          onError: (e) => {
+            isSubmittingRef.current = false;
+            fail("Could not save")(e);
+          },
+          onSettled: () => {
+            isSubmittingRef.current = false;
+          },
+        }
       );
       return;
     }
@@ -125,9 +141,23 @@ export function CompletionPanel({
       setAmountError("Enter a deposit amount greater than zero.");
       return;
     }
+    isSubmittingRef.current = true;
     setDeposit.mutate(
       { requestId: request.id, required: true, amount: value },
-      { onSuccess: () => { setEditingDeposit(false); toast.success("Deposit set", `$${value.toLocaleString()} — status Pending.`); }, onError: fail("Could not save") }
+      {
+        onSuccess: () => {
+          isSubmittingRef.current = false;
+          setEditingDeposit(false);
+          toast.success("Deposit set", `$${value.toLocaleString()} — status Pending.`);
+        },
+        onError: (e) => {
+          isSubmittingRef.current = false;
+          fail("Could not save")(e);
+        },
+        onSettled: () => {
+          isSubmittingRef.current = false;
+        },
+      }
     );
   }
 
@@ -293,11 +323,23 @@ export function CompletionPanel({
       {/* 1 — deposit */}
       <StepCard step={1} title="Deposit" subtitle="Payment happens outside the app. Deposit entry is reviewer-only; a payment receipt is optional." done={!!depositDone} badge={<StaffOnly />}>
         {active && editingDeposit && request.deposit.status !== "received" ? (
-          <div className="space-y-4">
+          <form
+            noValidate
+            onSubmit={(e) => {
+              e.preventDefault();
+              saveDeposit();
+            }}
+            className="space-y-4"
+          >
             <p className="text-sm font-medium text-foreground">
               Deposit required? <span className="text-destructive">*</span>
             </p>
-            <RadioGroup value={choice} onValueChange={(v) => { setChoice(v as "yes" | "no"); setAmountError(""); }} className="grid gap-2 sm:grid-cols-2">
+            <RadioGroup
+              value={choice}
+              disabled={setDeposit.isPending}
+              onValueChange={(v) => { setChoice(v as "yes" | "no"); setAmountError(""); }}
+              className="grid gap-2 sm:grid-cols-2"
+            >
               {[
                 { value: "no", title: "No", body: "Continue straight to the final approval letter." },
                 { value: "yes", title: "Yes", body: "Enter an amount; status starts as Pending." },
@@ -306,10 +348,11 @@ export function CompletionPanel({
                   key={o.value}
                   className={cn(
                     "flex cursor-pointer items-start gap-3 rounded-xl border p-3 transition-colors",
-                    choice === o.value ? "border-primary bg-primary/5 dark:border-amber-400 dark:bg-amber-400/5" : "border-border hover:border-foreground/30"
+                    choice === o.value ? "border-primary bg-primary/5 dark:border-amber-400 dark:bg-amber-400/5" : "border-border hover:border-foreground/30",
+                    setDeposit.isPending && "cursor-not-allowed opacity-60"
                   )}
                 >
-                  <RadioGroupItem value={o.value} className="mt-0.5" />
+                  <RadioGroupItem value={o.value} disabled={setDeposit.isPending} className="mt-0.5" />
                   <span>
                     <span className="block text-sm font-semibold">{o.title}</span>
                     <span className="block text-xs text-muted-foreground">{o.body}</span>
@@ -330,6 +373,8 @@ export function CompletionPanel({
                     value={amount}
                     onChange={(e) => { setAmount(e.target.value); setAmountError(""); }}
                     placeholder="2,500"
+                    maxLength={20}
+                    disabled={setDeposit.isPending}
                     aria-invalid={!!amountError}
                     className="pl-7 font-mono"
                   />
@@ -338,17 +383,17 @@ export function CompletionPanel({
               </div>
             )}
             <div className="flex gap-2">
-              <Button onClick={saveDeposit} disabled={!choice || setDeposit.isPending}>
+              <Button type="submit" disabled={!choice || setDeposit.isPending}>
                 {setDeposit.isPending && <Spinner className="size-4" />}
                 Save deposit setting
               </Button>
               {decided && (
-                <Button variant="ghost" onClick={() => setEditingDeposit(false)}>
+                <Button type="button" variant="ghost" disabled={setDeposit.isPending} onClick={() => setEditingDeposit(false)}>
                   Cancel
                 </Button>
               )}
             </div>
-          </div>
+          </form>
         ) : !decided ? (
           <p className="text-sm text-muted-foreground">The assigned reviewer sets whether a deposit is required after approval.</p>
         ) : !request.deposit.required ? (

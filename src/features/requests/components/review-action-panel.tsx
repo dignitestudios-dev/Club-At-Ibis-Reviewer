@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { AlertTriangle, ArrowRight, Ban, CheckCircle2, CheckCheck, FileEdit, Flag, Lock, PlayCircle, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -51,6 +51,7 @@ export function ReviewActionPanel({
   const revise = useRequestRevision();
   const reject = useRejectRequest();
   const approve = useApproveRequest();
+  const isSubmittingRef = useRef(false);
 
   const [revising, setRevising] = useState(false);
   const [feedback, setFeedback] = useState("");
@@ -65,7 +66,10 @@ export function ReviewActionPanel({
   const blockers: string[] = [];
   if (progress.flagged.length > 0) blockers.push(`${progress.flagged.length} flagged item${progress.flagged.length === 1 ? " needs" : "s need"} to be resolved or sent back`);
   if (progress.pending.length > 0) blockers.push(`${progress.pending.length} item${progress.pending.length === 1 ? " is" : "s are"} not reviewed yet`);
-  const fail = (title: string) => (e: Error) => toast.error(title, e.message);
+  const fail = (title: string) => (e: Error) => {
+    isSubmittingRef.current = false;
+    toast.error(title, e.message);
+  };
 
   function openRevision() {
     const lines = progress.flagged.map((f) => {
@@ -101,7 +105,17 @@ export function ReviewActionPanel({
             </p>
             <Button
               className="w-full"
-              onClick={() => start.mutate(request.id, { onSuccess: () => toast.success("Review started", "The request is now Under Review."), onError: fail("Could not start review") })}
+              onClick={() => {
+                if (isSubmittingRef.current) return;
+                isSubmittingRef.current = true;
+                start.mutate(request.id, {
+                  onSuccess: () => {
+                    isSubmittingRef.current = false;
+                    toast.success("Review started", "The request is now Under Review.");
+                  },
+                  onError: fail("Could not start review"),
+                });
+              }}
               disabled={start.isPending}
             >
               {start.isPending ? <Spinner className="size-4" /> : <PlayCircle />}
@@ -139,12 +153,20 @@ export function ReviewActionPanel({
                     size="sm"
                     className="w-full"
                     disabled={acceptItems.isPending}
-                    onClick={() =>
+                    onClick={() => {
+                      if (isSubmittingRef.current) return;
+                      isSubmittingRef.current = true;
                       acceptItems.mutate(
                         { requestId: request.id, fieldIds: progress.pending.map((f) => f.id) },
-                        { onSuccess: () => toast.success("Items accepted", `${progress.pending.length} remaining item${progress.pending.length === 1 ? "" : "s"} marked accepted.`), onError: fail("Could not save") }
-                      )
-                    }
+                        {
+                          onSuccess: () => {
+                            isSubmittingRef.current = false;
+                            toast.success("Items accepted", `${progress.pending.length} remaining item${progress.pending.length === 1 ? "" : "s"} marked accepted.`);
+                          },
+                          onError: fail("Could not save"),
+                        }
+                      );
+                    }}
                   >
                     {acceptItems.isPending ? <Spinner className="size-4" /> : <CheckCheck />}
                     Accept all {progress.pending.length} remaining
@@ -191,7 +213,7 @@ export function ReviewActionPanel({
             {request.feedback && (
               <div className="rounded-xl border border-border bg-muted/30 p-3">
                 <p className="text-[11px] font-semibold tracking-wider text-muted-foreground uppercase">Feedback sent</p>
-                <p className="mt-1 text-sm whitespace-pre-line text-foreground">{request.feedback}</p>
+                <p className="mt-1 text-sm whitespace-pre-line text-foreground break-words">{request.feedback}</p>
               </div>
             )}
           </div>
@@ -224,7 +246,7 @@ export function ReviewActionPanel({
             <p className="flex items-center gap-2 text-sm font-semibold text-rose-950 dark:text-rose-200">
               <XCircle className="size-4" aria-hidden="true" /> Rejected
             </p>
-            <p className="mt-1.5 text-sm leading-relaxed text-rose-900/90 dark:text-rose-300/90">{request.rejectionReason}</p>
+            <p className="mt-1.5 text-sm leading-relaxed text-rose-900/90 dark:text-rose-300/90 break-words">{request.rejectionReason}</p>
           </div>
         )}
 
@@ -265,7 +287,16 @@ export function ReviewActionPanel({
             <label htmlFor="revision-feedback" className="block text-sm font-medium text-foreground">
               Feedback to the resident <span className="text-destructive">*</span> <span className="font-normal text-muted-foreground">(required)</span>
             </label>
-            <Textarea id="revision-feedback" rows={6} value={feedback} onChange={(e) => { setFeedback(e.target.value); setError(""); }} aria-invalid={!!error} className="resize-none" />
+            <Textarea
+              id="revision-feedback"
+              rows={6}
+              maxLength={2000}
+              disabled={revise.isPending}
+              value={feedback}
+              onChange={(e) => { setFeedback(e.target.value); setError(""); }}
+              aria-invalid={!!error}
+              className="resize-none"
+            />
             {error && <p className="text-xs text-destructive" role="alert">{error}</p>}
           </div>
           <DialogFooter>
@@ -275,11 +306,14 @@ export function ReviewActionPanel({
             <Button
               disabled={revise.isPending}
               onClick={() => {
+                if (isSubmittingRef.current) return;
                 if (!feedback.trim()) return setError("Feedback is required — tell the resident what to correct.");
+                isSubmittingRef.current = true;
                 revise.mutate(
                   { requestId: request.id, feedback },
                   {
                     onSuccess: () => {
+                      isSubmittingRef.current = false;
                       setRevising(false);
                       toast.success("Revision requested", "The resident has been notified to correct the flagged items.");
                     },
@@ -311,6 +345,8 @@ export function ReviewActionPanel({
             <Textarea
               id="reject-reason"
               rows={5}
+              maxLength={2000}
+              disabled={reject.isPending}
               value={rejectReason}
               onChange={(e) => { setRejectReason(e.target.value); setError(""); }}
               placeholder="State the guideline or condition the request does not meet."
@@ -327,11 +363,14 @@ export function ReviewActionPanel({
               variant="destructive"
               disabled={reject.isPending}
               onClick={() => {
+                if (isSubmittingRef.current) return;
                 if (!rejectReason.trim()) return setError("A rejection reason is required.");
+                isSubmittingRef.current = true;
                 reject.mutate(
                   { requestId: request.id, reason: rejectReason },
                   {
                     onSuccess: () => {
+                      isSubmittingRef.current = false;
                       setRejecting(false);
                       toast.success("Request rejected", "The resident has been notified.");
                     },
@@ -355,15 +394,18 @@ export function ReviewActionPanel({
         description="The status becomes Approved and the resident is notified. After approval, revision and rejection are no longer available — you'll continue with the deposit and final letter."
         confirmLabel="Approve request"
         loading={approve.isPending}
-        onConfirm={() =>
+        onConfirm={() => {
+          if (isSubmittingRef.current) return;
+          isSubmittingRef.current = true;
           approve.mutate(request.id, {
             onSuccess: () => {
+              isSubmittingRef.current = false;
               toast.success("Request approved", "The resident has been notified. Continue with deposit and completion.");
               onGoToCompletion();
             },
             onError: fail("Could not approve"),
-          })
-        }
+          });
+        }}
       />
     </Card>
   );

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Check, ChevronDown, Search } from "lucide-react";
+import { Check, ChevronDown, Search, X } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import type { FilterOption } from "@/components/shared/filter-select";
 import { cn } from "@/utils/cn";
@@ -97,8 +97,19 @@ export function FilterCombobox<T extends string>({
               onKeyDown={onKeyDown}
               placeholder={`Search ${label.toLowerCase()}…`}
               aria-label={`Search ${label}`}
-              className="h-10 w-full bg-transparent pr-3 pl-8 text-sm outline-none placeholder:text-muted-foreground"
+              maxLength={100}
+              className="h-10 w-full bg-transparent pr-8 pl-8 text-sm outline-none placeholder:text-muted-foreground"
             />
+            {query.trim().length > 0 && (
+              <button
+                type="button"
+                onClick={() => setQuery("")}
+                className="absolute top-1/2 right-2.5 -translate-y-1/2 cursor-pointer rounded-full p-1 text-muted-foreground transition-colors outline-none hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary"
+                aria-label="Clear search"
+              >
+                <X className="size-3.5" aria-hidden="true" />
+              </button>
+            )}
           </div>
           <ul ref={listRef} role="listbox" aria-label={label} className="max-h-60 overflow-y-auto p-1 custom-scrollbar">
             {filtered.length === 0 && <li className="px-3 py-6 text-center text-sm text-muted-foreground">No matches found.</li>}

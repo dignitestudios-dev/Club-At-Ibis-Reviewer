@@ -1,5 +1,6 @@
 "use client";
 
+import { useRef } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@/components/ui/button";
@@ -16,6 +17,7 @@ export default function ChangePasswordForm() {
   const toast = useToast();
   const { logout } = useLogout();
   const { mutate, isPending } = useChangePasswordMutation();
+  const isSubmittingRef = useRef(false);
   const {
     control,
     handleSubmit,
@@ -27,15 +29,21 @@ export default function ChangePasswordForm() {
   });
 
   function onSubmit(data: ChangePasswordPayload) {
+    if (isSubmittingRef.current) return;
+    isSubmittingRef.current = true;
     mutate(data, {
       onSuccess: () => {
+        isSubmittingRef.current = false;
         // Changing the password revokes the token used to make this
         // request — the account is signed out server-side either way, so
         // the client session has to follow, not just show a toast.
         toast.success("Password changed", "Sign in again with your new password.");
         logout();
       },
-      onError: (e: Error) => toast.error("Could not change password", e.message),
+      onError: (e: Error) => {
+        isSubmittingRef.current = false;
+        toast.error("Could not change password", e.message);
+      },
     });
   }
 

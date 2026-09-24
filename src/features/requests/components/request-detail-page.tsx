@@ -95,7 +95,7 @@ export default function RequestDetailPage({ id }: { id: string }) {
   const fields = [...(req.formSnapshot || [])].sort((a, b) => a.order - b.order);
   const provided = new Set(reviewItems(req).map((f) => f.id));
   const changed = changedFieldIds(req);
-  const previousOf = (fieldId: string) => [...req.revisions].reverse().find((r) => r.fieldId === fieldId)?.previous;
+  const previousOf = (fieldId: string) => [...(req?.revisions ?? [])].reverse().find((r) => r.fieldId === fieldId)?.previous;
   const infoFields = fields.filter((f) => f.type !== "file");
   const fileFields = fields.filter((f) => f.type === "file");
   const canOwnIncoming = isDefault && !req.assignedReviewerId && IN_FLIGHT.includes(req.status);
