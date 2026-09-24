@@ -40,7 +40,7 @@ export function RequestsTable({
       <Table>
         <TableHeader>
           <TableRow className="bg-muted/40 hover:bg-muted/40">
-            <TableHead className="pl-4 max-w-[190px]">Request</TableHead>
+            <TableHead className="pl-4 w-[190px] min-w-[190px]">Request</TableHead>
             <TableHead className="max-w-[180px]">Resident</TableHead>
             <TableHead className="max-w-[190px]">Property</TableHead>
             <TableHead className="max-w-[130px]">Status</TableHead>
@@ -80,11 +80,11 @@ export function RequestsTable({
             const propAddress = req.property?.address || req.fieldValues?.propertyAddress || "—";
             return (
               <TableRow key={req.id} className="group cursor-pointer" onClick={() => router.push(`/requests/${req.id}`)}>
-                <TableCell className="pl-4 max-w-[190px]">
+                <TableCell className="pl-4 w-[190px] min-w-[190px]">
                   <Link
                     href={`/requests/${req.id}`}
                     onClick={(e) => e.stopPropagation()}
-                    className="block font-mono text-xs font-semibold text-primary hover:underline dark:text-amber-300 truncate"
+                    className="block font-mono text-xs font-semibold text-primary hover:underline dark:text-amber-300 whitespace-nowrap"
                     title={req.code}
                   >
                     {req.code}

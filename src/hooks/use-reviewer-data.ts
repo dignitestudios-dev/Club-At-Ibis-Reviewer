@@ -4,10 +4,13 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   getCategories,
   getIncomingRequests,
+  getIncomingRequestsPage,
   getRequestById,
   getRequests,
+  getRequestsPage,
   getResidents,
   getReviewers,
+  type ReviewerRequestsQueryParams,
 } from "@/features/requests/api/requests.service";
 import {
   acceptItems,
@@ -42,14 +45,29 @@ export const keys = {
 
 /* ------------------------------ queries ------------------------------ */
 
-export const useReviewers = () => useQuery({ queryKey: keys.reviewers, queryFn: getReviewers });
+export const useReviewers = (params?: { search?: string; page?: number; limit?: number }) =>
+  useQuery({
+    queryKey: params?.search ? [...keys.reviewers, params.search] : keys.reviewers,
+    queryFn: () => getReviewers(params),
+  });
 export const useResidents = () => useQuery({ queryKey: keys.residents, queryFn: getResidents });
 export const useCategories = () => useQuery({ queryKey: keys.categories, queryFn: getCategories });
-export const useRequests = () => useQuery({ queryKey: keys.requests, queryFn: () => getRequests() });
+export const useRequests = (params?: ReviewerRequestsQueryParams) =>
+  useQuery({ queryKey: params ? [...keys.requests, params] : keys.requests, queryFn: () => getRequests(params) });
+export const useRequestsPage = (params: ReviewerRequestsQueryParams) =>
+  useQuery({ queryKey: [...keys.requests, "page", params], queryFn: () => getRequestsPage(params) });
 export const useRequest = (id: string) =>
   useQuery({ queryKey: [...keys.requests, id], queryFn: () => getRequestById(id), enabled: !!id });
-export const useIncomingRequests = () =>
-  useQuery({ queryKey: keys.incomingRequests, queryFn: () => getIncomingRequests() });
+export const useIncomingRequests = (params?: { search?: string; page?: number; limit?: number }) =>
+  useQuery({
+    queryKey: params ? [...keys.incomingRequests, params] : keys.incomingRequests,
+    queryFn: () => getIncomingRequests(params),
+  });
+export const useIncomingRequestsPage = (params?: { search?: string; page?: number; limit?: number }) =>
+  useQuery({
+    queryKey: [...keys.incomingRequests, "page", params],
+    queryFn: () => getIncomingRequestsPage(params),
+  });
 export const useNotifications = () => useQuery({ queryKey: keys.notifications, queryFn: getNotifications });
 
 /* ----------------------------- mutations ----------------------------- */

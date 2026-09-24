@@ -150,14 +150,85 @@ export function mergeWithLocal(backendRecord: RequestRecord): RequestRecord {
   };
 }
 
-export async function getRequests(params?: {
+export interface ReviewerRequestsQueryParams {
   status?: string;
   search?: string;
   page?: number;
   limit?: number;
-}): Promise<RequestRecord[]> {
+  submittedFrom?: string;
+  submittedTo?: string;
+  categoryId?: string;
+  categoryStatus?: string;
+  assignedReviewerId?: string;
+  depositStatus?: string;
+  refundOutcome?: string;
+}
+
+export interface PaginatedReviewerRequestsResponse {
+  requests: RequestRecord[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+}
+
+function cleanReviewerParams(params?: ReviewerRequestsQueryParams): Record<string, any> {
+  const clean: Record<string, any> = {};
+  if (!params) return clean;
+  if (params.page) clean.page = params.page;
+  if (params.limit) clean.limit = params.limit;
+  if (params.search && params.search.trim()) clean.search = params.search.trim();
+  if (params.status && params.status !== "all") clean.status = params.status;
+  if (params.submittedFrom) clean.submittedFrom = params.submittedFrom;
+  if (params.submittedTo) clean.submittedTo = params.submittedTo;
+  if (params.categoryId && params.categoryId !== "all") clean.categoryId = params.categoryId;
+  if (params.categoryStatus && params.categoryStatus !== "all") clean.categoryStatus = params.categoryStatus;
+  if (params.assignedReviewerId && params.assignedReviewerId !== "all") clean.assignedReviewerId = params.assignedReviewerId;
+  if (params.depositStatus && params.depositStatus !== "all") clean.depositStatus = params.depositStatus;
+  if (params.refundOutcome && params.refundOutcome !== "all") clean.refundOutcome = params.refundOutcome;
+  return clean;
+}
+
+export async function getRequestsPage(params?: ReviewerRequestsQueryParams): Promise<PaginatedReviewerRequestsResponse> {
+  const cleanParams = cleanReviewerParams(params);
   try {
-    const { data } = await axiosInstance.get("/reviewer/requests", { params });
+    const { data } = await axiosInstance.get("/reviewer/requests", { params: cleanParams });
+    const list = data?.data?.requests ?? data?.requests ?? [];
+    const records = list.map(toReviewerRequestRecord).map(mergeWithLocal);
+    return {
+      requests: records,
+      pagination: data?.pagination ?? {
+        page: params?.page ?? 1,
+        limit: params?.limit ?? 20,
+        total: list.length,
+        totalPages: Math.ceil(list.length / (params?.limit ?? 20)) || 1,
+      },
+    };
+  } catch {
+    const all = db.getRequests();
+    const page = params?.page ?? 1;
+    const limit = params?.limit ?? 20;
+    return delay(
+      {
+        requests: [...all].sort((a, b) => (a.submittedAt < b.submittedAt ? 1 : -1)).slice((page - 1) * limit, page * limit),
+        pagination: {
+          page,
+          limit,
+          total: all.length,
+          totalPages: Math.ceil(all.length / limit) || 1,
+        },
+      },
+      80
+    );
+  }
+}
+
+export async function getRequests(params?: ReviewerRequestsQueryParams): Promise<RequestRecord[]> {
+  const cleanParams = cleanReviewerParams(params);
+  try {
+    const { data } = await axiosInstance.get("/reviewer/requests", { params: cleanParams });
     const list = data?.data?.requests ?? data?.requests ?? [];
     const records = list.map(toReviewerRequestRecord).map(mergeWithLocal);
     const all = db.getRequests();
@@ -172,6 +243,48 @@ export async function getRequests(params?: {
     const all = db.getRequests();
     return delay(
       [...all].sort((a, b) => (a.submittedAt < b.submittedAt ? 1 : -1)),
+      80
+    );
+  }
+}
+
+export async function getIncomingRequestsPage(params?: {
+  search?: string;
+  page?: number;
+  limit?: number;
+}): Promise<PaginatedReviewerRequestsResponse> {
+  const cleanParams: Record<string, any> = {};
+  if (params?.page) cleanParams.page = params.page;
+  if (params?.limit) cleanParams.limit = params.limit;
+  if (params?.search && params.search.trim()) cleanParams.search = params.search.trim();
+
+  try {
+    const { data } = await axiosInstance.get("/reviewer/requests/incoming", { params: cleanParams });
+    const list = data?.data?.requests ?? data?.requests ?? [];
+    const records = list.map(toReviewerRequestRecord).map(mergeWithLocal);
+    return {
+      requests: records,
+      pagination: data?.pagination ?? {
+        page: params?.page ?? 1,
+        limit: params?.limit ?? 20,
+        total: list.length,
+        totalPages: Math.ceil(list.length / (params?.limit ?? 20)) || 1,
+      },
+    };
+  } catch {
+    const all = db.getRequests().filter((r) => !r.assignedReviewerId && r.status === "submitted");
+    const page = params?.page ?? 1;
+    const limit = params?.limit ?? 20;
+    return delay(
+      {
+        requests: [...all].sort((a, b) => (a.submittedAt < b.submittedAt ? -1 : 1)).slice((page - 1) * limit, page * limit),
+        pagination: {
+          page,
+          limit,
+          total: all.length,
+          totalPages: Math.ceil(all.length / limit) || 1,
+        },
+      },
       80
     );
   }
@@ -297,28 +410,31 @@ export async function getCategories(): Promise<Category[]> {
   return delay(db.getCategories(), 40);
 }
 
-export async function getReviewers(): Promise<PublicReviewer[]> {
-  const allReviewers = db.getReviewers();
-  let currentUser: PublicReviewer | null = null;
-  try {
-    const raw = typeof window !== "undefined" ? window.localStorage.getItem("rv-auth-user") : null;
-    if (raw) currentUser = JSON.parse(raw) as PublicReviewer;
-  } catch {
-    // ignore
-  }
-  const map = new Map<string, PublicReviewer>();
-  for (const r of allReviewers) {
-    const { password: _p, ...rest } = r;
-    map.set(r.id, rest);
-  }
-  if (currentUser?.id) {
-    map.set(currentUser.id, {
-      ...currentUser,
-      receiveNewRequests: currentUser.receiveNewRequests ?? true,
-      loginEnabled: currentUser.loginEnabled !== false,
-      inviteStatus: currentUser.inviteStatus || "active",
-      createdAt: currentUser.createdAt || new Date().toISOString(),
-    });
-  }
-  return delay(Array.from(map.values()), 40);
+export async function getReviewers(params?: {
+  search?: string;
+  page?: number;
+  limit?: number;
+}): Promise<PublicReviewer[]> {
+  const queryParams = new URLSearchParams();
+  if (params?.page) queryParams.set("page", String(params.page));
+  if (params?.limit) queryParams.set("limit", String(params.limit));
+  if (params?.search?.trim()) queryParams.set("search", params.search.trim());
+
+  const qs = queryParams.toString();
+  const url = `/reviewer/reviewers${qs ? `?${qs}` : ""}`;
+  const { data } = await axiosInstance.get(url);
+  const list = data?.data?.reviewers ?? data?.reviewers ?? [];
+
+  return list.map((r: any) => ({
+    id: r.id || r._id,
+    name: r.name || `${r.firstName || ""} ${r.lastName || ""}`.trim() || "Reviewer",
+    email: r.email || "",
+    employeeNumber: r.employeeNumber || "",
+    designation: r.designation || undefined,
+    receiveNewRequests: r.isDefaultReviewer ?? r.receiveNewRequests ?? false,
+    inviteStatus: "active" as const,
+    loginEnabled: true,
+    activeRequestsCount: r.activeRequestsCount,
+    createdAt: r.createdAt || new Date().toISOString(),
+  }));
 }

@@ -12,55 +12,76 @@ import { SearchInput } from "@/components/shared/search-input";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { RequestsTable } from "@/features/requests/components/requests-table";
-import { useRequests, useResidents } from "@/hooks/use-reviewer-data";
+import { useCategories, useRequests, useRequestsPage } from "@/hooks/use-reviewer-data";
 import { useMe } from "@/hooks/use-current-user";
 import { usePageSize } from "@/hooks/use-page-size";
 import { useToast } from "@/hooks/use-toast";
 import { useUrlParams, useUrlSearch } from "@/hooks/use-url-params";
-import { IN_FLIGHT, STATUS_LABEL, STATUS_ORDER, residentFullName } from "@/lib/domain";
+import { IN_FLIGHT, STATUS_LABEL, STATUS_ORDER } from "@/lib/domain";
 import { cn } from "@/utils/cn";
 
 type Tab = "active" | "history";
 
+const ACTIVE_STATUSES = "submitted,under_review,changes_required,resubmitted,approved";
+const HISTORY_STATUSES = "completed,rejected,withdrawn";
+
 export default function MyRequestsPage() {
   const toast = useToast();
   const { me } = useMe();
-  const { data: requests, isLoading, isFetching, refetch } = useRequests();
-  const { data: residents } = useResidents();
   const { values, set } = useUrlParams({ tab: "active", status: "all", category: "all", page: "1" });
   const [search, setSearch] = useUrlSearch("q");
   const [pageSize, setPageSize] = usePageSize();
   const tab: Tab = values.tab === "history" ? "history" : "active";
 
-  const mine = useMemo(() => (requests ?? []).filter((r) => r.assignedReviewerId === me?.id), [requests, me?.id]);
-  // Active: still moving through the workflow. History: completed, rejected or withdrawn.
-  const activeList = mine.filter((r) => IN_FLIGHT.includes(r.status));
-  const historyList = mine.filter((r) => !IN_FLIGHT.includes(r.status));
+  const page = Math.max(1, Number(values.page) || 1);
+  const statusParam = values.status !== "all" ? values.status : tab === "active" ? ACTIVE_STATUSES : HISTORY_STATUSES;
 
-  const residentById = useMemo(() => new Map((residents ?? []).map((r) => [r.id, r])), [residents]);
-  const q = search.trim().toLowerCase();
-  const source = tab === "active" ? activeList : historyList;
-  const rows = source.filter((r) => {
-    if (values.status !== "all" && r.status !== values.status) return false;
-    if (values.category !== "all" && r.categoryId !== values.category) return false;
-    if (!q) return true;
-    const res = residentById.get(r.residentId);
-    return `${r.code} ${r.categoryName} ${residentFullName(res)} ${res?.residentIdNumber ?? ""} ${r.fieldValues.propertyAddress} ${r.fieldValues.lotNo}`.toLowerCase().includes(q);
+  const { data: pageData, isLoading, isFetching, refetch } = useRequestsPage({
+    page,
+    limit: pageSize,
+    search: search.trim() || undefined,
+    status: statusParam,
+    categoryId: values.category !== "all" ? values.category : undefined,
+    assignedReviewerId: me?.id,
   });
 
-  const pages = Math.max(1, Math.ceil(rows.length / pageSize));
-  const page = Math.min(Math.max(1, Number(values.page) || 1), pages);
-  const visible = rows.slice((page - 1) * pageSize, page * pageSize);
+  const { data: allMine } = useRequests({ assignedReviewerId: me?.id, limit: 100 });
+  const { data: categories } = useCategories();
+
+  const rows = pageData?.requests ?? [];
+  const total = pageData?.pagination?.total ?? 0;
+  const q = search.trim();
   const filtersOn = values.status !== "all" || values.category !== "all" || !!q;
+
+  const activeCount = useMemo(
+    () => (allMine ?? []).filter((r) => IN_FLIGHT.includes(r.status)).length,
+    [allMine]
+  );
+  const historyCount = useMemo(
+    () => (allMine ?? []).filter((r) => !IN_FLIGHT.includes(r.status)).length,
+    [allMine]
+  );
 
   const categoryOptions = useMemo(
     () => [
       { label: "All categories", value: "all" },
-      ...[...new Map(mine.map((r) => [r.categoryId, r.categoryName])).entries()].map(([value, label]) => ({ label, value })).sort((a, b) => a.label.localeCompare(b.label)),
+      ...(categories ?? [])
+        .sort((a, b) => a.name.localeCompare(b.name))
+        .map((c) => ({ label: c.name, value: c.id })),
     ],
-    [mine]
+    [categories]
   );
-  const statusOptions = [{ label: "All statuses", value: "all" }, ...STATUS_ORDER.map((s) => ({ label: STATUS_LABEL[s], value: s }))];
+
+  const statusOptions = useMemo(
+    () => [
+      { label: "All statuses", value: "all" },
+      ...(tab === "active" ? STATUS_ORDER.filter((s) => IN_FLIGHT.includes(s)) : STATUS_ORDER.filter((s) => !IN_FLIGHT.includes(s))).map((s) => ({
+        label: STATUS_LABEL[s],
+        value: s,
+      })),
+    ],
+    [tab]
+  );
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
@@ -94,10 +115,10 @@ export default function MyRequestsPage() {
         <SegmentedTabs
           label="Request lists"
           value={tab}
-          onChange={(v) => set({ tab: v, page: "1" })}
+          onChange={(v) => set({ tab: v, status: "all", page: "1" })}
           options={[
-            { value: "active", label: "Active Requests", icon: ListChecks, count: activeList.length },
-            { value: "history", label: "History", icon: History, count: historyList.length },
+            { value: "active", label: "Active Requests", icon: ListChecks, count: activeCount },
+            { value: "history", label: "History", icon: History, count: historyCount },
           ]}
         />
         <SearchInput value={search} onChange={setSearch} placeholder="Search reference, resident, property or lot…" className="sm:max-w-sm" />
@@ -117,11 +138,11 @@ export default function MyRequestsPage() {
       ) : rows.length === 0 ? (
         <EmptyState
           icon={filtersOn ? Filter : ListChecks}
-          title={filtersOn ? "No requests match" : mine.length === 0 ? "Nothing assigned to you yet" : tab === "active" ? "No active requests" : "No history yet"}
+          title={filtersOn ? "No requests match" : (allMine ?? []).length === 0 ? "Nothing assigned to you yet" : tab === "active" ? "No active requests" : "No history yet"}
           description={
             filtersOn
               ? "Try a different search or clear the filters."
-              : mine.length === 0
+              : (allMine ?? []).length === 0
                 ? "Requests assigned to you will appear here, and you'll be notified when one arrives."
                 : tab === "active" ? "Requests you are working on will appear here." : "Completed, rejected and withdrawn requests will appear here."
           }
@@ -135,11 +156,11 @@ export default function MyRequestsPage() {
         />
       ) : (
         <div className="space-y-4">
-          <RequestsTable rows={visible} />
+          <RequestsTable rows={rows} />
           <Pagination
             page={page}
             pageSize={pageSize}
-            total={rows.length}
+            total={total}
             onPageChange={(p) => set({ page: String(p) })}
             onPageSizeChange={(n) => {
               setPageSize(n);
