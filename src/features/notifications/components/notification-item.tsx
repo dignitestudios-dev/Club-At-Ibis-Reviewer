@@ -8,15 +8,25 @@ import { NotificationIcon, NOTIFICATION_LABEL } from "@/features/notifications/c
 import { formatDateTime, formatRelative } from "@/utils/format";
 import { cn } from "@/utils/cn";
 
-const BADGE: Record<ReviewerNotificationType, string> = {
+const BADGE: Record<string, string> = {
   new_assignment: "bg-sky-50 dark:bg-sky-950/40 text-sky-900 dark:text-sky-300 border-sky-200/80 dark:border-sky-800/60",
+  request_assigned: "bg-sky-50 dark:bg-sky-950/40 text-sky-900 dark:text-sky-300 border-sky-200/80 dark:border-sky-800/60",
+  assigned: "bg-sky-50 dark:bg-sky-950/40 text-sky-900 dark:text-sky-300 border-sky-200/80 dark:border-sky-800/60",
+  reassigned: "bg-sky-50 dark:bg-sky-950/40 text-sky-900 dark:text-sky-300 border-sky-200/80 dark:border-sky-800/60",
   form_updated: "bg-teal-50 dark:bg-teal-950/40 text-teal-900 dark:text-teal-300 border-teal-200/80 dark:border-teal-800/60",
   incoming_request: "bg-indigo-50 dark:bg-indigo-950/40 text-indigo-900 dark:text-indigo-300 border-indigo-200/80 dark:border-indigo-800/60",
+  request_submitted: "bg-indigo-50 dark:bg-indigo-950/40 text-indigo-900 dark:text-indigo-300 border-indigo-200/80 dark:border-indigo-800/60",
+  new_submission: "bg-indigo-50 dark:bg-indigo-950/40 text-indigo-900 dark:text-indigo-300 border-indigo-200/80 dark:border-indigo-800/60",
+  submitted: "bg-indigo-50 dark:bg-indigo-950/40 text-indigo-900 dark:text-indigo-300 border-indigo-200/80 dark:border-indigo-800/60",
   resubmission: "bg-purple-50 dark:bg-purple-950/40 text-purple-900 dark:text-purple-300 border-purple-200/80 dark:border-purple-800/60",
+  resubmitted: "bg-purple-50 dark:bg-purple-950/40 text-purple-900 dark:text-purple-300 border-purple-200/80 dark:border-purple-800/60",
   request_update: "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 border-emerald-200/80 dark:border-emerald-800/60",
   withdrawal: "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700",
+  withdrawn: "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700",
   action_required: "bg-amber-50 dark:bg-amber-950/40 text-amber-900 dark:text-amber-300 border-amber-200/80 dark:border-amber-800/60",
 };
+
+const FALLBACK_BADGE = "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700";
 
 /** Same card as the resident portal's notification item. */
 export const NotificationItem = memo(function NotificationItem({
@@ -26,6 +36,9 @@ export const NotificationItem = memo(function NotificationItem({
   notification: ReviewerNotification;
   onMarkRead: (id: string) => void;
 }) {
+  const badgeClass = BADGE[notification.type] || FALLBACK_BADGE;
+  const label = NOTIFICATION_LABEL[notification.type] || "Alert";
+
   return (
     <article
       aria-label={`${notification.title} - ${notification.read ? "Read" : "Unread"}`}
@@ -39,8 +52,8 @@ export const NotificationItem = memo(function NotificationItem({
         <NotificationIcon type={notification.type} className="mt-0.5 size-10" />
         <div className="min-w-0 flex-1 space-y-1">
           <div className="flex flex-wrap items-center gap-2">
-            <span className={cn("rounded-full border px-2.5 py-0.5 text-[11px] font-medium", BADGE[notification.type])}>
-              {NOTIFICATION_LABEL[notification.type]}
+            <span className={cn("rounded-full border px-2.5 py-0.5 text-[11px] font-medium", badgeClass)}>
+              {label}
             </span>
             {!notification.read && (
               <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-bold text-primary tracking-wide dark:text-amber-300">NEW</span>

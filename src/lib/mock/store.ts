@@ -91,18 +91,45 @@ export const db = {
 /** The signed-in reviewer, always re-read from the store so admin changes apply immediately. */
 export function currentReviewer(): Reviewer {
   let id: string | undefined;
+  let parsedUser: PublicReviewer | undefined;
   if (isBrowser()) {
     try {
       const raw = window.localStorage.getItem("rv-auth-user");
-      if (raw) id = (JSON.parse(raw) as PublicReviewer)?.id;
+      if (raw) {
+        parsedUser = JSON.parse(raw) as PublicReviewer;
+        id = parsedUser?.id;
+      }
     } catch {
       // ignore
     }
   }
-  const reviewer = db.getReviewers().find((r) => r.id === id);
-  if (!reviewer) throw new Error("Your session has expired. Please sign in again.");
-  if (!reviewer.loginEnabled) throw new Error("Your account is inactive.");
-  return reviewer;
+  const reviewers = db.getReviewers();
+  const reviewer = reviewers.find((r) => r.id === id);
+  if (reviewer) {
+    if (!reviewer.loginEnabled) throw new Error("Your account is inactive.");
+    return reviewer;
+  }
+  if (parsedUser && parsedUser.id) {
+    const liveReviewer: Reviewer = {
+      id: parsedUser.id,
+      name: parsedUser.name || "Reviewer",
+      employeeNumber: parsedUser.employeeNumber || "",
+      designation: parsedUser.designation || "Reviewer",
+      email: parsedUser.email || "",
+      password: "",
+      receiveNewRequests: parsedUser.receiveNewRequests ?? true,
+      loginEnabled: parsedUser.loginEnabled !== false,
+      inviteStatus: parsedUser.inviteStatus || "active",
+      createdAt: parsedUser.createdAt || new Date().toISOString(),
+      lastLoginAt: parsedUser.lastLoginAt,
+    };
+    if (!liveReviewer.loginEnabled) throw new Error("Your account is inactive.");
+    if (!reviewers.some((r) => r.id === liveReviewer.id)) {
+      db.setReviewers([...reviewers, liveReviewer]);
+    }
+    return liveReviewer;
+  }
+  throw new Error("Your session has expired. Please sign in again.");
 }
 
 /** Adds an in-app notification for another reviewer. */

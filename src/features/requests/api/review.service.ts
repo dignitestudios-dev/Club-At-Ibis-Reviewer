@@ -1,5 +1,6 @@
 import { currentReviewer, db, delay, pushNotification } from "@/lib/mock/store";
 import { IN_FLIGHT, currentSubmissionAt, currentSubmissionNumber, reviewProgress, residentFullName } from "@/lib/domain";
+import { assignReviewerRequest } from "./requests.service";
 
 /* ------------------------------------------------------------------ */
 /* helpers                                                              */
@@ -18,7 +19,7 @@ function load(requestId: string) {
 function loadOwned(requestId: string) {
   const me = currentReviewer();
   const ctx = load(requestId);
-  if (ctx.request.assignedReviewerId !== me.id) {
+  if (ctx.request.assignedReviewerId && ctx.request.assignedReviewerId !== me.id) {
     throw new Error("This request is not assigned to you, so you cannot act on it.");
   }
   return { ...ctx, me };
@@ -66,7 +67,7 @@ function residentEmail(request: RequestRecord) {
 export async function startReview(requestId: string): Promise<RequestRecord> {
   const { requests, idx, request, me } = loadOwned(requestId);
   if (request.status !== "submitted") throw new Error("Review can only be started on a newly submitted request.");
-  const updated = commit(requests, idx, { ...request, status: "under_review" }, [
+  const updated = commit(requests, idx, { ...request, status: "under_review", assignedReviewerId: request.assignedReviewerId || me.id }, [
     event(me, "review_started", "Review started — status changed to Under Review."),
   ]);
   return delay(updated, 200);
@@ -310,7 +311,24 @@ export async function markRefunded({ requestId, proof }: { requestId: string; pr
 /* Routing (default reviewers only)                                     */
 /* ------------------------------------------------------------------ */
 
-export async function assignRequest({ requestId, reviewerId }: { requestId: string; reviewerId: string }): Promise<RequestRecord> {
+export async function assignRequest({
+  requestId,
+  reviewerId,
+  expectedAssignmentVersion,
+}: {
+  requestId: string;
+  reviewerId: string;
+  expectedAssignmentVersion?: number;
+}): Promise<RequestRecord> {
+  try {
+    const res = await assignReviewerRequest({ requestId, reviewerId, expectedAssignmentVersion });
+    return res;
+  } catch (err: any) {
+    if (err?.response?.status || err?.message?.includes("assignment")) {
+      throw err;
+    }
+  }
+
   const me = currentReviewer();
   if (!me.receiveNewRequests) throw new Error("Only default reviewers can assign or reassign requests.");
   const { requests, idx, request } = load(requestId);

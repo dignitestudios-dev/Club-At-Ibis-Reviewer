@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Controller, useForm } from "react-hook-form";
@@ -25,6 +25,7 @@ export default function LoginForm() {
   const searchParams = useSearchParams();
   const returnUrl = searchParams.get("returnUrl");
   const { mutate: login, isPending } = useLoginMutation();
+  const isSubmittingRef = useRef(false);
 
   const {
     control,
@@ -62,8 +63,11 @@ export default function LoginForm() {
   }, [setValue]);
 
   function onSubmit(data: LoginCredentials) {
+    if (isSubmittingRef.current) return;
+    isSubmittingRef.current = true;
     login(data, {
       onSuccess: ({ token, user }) => {
+        isSubmittingRef.current = false;
         localStorage.removeItem("carv.logged-out");
         localStorage.setItem("rv-auth-token", token);
         localStorage.setItem("rv-auth-user", JSON.stringify(user));
@@ -72,7 +76,10 @@ export default function LoginForm() {
         toast.success(`Welcome back, ${user.name.split(" ")[0]}.`);
         window.location.href = returnUrl ? decodeURIComponent(returnUrl) : DEFAULT_REDIRECT;
       },
-      onError: (error: Error) => toast.error(error.message || "Unable to sign in."),
+      onError: (error: Error) => {
+        isSubmittingRef.current = false;
+        toast.error(error.message || "Unable to sign in.");
+      },
     });
   }
 

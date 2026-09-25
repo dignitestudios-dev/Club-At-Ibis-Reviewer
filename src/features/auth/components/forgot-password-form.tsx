@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -16,6 +16,7 @@ import { useForgotPasswordMutation } from "@/features/auth/api/auth.mutations";
 export default function ForgotPasswordForm() {
   const [submitted, setSubmitted] = useState(false);
   const { mutate, isPending } = useForgotPasswordMutation();
+  const isSubmittingRef = useRef(false);
   const {
     register,
     handleSubmit,
@@ -24,6 +25,20 @@ export default function ForgotPasswordForm() {
     resolver: zodResolver(forgotPasswordSchema),
     defaultValues: { email: "" },
   });
+
+  const onSubmit = (data: ForgotPasswordPayload) => {
+    if (isSubmittingRef.current) return;
+    isSubmittingRef.current = true;
+    mutate(data, {
+      onSuccess: () => {
+        isSubmittingRef.current = false;
+        setSubmitted(true);
+      },
+      onError: () => {
+        isSubmittingRef.current = false;
+      },
+    });
+  };
 
   if (submitted) {
     return (
@@ -53,7 +68,7 @@ export default function ForgotPasswordForm() {
         </p>
       </div>
 
-      <form onSubmit={handleSubmit((data) => mutate(data, { onSuccess: () => setSubmitted(true) }))} noValidate>
+      <form onSubmit={handleSubmit(onSubmit)} noValidate>
         <FieldGroup>
           <Field data-invalid={!!errors.email}>
             <FieldLabel htmlFor="email">Work Email<RequiredMark /></FieldLabel>

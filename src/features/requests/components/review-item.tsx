@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Check, Eye, FileImage, FileText, Flag, Pencil, RefreshCw, Undo2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
@@ -59,6 +59,7 @@ export function ReviewItem({
   const toast = useToast();
   const review = useReviewItem();
   const state = request.itemReviews[field.id];
+  const isSubmittingRef = useRef(false);
   const [flagging, setFlagging] = useState(false);
   const [reason, setReason] = useState("");
   const isFile = field.type === "file";
@@ -66,9 +67,19 @@ export function ReviewItem({
   const value = request.fieldValues[field.id];
 
   function accept() {
+    if (isSubmittingRef.current) return;
+    isSubmittingRef.current = true;
     review.mutate(
       { requestId: request.id, fieldId: field.id, state: "accepted" },
-      { onError: (e: Error) => toast.error("Could not save", e.message) }
+      {
+        onSuccess: () => {
+          isSubmittingRef.current = false;
+        },
+        onError: (e: Error) => {
+          isSubmittingRef.current = false;
+          toast.error("Could not save", e.message);
+        },
+      }
     );
   }
 
@@ -78,11 +89,19 @@ export function ReviewItem({
   }
 
   function submitFlag() {
+    if (isSubmittingRef.current) return;
+    isSubmittingRef.current = true;
     review.mutate(
       { requestId: request.id, fieldId: field.id, state: "flagged", reason },
       {
-        onSuccess: () => setFlagging(false),
-        onError: (e: Error) => toast.error("Could not save", e.message),
+        onSuccess: () => {
+          isSubmittingRef.current = false;
+          setFlagging(false);
+        },
+        onError: (e: Error) => {
+          isSubmittingRef.current = false;
+          toast.error("Could not save", e.message);
+        },
       }
     );
   }
@@ -131,17 +150,17 @@ export function ReviewItem({
           ))}
         </div>
       ) : (
-        <p className="text-sm leading-relaxed whitespace-pre-line text-foreground">{value}</p>
+        <p className="text-sm leading-relaxed whitespace-pre-line text-foreground break-words">{value || "—"}</p>
       )}
 
       {changed && previous && (
-        <p className="rounded-lg border border-border/70 bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
+        <p className="rounded-lg border border-border/70 bg-muted/40 px-3 py-2 text-xs text-muted-foreground break-words">
           <span className="font-semibold text-foreground">Previously:</span> <span className="line-through decoration-slate-400/60">{previous}</span>
         </p>
       )}
 
       {state?.state === "flagged" && state.reason && !flagging && (
-        <p className="rounded-lg border border-amber-300/70 bg-amber-50 px-3 py-2 text-xs text-amber-950 dark:border-amber-800/70 dark:bg-amber-950/30 dark:text-amber-200">
+        <p className="rounded-lg border border-amber-300/70 bg-amber-50 px-3 py-2 text-xs text-amber-950 dark:border-amber-800/70 dark:bg-amber-950/30 dark:text-amber-200 break-words">
           <span className="font-semibold">Your note:</span> {state.reason}
         </p>
       )}
@@ -154,6 +173,8 @@ export function ReviewItem({
           <Textarea
             id={`flag-${field.id}`}
             autoFocus
+            maxLength={1000}
+            disabled={review.isPending}
             value={reason}
             onChange={(e) => setReason(e.target.value)}
             rows={3}
@@ -161,7 +182,7 @@ export function ReviewItem({
             className="resize-none"
           />
           <div className="flex justify-end gap-2">
-            <Button variant="ghost" size="sm" onClick={() => setFlagging(false)}>
+            <Button variant="ghost" size="sm" onClick={() => setFlagging(false)} disabled={review.isPending}>
               Cancel
             </Button>
             <Button size="sm" onClick={submitFlag} disabled={review.isPending}>

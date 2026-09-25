@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Bell, CornerDownLeft, Eye, FileDiff, FileText, Inbox, LayoutDashboard, ListChecks, Search, UserRound, type LucideIcon } from "lucide-react";
+import { Bell, CornerDownLeft, Eye, FileDiff, FileText, Inbox, LayoutDashboard, ListChecks, Search, UserRound, X, type LucideIcon } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { useRequests, useResidents } from "@/hooks/use-reviewer-data";
 import { useMe } from "@/hooks/use-current-user";
@@ -58,14 +58,16 @@ export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenCh
 
     const found: PaletteItem[] = [];
     requests.forEach((r) => {
-      const res = residentById.get(r.residentId);
-      const hay = `${r.code} ${residentFullName(res)} ${res?.residentIdNumber ?? ""} ${r.fieldValues.propertyAddress} ${r.fieldValues.lotNo} ${r.categoryName}`.toLowerCase();
+      const res = residentById.get(r?.residentId);
+      const propAddr = r?.fieldValues?.propertyAddress ?? "";
+      const lot = r?.fieldValues?.lotNo ?? "";
+      const hay = `${r?.code ?? ""} ${residentFullName(res)} ${res?.residentIdNumber ?? ""} ${propAddr} ${lot} ${r?.categoryName ?? ""}`.toLowerCase();
       if (hay.includes(q)) {
         found.push({
           id: `r-${r.id}`,
           group: "Requests",
-          label: `${r.code} · ${r.categoryName}`,
-          hint: `${residentFullName(res)} — ${r.fieldValues.propertyAddress}`,
+          label: `${r?.code ?? ""} · ${r?.categoryName ?? ""}`,
+          hint: `${residentFullName(res)}${propAddr ? ` — ${propAddr}` : ""}`,
           href: `/requests/${r.id}`,
           icon: FileText,
         });
@@ -117,10 +119,21 @@ export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenCh
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={onKeyDown}
+            maxLength={100}
             placeholder="Search requests by reference, resident or property…"
             className="h-12 flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
             aria-label="Search the portal"
           />
+          {query.trim().length > 0 && (
+            <button
+              type="button"
+              onClick={() => setQuery("")}
+              className="cursor-pointer rounded-full p-1 text-muted-foreground transition-colors outline-none hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary"
+              aria-label="Clear search"
+            >
+              <X className="size-3.5" aria-hidden="true" />
+            </button>
+          )}
           <kbd className="hidden rounded border border-border bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground sm:block">
             ESC
           </kbd>
