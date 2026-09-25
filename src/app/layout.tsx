@@ -6,14 +6,12 @@ import "./globals.css";
 const raleway = Raleway({
   variable: "--font-raleway",
   subsets: ["latin"],
-  weight: ["300", "400", "500", "600", "700"],
   display: "swap",
 });
 
 const playfairDisplay = Playfair_Display({
   variable: "--font-heading-serif",
   subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
   display: "swap",
 });
 
