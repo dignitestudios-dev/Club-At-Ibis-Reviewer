@@ -58,8 +58,9 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
       localStorage.removeItem("rv-auth-token");
       localStorage.removeItem("rv-auth-user");
       document.cookie = "rv-auth-token=; path=/; max-age=0";
+      sessionStorage.setItem("carv.session-expired", "true");
       const returnUrl = encodeURIComponent(pathname || "/dashboard");
-      router.replace(`/auth/login?returnUrl=${returnUrl}`);
+      router.replace(`/auth/login?reason=session-expired&returnUrl=${returnUrl}`);
     }
   }, [isError, isSuccess, queryUser, hasToken, router, pathname, dispatch]);
 

@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const axiosInstance = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3050/api/v1",
+  baseURL: process.env.NEXT_PUBLIC_API_URL ?? "https://416zwbs6-3050.inc1.devtunnels.ms/api/v1",
   timeout: 10000,
   headers: { "Content-Type": "application/json" },
 });
@@ -17,13 +17,15 @@ axiosInstance.interceptors.request.use((config) => {
 function clearSessionAndRedirect() {
   if (typeof window === "undefined") return;
   localStorage.setItem("carv.logged-out", "true");
+  sessionStorage.setItem("carv.session-expired", "true");
   localStorage.removeItem("rv-auth-token");
   localStorage.removeItem("rv-auth-user");
   document.cookie = "rv-auth-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; max-age=0";
+  window.dispatchEvent(new CustomEvent("app:session-expired"));
   if (!window.location.pathname.startsWith("/auth/")) {
     const currentPath = window.location.pathname + window.location.search;
     const returnUrl = encodeURIComponent(currentPath);
-    window.location.href = `/auth/login?returnUrl=${returnUrl}`;
+    window.location.href = `/auth/login?reason=session-expired&returnUrl=${returnUrl}`;
   }
 }
 
