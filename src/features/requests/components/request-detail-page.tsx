@@ -88,7 +88,7 @@ export default function RequestDetailPage({ id }: { id: string }) {
   const { me, isDefault } = useMe();
   const { data: req, isLoading } = useRequest(id);
   const { data: residents } = useResidents();
-  const { data: reviewers } = useReviewers();
+  const { data: reviewers } = useReviewers(undefined, { enabled: isDefault });
   const { data: categories } = useCategories();
   const takeOwnership = useAssignRequest();
   const [preview, setPreview] = useState<PreviewableFile | null>(null);
@@ -141,7 +141,7 @@ export default function RequestDetailPage({ id }: { id: string }) {
         createdAt: "",
       }
     : residents?.find((r) => r.id === req.residentId);
-  const owner = reviewers?.find((r) => r.id === req.assignedReviewerId);
+  const owner = isOwner ? me : reviewers?.find((r) => r.id === req.assignedReviewerId);
   const category = categories?.find((c) => c.id === req.categoryId);
   const currentCategoryVersion = category?.version ?? req.formVersion;
 

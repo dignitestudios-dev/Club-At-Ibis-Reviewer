@@ -41,16 +41,19 @@ export default function OversightPage() {
   const page = Math.max(1, Number(values.page) || 1);
   const statusParam = values.status !== "all" ? values.status : tab === "active" ? ACTIVE_STATUSES : HISTORY_STATUSES;
 
-  const { data: pageData, isLoading, isFetching, refetch } = useRequestsPage({
-    page,
-    limit: pageSize,
-    search: search.trim() || undefined,
-    status: statusParam,
-    assignedReviewerId: values.reviewer !== "all" ? values.reviewer : undefined,
-  });
+  const { data: pageData, isLoading, isFetching, refetch } = useRequestsPage(
+    {
+      page,
+      limit: pageSize,
+      search: search.trim() || undefined,
+      status: statusParam,
+      assignedReviewerId: values.reviewer !== "all" ? values.reviewer : undefined,
+    },
+    { enabled: isDefault }
+  );
 
-  const { data: allRequests } = useRequests({ limit: 100 });
-  const { data: reviewers } = useReviewers();
+  const { data: allRequests } = useRequests({ limit: 100 }, { enabled: isDefault });
+  const { data: reviewers } = useReviewers(undefined, { enabled: isDefault });
 
   if (me && !isDefault) return <DefaultReviewersOnly />;
 

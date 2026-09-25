@@ -30,30 +30,57 @@ export const keys = {
 
 /* ------------------------------ queries ------------------------------ */
 
-export const useReviewers = (params?: { search?: string; page?: number; limit?: number }) =>
+export const useReviewers = (
+  params?: { search?: string; page?: number; limit?: number },
+  options?: { enabled?: boolean }
+) =>
   useQuery({
     queryKey: params?.search ? [...keys.reviewers, params.search] : keys.reviewers,
     queryFn: () => getReviewers(params),
+    enabled: options?.enabled ?? true,
   });
-export const useResidents = () => useQuery({ queryKey: keys.residents, queryFn: getResidents });
-export const useCategories = () => useQuery({ queryKey: keys.categories, queryFn: getCategories });
-export const useRequests = (params?: ReviewerRequestsQueryParams) =>
-  useQuery({ queryKey: params ? [...keys.requests, params] : keys.requests, queryFn: () => getRequests(params) });
-export const useRequestsPage = (params: ReviewerRequestsQueryParams) =>
-  useQuery({ queryKey: [...keys.requests, "page", params], queryFn: () => getRequestsPage(params) });
-export const useRequest = (id: string) =>
-  useQuery({ queryKey: [...keys.requests, id], queryFn: () => getRequestById(id), enabled: !!id });
-export const useIncomingRequests = (params?: { search?: string; page?: number; limit?: number }) =>
+export const useResidents = (options?: { enabled?: boolean }) =>
+  useQuery({ queryKey: keys.residents, queryFn: getResidents, enabled: options?.enabled ?? true });
+export const useCategories = (options?: { enabled?: boolean }) =>
+  useQuery({ queryKey: keys.categories, queryFn: getCategories, enabled: options?.enabled ?? true });
+export const useRequests = (params?: ReviewerRequestsQueryParams, options?: { enabled?: boolean }) =>
+  useQuery({
+    queryKey: params ? [...keys.requests, params] : keys.requests,
+    queryFn: () => getRequests(params),
+    enabled: options?.enabled ?? true,
+  });
+export const useRequestsPage = (params: ReviewerRequestsQueryParams, options?: { enabled?: boolean }) =>
+  useQuery({
+    queryKey: [...keys.requests, "page", params],
+    queryFn: () => getRequestsPage(params),
+    enabled: options?.enabled ?? true,
+  });
+export const useRequest = (id: string, options?: { enabled?: boolean }) =>
+  useQuery({
+    queryKey: [...keys.requests, id],
+    queryFn: () => getRequestById(id),
+    enabled: (options?.enabled ?? true) && !!id,
+  });
+export const useIncomingRequests = (
+  params?: { search?: string; page?: number; limit?: number },
+  options?: { enabled?: boolean }
+) =>
   useQuery({
     queryKey: params ? [...keys.incomingRequests, params] : keys.incomingRequests,
     queryFn: () => getIncomingRequests(params),
+    enabled: options?.enabled ?? true,
   });
-export const useIncomingRequestsPage = (params?: { search?: string; page?: number; limit?: number }) =>
+export const useIncomingRequestsPage = (
+  params?: { search?: string; page?: number; limit?: number },
+  options?: { enabled?: boolean }
+) =>
   useQuery({
     queryKey: [...keys.incomingRequests, "page", params],
     queryFn: () => getIncomingRequestsPage(params),
+    enabled: options?.enabled ?? true,
   });
-export const useNotifications = () => useQuery({ queryKey: keys.notifications, queryFn: getNotifications });
+export const useNotifications = (options?: { enabled?: boolean }) =>
+  useQuery({ queryKey: keys.notifications, queryFn: getNotifications, enabled: options?.enabled ?? true });
 
 /* ----------------------------- mutations ----------------------------- */
 

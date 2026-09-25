@@ -23,15 +23,19 @@ export function AssignReviewerDialog({
   onOpenChange: (open: boolean) => void;
 }) {
   const toast = useToast();
+  const { isDefault } = useMe();
   const assign = useAssignRequest();
   const isSubmittingRef = useRef(false);
   const [selected, setSelected] = useState("");
   const [query, setQuery] = useState("");
   const debouncedSearch = useDebounce(query.trim(), 250);
-  const { data: reviewers, isLoading: isLoadingReviewers, isFetching: isFetchingReviewers } = useReviewers({
-    search: debouncedSearch || undefined,
-    limit: 100,
-  });
+  const { data: reviewers, isLoading: isLoadingReviewers, isFetching: isFetchingReviewers } = useReviewers(
+    {
+      search: debouncedSearch || undefined,
+      limit: 100,
+    },
+    { enabled: !!request && isDefault }
+  );
 
   useEffect(() => {
     if (request) {

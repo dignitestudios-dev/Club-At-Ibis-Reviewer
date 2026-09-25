@@ -9,6 +9,7 @@ import { PersonAvatar } from "@/components/shared/person-avatar";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useResidents, useReviewers } from "@/hooks/use-reviewer-data";
+import { useMe } from "@/hooks/use-current-user";
 import { nextStep, residentFullName } from "@/lib/domain";
 import { formatRelative } from "@/utils/format";
 import { cn } from "@/utils/cn";
@@ -30,8 +31,9 @@ export function RequestsTable({
   renderActions?: (req: RequestRecord) => React.ReactNode;
 }) {
   const router = useRouter();
+  const { isDefault } = useMe();
   const { data: residents } = useResidents();
-  const { data: reviewers } = useReviewers();
+  const { data: reviewers } = useReviewers(undefined, { enabled: showReviewer && isDefault });
   const residentById = useMemo(() => new Map((residents ?? []).map((r) => [r.id, r])), [residents]);
   const reviewerById = useMemo(() => new Map((reviewers ?? []).map((r) => [r.id, r])), [reviewers]);
 

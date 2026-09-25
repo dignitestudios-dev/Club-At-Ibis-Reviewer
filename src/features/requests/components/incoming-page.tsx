@@ -39,11 +39,14 @@ export default function IncomingPage() {
   const take = useAssignRequest();
 
   const page = Math.max(1, Number(values.page) || 1);
-  const { data: pageData, isLoading, isFetching, refetch } = useIncomingRequestsPage({
-    search: search.trim() || undefined,
-    page,
-    limit: pageSize,
-  });
+  const { data: pageData, isLoading, isFetching, refetch } = useIncomingRequestsPage(
+    {
+      search: search.trim() || undefined,
+      page,
+      limit: pageSize,
+    },
+    { enabled: isDefault }
+  );
 
   if (me && !isDefault) return <DefaultReviewersOnly />;
 
