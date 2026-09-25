@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { AlertCircle, Clock, MailCheck, RotateCw, ArrowLeft } from "lucide-react";
+import { AlertCircle, Clock, MailCheck, RotateCw, ArrowLeft, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { RequiredMark } from "@/components/shared/required-mark";
@@ -36,6 +36,7 @@ export default function ResetPasswordForm({ token, mode = "reset" }: { token: st
   const { mutate: mutateResend, isPending: isResending } = useForgotPasswordMutation();
   const [resendSubmitted, setResendSubmitted] = useState(false);
   const [isResetTokenExpired, setIsResetTokenExpired] = useState(!token);
+  const [inviteAccepted, setInviteAccepted] = useState(false);
 
   // Form for setting password
   const {
@@ -61,6 +62,30 @@ export default function ResetPasswordForm({ token, mode = "reset" }: { token: st
   /* INVITE MODE                                                        */
   /* ------------------------------------------------------------------ */
   if (invite) {
+    if (inviteAccepted) {
+      return (
+        <div className="flex-1 overflow-y-auto custom-scrollbar px-6 py-8 sm:px-8 space-y-6 text-center animate-in fade-in duration-300">
+          <div className="mx-auto flex size-14 items-center justify-center rounded-full bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200/80 dark:border-emerald-800/80 text-emerald-600 dark:text-emerald-400 shadow-xs">
+            <CheckCircle2 className="size-7" aria-hidden="true" />
+          </div>
+          <div className="space-y-2">
+            <h1 className="font-heading text-2xl font-medium text-foreground">Invite Accepted</h1>
+            <p className="text-sm text-muted-foreground max-w-sm mx-auto leading-relaxed">
+              Your password has been created and your account is active. Please log in to your account.
+            </p>
+          </div>
+          <div className="pt-2">
+            <Button
+              onClick={() => router.push("/auth/login")}
+              className="w-full sm:w-auto min-w-[200px]"
+            >
+              Log In to Your Account
+            </Button>
+          </div>
+        </div>
+      );
+    }
+
     if (!token) {
       return (
         <div className="flex-1 overflow-y-auto custom-scrollbar px-6 py-8 sm:px-8 space-y-6 text-center">
@@ -136,8 +161,8 @@ export default function ResetPasswordForm({ token, mode = "reset" }: { token: st
               { token, ...data, invite: true },
               {
                 onSuccess: () => {
-                  toast.success("Account activated", "Sign in with your new password.");
-                  router.push("/auth/login");
+                  setInviteAccepted(true);
+                  toast.success("Invite accepted", "Your password has been set successfully.");
                 },
                 onError: (e: Error) => toast.error(e.message),
               }
