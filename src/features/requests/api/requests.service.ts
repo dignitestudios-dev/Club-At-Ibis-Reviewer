@@ -1,5 +1,4 @@
 import axiosInstance from "@/lib/axios";
-import { db, delay } from "@/lib/mock/store";
 
 const knownResidents = new Map<string, Resident>();
 
@@ -123,33 +122,6 @@ export function toReviewerRequestRecord(raw: any): RequestRecord {
   };
 }
 
-export function mergeWithLocal(backendRecord: RequestRecord): RequestRecord {
-  const localRequests = db.getRequests();
-  const localMatch = localRequests.find((r) => r.id === backendRecord.id);
-  if (!localMatch) return backendRecord;
-
-  return {
-    ...backendRecord,
-    status: localMatch.status || backendRecord.status,
-    assignedReviewerId: backendRecord.assignedReviewerId || localMatch.assignedReviewerId,
-    itemReviews: { ...(backendRecord.itemReviews || {}), ...(localMatch.itemReviews || {}) },
-    revisions: localMatch.revisions?.length ? localMatch.revisions : backendRecord.revisions,
-    previousSubmissions: localMatch.previousSubmissions?.length ? localMatch.previousSubmissions : backendRecord.previousSubmissions,
-    feedback: localMatch.feedback ?? backendRecord.feedback,
-    rejectionReason: localMatch.rejectionReason ?? backendRecord.rejectionReason,
-    decidedAt: localMatch.decidedAt ?? backendRecord.decidedAt,
-    completedAt: localMatch.completedAt ?? backendRecord.completedAt,
-    deposit: localMatch.deposit ?? backendRecord.deposit,
-    refund: localMatch.refund ?? backendRecord.refund,
-    approvalLetter: localMatch.approvalLetter ?? backendRecord.approvalLetter,
-    letterEmail: localMatch.letterEmail ?? backendRecord.letterEmail,
-    history: [
-      ...(backendRecord.history || []),
-      ...(localMatch.history || []).filter((lh) => !backendRecord.history?.some((bh) => bh.id === lh.id)),
-    ],
-  };
-}
-
 export interface ReviewerRequestsQueryParams {
   status?: string;
   search?: string;
@@ -193,59 +165,25 @@ function cleanReviewerParams(params?: ReviewerRequestsQueryParams): Record<strin
 
 export async function getRequestsPage(params?: ReviewerRequestsQueryParams): Promise<PaginatedReviewerRequestsResponse> {
   const cleanParams = cleanReviewerParams(params);
-  try {
-    const { data } = await axiosInstance.get("/reviewer/requests", { params: cleanParams });
-    const list = data?.data?.requests ?? data?.requests ?? [];
-    const records = list.map(toReviewerRequestRecord).map(mergeWithLocal);
-    return {
-      requests: records,
-      pagination: data?.pagination ?? {
-        page: params?.page ?? 1,
-        limit: params?.limit ?? 20,
-        total: list.length,
-        totalPages: Math.ceil(list.length / (params?.limit ?? 20)) || 1,
-      },
-    };
-  } catch {
-    const all = db.getRequests();
-    const page = params?.page ?? 1;
-    const limit = params?.limit ?? 20;
-    return delay(
-      {
-        requests: [...all].sort((a, b) => (a.submittedAt < b.submittedAt ? 1 : -1)).slice((page - 1) * limit, page * limit),
-        pagination: {
-          page,
-          limit,
-          total: all.length,
-          totalPages: Math.ceil(all.length / limit) || 1,
-        },
-      },
-      80
-    );
-  }
+  const { data } = await axiosInstance.get("/reviewer/requests", { params: cleanParams });
+  const list = data?.data?.requests ?? data?.requests ?? [];
+  const records = list.map(toReviewerRequestRecord);
+  return {
+    requests: records,
+    pagination: data?.pagination ?? {
+      page: params?.page ?? 1,
+      limit: params?.limit ?? 20,
+      total: list.length,
+      totalPages: Math.ceil(list.length / (params?.limit ?? 20)) || 1,
+    },
+  };
 }
 
 export async function getRequests(params?: ReviewerRequestsQueryParams): Promise<RequestRecord[]> {
   const cleanParams = cleanReviewerParams(params);
-  try {
-    const { data } = await axiosInstance.get("/reviewer/requests", { params: cleanParams });
-    const list = data?.data?.requests ?? data?.requests ?? [];
-    const records = list.map(toReviewerRequestRecord).map(mergeWithLocal);
-    const all = db.getRequests();
-    const map = new Map(all.map((r) => [r.id, r]));
-    for (const rec of records) {
-      map.set(rec.id, rec);
-    }
-    db.setRequests(Array.from(map.values()));
-    return records;
-  } catch {
-    // Fallback to mock store in development/offline if backend is unreachable
-    const all = db.getRequests();
-    return delay(
-      [...all].sort((a, b) => (a.submittedAt < b.submittedAt ? 1 : -1)),
-      80
-    );
-  }
+  const { data } = await axiosInstance.get("/reviewer/requests", { params: cleanParams });
+  const list = data?.data?.requests ?? data?.requests ?? [];
+  return list.map(toReviewerRequestRecord);
 }
 
 export async function getIncomingRequestsPage(params?: {
@@ -258,36 +196,18 @@ export async function getIncomingRequestsPage(params?: {
   if (params?.limit) cleanParams.limit = params.limit;
   if (params?.search && params.search.trim()) cleanParams.search = params.search.trim();
 
-  try {
-    const { data } = await axiosInstance.get("/reviewer/requests/incoming", { params: cleanParams });
-    const list = data?.data?.requests ?? data?.requests ?? [];
-    const records = list.map(toReviewerRequestRecord).map(mergeWithLocal);
-    return {
-      requests: records,
-      pagination: data?.pagination ?? {
-        page: params?.page ?? 1,
-        limit: params?.limit ?? 20,
-        total: list.length,
-        totalPages: Math.ceil(list.length / (params?.limit ?? 20)) || 1,
-      },
-    };
-  } catch {
-    const all = db.getRequests().filter((r) => !r.assignedReviewerId && r.status === "submitted");
-    const page = params?.page ?? 1;
-    const limit = params?.limit ?? 20;
-    return delay(
-      {
-        requests: [...all].sort((a, b) => (a.submittedAt < b.submittedAt ? -1 : 1)).slice((page - 1) * limit, page * limit),
-        pagination: {
-          page,
-          limit,
-          total: all.length,
-          totalPages: Math.ceil(all.length / limit) || 1,
-        },
-      },
-      80
-    );
-  }
+  const { data } = await axiosInstance.get("/reviewer/requests/incoming", { params: cleanParams });
+  const list = data?.data?.requests ?? data?.requests ?? [];
+  const records = list.map(toReviewerRequestRecord);
+  return {
+    requests: records,
+    pagination: data?.pagination ?? {
+      page: params?.page ?? 1,
+      limit: params?.limit ?? 20,
+      total: list.length,
+      totalPages: Math.ceil(list.length / (params?.limit ?? 20)) || 1,
+    },
+  };
 }
 
 export async function getIncomingRequests(params?: {
@@ -295,49 +215,16 @@ export async function getIncomingRequests(params?: {
   page?: number;
   limit?: number;
 }): Promise<RequestRecord[]> {
-  try {
-    const { data } = await axiosInstance.get("/reviewer/requests/incoming", { params });
-    const list = data?.data?.requests ?? data?.requests ?? [];
-    const records = list.map(toReviewerRequestRecord).map(mergeWithLocal);
-    const all = db.getRequests();
-    const map = new Map(all.map((r) => [r.id, r]));
-    for (const rec of records) {
-      map.set(rec.id, rec);
-    }
-    db.setRequests(Array.from(map.values()));
-    return records;
-  } catch {
-    const all = db.getRequests().filter((r) => !r.assignedReviewerId && r.status === "submitted");
-    return delay(
-      [...all].sort((a, b) => (a.submittedAt < b.submittedAt ? -1 : 1)),
-      80
-    );
-  }
+  const { data } = await axiosInstance.get("/reviewer/requests/incoming", { params });
+  const list = data?.data?.requests ?? data?.requests ?? [];
+  return list.map(toReviewerRequestRecord);
 }
 
 export async function getRequestById(id: string): Promise<RequestRecord> {
-  try {
-    const { data } = await axiosInstance.get(`/reviewer/requests/${id}`);
-    const req = data?.data?.request ?? data?.request ?? data?.data;
-    if (req) {
-      const record = mergeWithLocal(toReviewerRequestRecord(req));
-      const all = db.getRequests();
-      const idx = all.findIndex((r) => r.id === record.id);
-      if (idx >= 0) {
-        all[idx] = record;
-      } else {
-        all.unshift(record);
-      }
-      db.setRequests(all);
-      return record;
-    }
-  } catch {
-    // fallback
-  }
-  const all = db.getRequests();
-  const match = all.find((r) => r.id === id);
-  if (!match) throw new Error("Request not found");
-  return delay(match, 80);
+  const { data } = await axiosInstance.get(`/reviewer/requests/${id}`);
+  const req = data?.data?.request ?? data?.request ?? data?.data;
+  if (!req) throw new Error("Request not found");
+  return toReviewerRequestRecord(req);
 }
 
 export async function assignReviewerRequest({
@@ -353,61 +240,37 @@ export async function assignReviewerRequest({
     reviewerId,
     expectedAssignmentVersion: expectedAssignmentVersion ?? 0,
   });
-  const record = mergeWithLocal(toReviewerRequestRecord(data.data.request));
-  const all = db.getRequests();
-  const idx = all.findIndex((r) => r.id === record.id);
-  if (idx >= 0) {
-    all[idx] = record;
-  } else {
-    all.unshift(record);
-  }
-  db.setRequests(all);
-  return record;
+  return toReviewerRequestRecord(data.data.request);
 }
 
 export async function getResidents(): Promise<Resident[]> {
-  const seed = db.getResidents();
-  const merged = new Map<string, Resident>();
-  for (const r of seed) {
-    merged.set(r.id, r);
-  }
-  for (const [id, r] of knownResidents.entries()) {
-    merged.set(id, { ...(merged.get(id) || {}), ...r });
-  }
-  return delay(Array.from(merged.values()), 40);
+  return Array.from(knownResidents.values());
 }
 
 export async function getCategories(): Promise<Category[]> {
-  try {
-    const { data } = await axiosInstance.get("/categories");
-    const list = data?.data?.categories ?? data?.categories ?? [];
-    if (list.length > 0) {
-      return list.map((c: any) => ({
-        id: c.id || c._id,
+  const { data } = await axiosInstance.get("/categories");
+  const list = data?.data?.categories ?? data?.categories ?? [];
+  return list.map((c: any) => ({
+    id: c.id || c._id,
+    name: c.name,
+    description: c.description || "",
+    status: c.status || "active",
+    fields: c.fields || [],
+    version: c.currentVersion ?? c.version ?? 1,
+    versions: c.versions || [
+      {
+        version: c.currentVersion ?? c.version ?? 1,
         name: c.name,
         description: c.description || "",
-        status: c.status || "active",
         fields: c.fields || [],
-        version: c.currentVersion ?? c.version ?? 1,
-        versions: c.versions || [
-          {
-            version: c.currentVersion ?? c.version ?? 1,
-            name: c.name,
-            description: c.description || "",
-            fields: c.fields || [],
-            createdAt: c.createdAt || new Date().toISOString(),
-            createdBy: "Super Admin",
-            changes: ["Initial form release."],
-          },
-        ],
         createdAt: c.createdAt || new Date().toISOString(),
-        updatedAt: c.updatedAt || new Date().toISOString(),
-      }));
-    }
-  } catch {
-    // ignore
-  }
-  return delay(db.getCategories(), 40);
+        createdBy: "Super Admin",
+        changes: ["Initial form release."],
+      },
+    ],
+    createdAt: c.createdAt || new Date().toISOString(),
+    updatedAt: c.updatedAt || new Date().toISOString(),
+  }));
 }
 
 export async function getReviewers(params?: {

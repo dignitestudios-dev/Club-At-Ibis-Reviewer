@@ -46,10 +46,23 @@ export default function ToastProvider({ children }: { children: React.ReactNode 
         handleSessionExpired();
       }
 
-      window.addEventListener("app:session-expired", handleSessionExpired);
-      return () => {
-        window.removeEventListener("app:session-expired", handleSessionExpired);
-      };
+    const handleCustomToast = (e: Event) => {
+      const customEvent = e as CustomEvent<{ variant?: ToastVariant; title: string; description?: string }>;
+      if (customEvent.detail?.title) {
+        show(
+          customEvent.detail.variant || "info",
+          customEvent.detail.title,
+          customEvent.detail.description
+        );
+      }
+    };
+
+    window.addEventListener("app:session-expired", handleSessionExpired);
+    window.addEventListener("app:toast", handleCustomToast);
+    return () => {
+      window.removeEventListener("app:session-expired", handleSessionExpired);
+      window.removeEventListener("app:toast", handleCustomToast);
+    };
     }
   }, []);
 

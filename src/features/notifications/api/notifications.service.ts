@@ -1,5 +1,4 @@
 import axiosInstance from "@/lib/axios";
-import { currentReviewer, db, delay } from "@/lib/mock/store";
 
 function toReviewerNotification(raw: any, reviewerId?: string): ReviewerNotification {
   const rawType = String(raw.type || "").trim();
@@ -33,44 +32,20 @@ function toReviewerNotification(raw: any, reviewerId?: string): ReviewerNotifica
   };
 }
 
-/** Only the signed-in reviewer's own notifications. */
-function mine(): ReviewerNotification[] {
-  try {
-    const me = currentReviewer();
-    return db.getNotifications().filter((n) => n.reviewerId === me.id);
-  } catch {
-    return [];
-  }
-}
-
 export async function getNotifications(): Promise<ReviewerNotification[]> {
   try {
     const { data } = await axiosInstance.get("/notifications");
     const list = data?.data?.notifications || [];
     return list.map((n: any) => toReviewerNotification(n));
   } catch {
-    const list = mine();
-    return delay([...list].sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1)), 60);
+    return [];
   }
 }
 
 export async function markNotificationRead(id: string): Promise<void> {
-  try {
-    await axiosInstance.patch(`/notifications/${id}/read`);
-  } catch {
-    db.setNotifications(db.getNotifications().map((n) => (n.id === id ? { ...n, read: true } : n)));
-  }
+  await axiosInstance.patch(`/notifications/${id}/read`);
 }
 
 export async function markAllNotificationsRead(): Promise<void> {
-  try {
-    await axiosInstance.post("/notifications/read-all");
-  } catch {
-    try {
-      const me = currentReviewer();
-      db.setNotifications(db.getNotifications().map((n) => (n.reviewerId === me.id ? { ...n, read: true } : n)));
-    } catch {
-      // ignore
-    }
-  }
+  await axiosInstance.post("/notifications/read-all");
 }

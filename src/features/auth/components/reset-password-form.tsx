@@ -199,6 +199,12 @@ export default function ResetPasswordForm({ token, mode = "reset" }: { token: st
             </Button>
           </FieldGroup>
         </form>
+
+        <p className="text-center text-sm text-muted-foreground">
+          <Link href="/auth/login" className="font-medium text-primary hover:underline dark:text-amber-300">
+            Back to Sign In
+          </Link>
+        </p>
       </div>
     );
   }
@@ -374,14 +380,21 @@ export default function ResetPasswordForm({ token, mode = "reset" }: { token: st
           </Button>
         </FieldGroup>
       </form>
-      <div className="text-center pt-2">
-        <button
-          type="button"
-          onClick={() => setIsResetTokenExpired(true)}
-          className="text-xs text-muted-foreground hover:text-primary underline cursor-pointer"
-        >
-          Need a new reset link? Resend here
-        </button>
+      <div className="space-y-3 text-center pt-2">
+        <div>
+          <button
+            type="button"
+            onClick={() => setIsResetTokenExpired(true)}
+            className="text-xs text-muted-foreground hover:text-primary underline cursor-pointer"
+          >
+            Need a new reset link? Resend here
+          </button>
+        </div>
+        <p className="text-sm text-muted-foreground">
+          <Link href="/auth/login" className="font-medium text-primary hover:underline dark:text-amber-300">
+            Back to Sign In
+          </Link>
+        </p>
       </div>
     </div>
   );

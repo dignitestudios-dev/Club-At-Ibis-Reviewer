@@ -51,7 +51,7 @@ export async function logoutUser(): Promise<void> {
   const token = typeof window !== "undefined" ? localStorage.getItem("rv-auth-token") : null;
   if (!token) return;
   try {
-    await axiosInstance.post("/auth/logout", null, {
+    await axiosInstance.post("/auth/logout", {}, {
       headers: { Authorization: `Bearer ${token}` },
     });
   } catch {

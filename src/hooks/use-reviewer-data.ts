@@ -12,22 +12,7 @@ import {
   getReviewers,
   type ReviewerRequestsQueryParams,
 } from "@/features/requests/api/requests.service";
-import {
-  acceptItems,
-  approveRequest,
-  assignRequest,
-  completeRequest,
-  markRefunded,
-  recordReceipt,
-  recordRefundOutcome,
-  rejectRequest,
-  requestRevision,
-  resendApprovalEmail,
-  reviewItem,
-  setDeposit,
-  startReview,
-  uploadLetter,
-} from "@/features/requests/api/review.service";
+import { assignRequest } from "@/features/requests/api/review.service";
 import {
   getNotifications,
   markAllNotificationsRead,
@@ -72,7 +57,6 @@ export const useNotifications = () => useQuery({ queryKey: keys.notifications, q
 
 /* ----------------------------- mutations ----------------------------- */
 
-/** Every review action changes the request and may notify other reviewers. */
 function useRequestMutation<TVars>(fn: (vars: TVars) => Promise<unknown>) {
   const qc = useQueryClient();
   return useMutation({
@@ -86,19 +70,6 @@ function useRequestMutation<TVars>(fn: (vars: TVars) => Promise<unknown>) {
   });
 }
 
-export const useStartReview = () => useRequestMutation(startReview);
-export const useReviewItem = () => useRequestMutation(reviewItem);
-export const useAcceptItems = () => useRequestMutation(acceptItems);
-export const useRequestRevision = () => useRequestMutation(requestRevision);
-export const useRejectRequest = () => useRequestMutation(rejectRequest);
-export const useApproveRequest = () => useRequestMutation(approveRequest);
-export const useSetDeposit = () => useRequestMutation(setDeposit);
-export const useRecordReceipt = () => useRequestMutation(recordReceipt);
-export const useUploadLetter = () => useRequestMutation(uploadLetter);
-export const useCompleteRequest = () => useRequestMutation(completeRequest);
-export const useResendApprovalEmail = () => useRequestMutation(resendApprovalEmail);
-export const useRecordRefundOutcome = () => useRequestMutation(recordRefundOutcome);
-export const useMarkRefunded = () => useRequestMutation(markRefunded);
 export const useAssignRequest = () => useRequestMutation(assignRequest);
 
 export function useMarkNotificationRead() {

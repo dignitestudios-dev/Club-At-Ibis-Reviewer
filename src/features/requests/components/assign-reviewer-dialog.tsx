@@ -30,9 +30,8 @@ export function AssignReviewerDialog({
   const debouncedSearch = useDebounce(query.trim(), 250);
   const { data: reviewers, isLoading: isLoadingReviewers, isFetching: isFetchingReviewers } = useReviewers({
     search: debouncedSearch || undefined,
-    limit: 50,
+    limit: 100,
   });
-  const { me } = useMe();
 
   useEffect(() => {
     if (request) {
@@ -41,12 +40,15 @@ export function AssignReviewerDialog({
     }
   }, [request]);
 
-  const options = (reviewers ?? []).sort((a, b) => a.name.localeCompare(b.name));
+  const options = useMemo(() => {
+    return (reviewers ?? [])
+      .filter((r) => r.loginEnabled !== false && r.inviteStatus === "active")
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [reviewers]);
 
   if (!request) return null;
   const current = request.assignedReviewerId ? reviewers?.find((r) => r.id === request.assignedReviewerId) : undefined;
   const chosen = reviewers?.find((r) => r.id === selected);
-  const isSelf = chosen?.id === me?.id;
 
   function submit() {
     if (!request || !chosen || isSubmittingRef.current || assign.isPending) return;
@@ -60,7 +62,7 @@ export function AssignReviewerDialog({
       {
         onSuccess: () => {
           isSubmittingRef.current = false;
-          toast.success(current ? "Request reassigned" : isSelf ? "Ownership taken" : "Request assigned", isSelf ? `${request.code} is now yours.` : `${request.code} is now with ${chosen.name}.`);
+          toast.success(current ? "Request reassigned" : "Request assigned", `${request.code} is now with ${chosen.name}.`);
           onOpenChange(false);
         },
         onError: (e: Error) => {
@@ -81,17 +83,17 @@ export function AssignReviewerDialog({
           <div className="mb-1 flex size-11 items-center justify-center rounded-xl border border-primary/20 bg-primary/10 text-primary dark:text-amber-300">
             <UserRoundCheck className="size-5" aria-hidden="true" />
           </div>
-          <DialogTitle className="font-heading text-xl font-medium">{current ? "Reassign Request" : "Take Ownership or Assign"}</DialogTitle>
+          <DialogTitle className="font-heading text-xl font-medium">{current ? "Reassign Request" : "Assign Request"}</DialogTitle>
           <DialogDescription className="break-words">
             <span className="font-mono font-semibold text-foreground">{request.code}</span> · {request.categoryName}.{" "}
             {current
               ? `Currently with ${current.name}. After reassignment they lose authority to act on it; earlier actions stay in the history.`
-              : "Choose the reviewer who becomes the request's single owner — pick yourself to take ownership."}
+              : "Choose the reviewer who becomes the request's single owner."}
           </DialogDescription>
         </DialogHeader>
 
         <div className="relative w-full min-w-0">
-          <SearchInput value={query} onChange={setQuery} placeholder="Search active reviewers by name, designation, employee number…" />
+          <SearchInput value={query} onChange={setQuery} placeholder="Search active reviewers by name, email, designation…" />
           {isFetchingReviewers && (
             <div className="absolute right-3 top-1/2 -translate-y-1/2">
               <Spinner className="size-4 text-muted-foreground" />
@@ -108,40 +110,41 @@ export function AssignReviewerDialog({
             <p className="py-6 text-center text-sm text-muted-foreground">No active reviewers match.</p>
           ) : (
             options.map((r) => {
-            const isCurrent = r.id === request.assignedReviewerId;
-            return (
-              <label
-                key={r.id}
-                className={cn(
-                  "flex w-full min-w-0 max-w-full box-border items-center gap-3 rounded-xl border p-3 transition-colors overflow-hidden",
-                  isCurrent ? "cursor-not-allowed opacity-55" : "cursor-pointer",
-                  selected === r.id ? "border-primary bg-primary/5 dark:border-amber-400 dark:bg-amber-400/5" : "border-border hover:border-foreground/30"
-                )}
-              >
-                <div className="shrink-0 flex items-center">
-                  <RadioGroupItem value={r.id} disabled={isCurrent} />
-                </div>
-                <div className="shrink-0">
-                  <PersonAvatar name={r.name} />
-                </div>
-                <span className="min-w-0 flex-1 overflow-hidden">
-                  <span className="flex min-w-0 items-center gap-2">
-                    <span className="truncate text-sm font-medium">{r.name}{r.id === me?.id && <span className="font-normal text-muted-foreground"> (you)</span>}</span>
-                    {r.receiveNewRequests && <span className="shrink-0 rounded-full bg-brand-gold/15 px-1.5 py-px text-[9px] font-bold tracking-wider text-brand-gold uppercase">Default</span>}
+              const isCurrent = r.id === request.assignedReviewerId;
+              return (
+                <label
+                  key={r.id}
+                  className={cn(
+                    "flex w-full min-w-0 max-w-full box-border items-center gap-3 rounded-xl border p-3 transition-colors overflow-hidden",
+                    isCurrent ? "cursor-not-allowed opacity-55" : "cursor-pointer",
+                    selected === r.id ? "border-primary bg-primary/5 dark:border-amber-400 dark:bg-amber-400/5" : "border-border hover:border-foreground/30"
+                  )}
+                >
+                  <div className="shrink-0 flex items-center">
+                    <RadioGroupItem value={r.id} disabled={isCurrent} />
+                  </div>
+                  <div className="shrink-0">
+                    <PersonAvatar name={r.name} />
+                  </div>
+                  <span className="min-w-0 flex-1 overflow-hidden">
+                    <span className="flex min-w-0 items-center gap-2">
+                      <span className="truncate text-sm font-medium">{r.name}</span>
+                      {r.receiveNewRequests && <span className="shrink-0 rounded-full bg-brand-gold/15 px-1.5 py-px text-[9px] font-bold tracking-wider text-brand-gold uppercase">Default</span>}
+                    </span>
+                    <span className="block truncate text-xs text-muted-foreground font-mono">{r.email}</span>
+                    {r.designation && <span className="block truncate text-[11px] text-muted-foreground/80">{r.designation}</span>}
                   </span>
-                  <span className="block truncate text-xs text-muted-foreground font-mono">{r.email}</span>
-                  {r.designation && <span className="block truncate text-[11px] text-muted-foreground/80">{r.designation}</span>}
-                </span>
-                {isCurrent ? (
-                  <span className="shrink-0 text-right text-xs font-semibold text-foreground">Current</span>
-                ) : (r as any).activeRequestsCount !== undefined ? (
-                  <span className="shrink-0 text-right text-xs text-muted-foreground">
-                    <span className="font-semibold tabular-nums text-foreground">{(r as any).activeRequestsCount}</span> active
-                  </span>
-                ) : null}
-              </label>
-            );
-          }))}
+                  {isCurrent ? (
+                    <span className="shrink-0 text-right text-xs font-semibold text-foreground">Current</span>
+                  ) : (r as any).activeRequestsCount !== undefined ? (
+                    <span className="shrink-0 text-right text-xs text-muted-foreground">
+                      <span className="font-semibold tabular-nums text-foreground">{(r as any).activeRequestsCount}</span> active
+                    </span>
+                  ) : null}
+                </label>
+              );
+            })
+          )}
         </RadioGroup>
 
         <DialogFooter>
@@ -150,7 +153,7 @@ export function AssignReviewerDialog({
           </Button>
           <Button onClick={submit} disabled={!selected || assign.isPending}>
             {assign.isPending && <Spinner className="size-4" />}
-            {chosen ? (isSelf && !current ? "Take ownership" : `${current ? "Reassign" : "Assign"} to ${chosen.name.split(" ")[0]}`) : current ? "Reassign" : "Assign"}
+            {chosen ? `${current ? "Reassign" : "Assign"} to ${chosen.name.split(" ")[0]}` : current ? "Reassign" : "Assign"}
           </Button>
         </DialogFooter>
       </DialogContent>
