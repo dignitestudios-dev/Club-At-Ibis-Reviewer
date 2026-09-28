@@ -24,7 +24,7 @@ export const STATUS_LABEL: Record<RequestStatus, string> = {
   withdrawn: "Withdrawn",
 };
 
-/** Hex colours for charts — mirrors the status badge palette. */
+/** Hex colours for charts: mirrors the status badge palette. */
 export const STATUS_COLOR: Record<RequestStatus, string> = {
   submitted: "#64748b",
   under_review: "#0284c7",
@@ -181,7 +181,7 @@ export function isIncoming(req: RequestRecord) {
   return req.status === "submitted" && !req.assignedReviewerId;
 }
 
-/** Fields and files the resident actually provided — the reviewer inspects each one. */
+/** Fields and files the resident actually provided: the reviewer inspects each one. */
 export function reviewItems(req: RequestRecord): CategoryField[] {
   return [...req.formSnapshot]
     .sort((a, b) => a.order - b.order)
@@ -225,7 +225,7 @@ export function attentionFor(requests: RequestRecord[], reviewerId: string) {
 }
 
 /* ------------------------------------------------------------------ */
-/* "What happens next" — shown on the reviewer's lists                   */
+/* "What happens next": shown on the reviewer's lists                  */
 /* ------------------------------------------------------------------ */
 
 export type NextTone = "action" | "waiting" | "done";

@@ -104,7 +104,7 @@ export default function FormsPage() {
                     </ul>
                   </div>
                 ) : (
-                  <p className="text-xs text-muted-foreground">Original version — no changes yet.</p>
+                  <p className="text-xs text-muted-foreground">Original version with no changes yet.</p>
                 )}
                 <div className="mt-auto flex items-center justify-between border-t border-border/70 pt-3 text-xs text-muted-foreground">
                   <span>{onOlder > 0 ? `${onOlder} request${onOlder === 1 ? "" : "s"} on an older version` : "All requests on the latest version"}</span>

@@ -93,17 +93,17 @@ export function ReviewItem({
           ))}
         </div>
       ) : (
-        <p className="text-sm leading-relaxed whitespace-pre-line text-foreground break-words">{value || "—"}</p>
+        <p className="text-sm leading-relaxed whitespace-pre-line text-foreground break-words [overflow-wrap:anywhere]">{value || "—"}</p>
       )}
 
       {changed && previous && (
-        <p className="rounded-lg border border-border/70 bg-muted/40 px-3 py-2 text-xs text-muted-foreground break-words">
-          <span className="font-semibold text-foreground">Previously:</span> <span className="line-through decoration-slate-400/60">{previous}</span>
+        <p className="rounded-lg border border-border/70 bg-muted/40 px-3 py-2 text-xs text-muted-foreground break-words [overflow-wrap:anywhere]">
+          <span className="font-semibold text-foreground">Previously:</span> <span className="line-through decoration-slate-400/60 [overflow-wrap:anywhere]">{previous}</span>
         </p>
       )}
 
       {state?.state === "flagged" && state.reason && (
-        <p className="rounded-lg border border-amber-300/70 bg-amber-50 px-3 py-2 text-xs text-amber-950 dark:border-amber-800/70 dark:bg-amber-950/30 dark:text-amber-200 break-words">
+        <p className="rounded-lg border border-amber-300/70 bg-amber-50 px-3 py-2 text-xs text-amber-950 dark:border-amber-800/70 dark:bg-amber-950/30 dark:text-amber-200 break-words [overflow-wrap:anywhere]">
           <span className="font-semibold">Reviewer note:</span> {state.reason}
         </p>
       )}

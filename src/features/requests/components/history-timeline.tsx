@@ -88,7 +88,7 @@ export function HistoryTimeline({ events }: { events: HistoryEvent[] }) {
                   {event.staffOnly && (
                     <span
                       className="inline-flex items-center gap-1 rounded-full border border-amber-300/70 bg-amber-50 px-2 py-px text-[10px] font-semibold tracking-wide text-amber-900 uppercase dark:border-amber-800/70 dark:bg-amber-950/40 dark:text-amber-300"
-                      title="Staff-only record — not shown to the resident."
+                      title="Staff-only record. Not visible to residents."
                     >
                       <Lock className="size-2.5" aria-hidden="true" />
                       Staff only
@@ -110,9 +110,9 @@ export function HistoryTimeline({ events }: { events: HistoryEvent[] }) {
                 </time>
               </div>
 
-              <p className="text-sm leading-relaxed text-foreground/85 break-words">{event.message}</p>
+              <p className="text-sm leading-relaxed text-foreground/85 break-words [overflow-wrap:anywhere]">{event.message}</p>
               {event.detail && (
-                <p className="rounded-lg border border-border/70 bg-muted/40 px-3 py-2 text-xs leading-relaxed text-muted-foreground break-words">
+                <p className="rounded-lg border border-border/70 bg-muted/40 px-3 py-2 text-xs leading-relaxed text-muted-foreground break-words [overflow-wrap:anywhere]">
                   {event.detail}
                 </p>
               )}

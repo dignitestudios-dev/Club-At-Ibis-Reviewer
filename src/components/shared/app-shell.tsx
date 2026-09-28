@@ -17,8 +17,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </aside>
       <div className="flex min-w-0 flex-1 flex-col">
         <AppTopbar />
-        <main id="main-content" tabIndex={-1} className="flex-1 px-4 py-6 lg:px-8 lg:py-8 outline-none">
-          <div className="mx-auto w-full max-w-7xl">{children}</div>
+        <main id="main-content" tabIndex={-1} className="min-w-0 flex-1 px-4 py-6 lg:px-8 lg:py-8 outline-none">
+          <div className="mx-auto w-full min-w-0 max-w-7xl">{children}</div>
         </main>
       </div>
     </div>

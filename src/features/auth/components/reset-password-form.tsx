@@ -152,7 +152,7 @@ export default function ResetPasswordForm({ token, mode = "reset" }: { token: st
         <div className="space-y-1.5">
           <h1 className="font-heading text-2xl font-medium text-foreground">Create Your Password</h1>
           <p className="text-sm text-muted-foreground">
-            Welcome to the ARB reviewer portal. Choose a password to activate your account — you&apos;ll use it with your work email to sign in.
+            Welcome to the ARB reviewer portal. Choose a password to activate your account. You will use it with your work email to sign in.
           </p>
         </div>
         <form

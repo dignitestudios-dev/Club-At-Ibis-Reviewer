@@ -39,7 +39,7 @@ interface Reviewer {
   designation: string;
   email: string;
   password: string;
-  /** "Receive New Requests" — the reviewer is a Default Reviewer. */
+  /** "Receive New Requests": the reviewer is a Default Reviewer. */
   receiveNewRequests: boolean;
   /** Account status. Inactive reviewers cannot sign in. */
   loginEnabled: boolean;
@@ -192,7 +192,7 @@ interface ItemReview {
   reason?: string;
 }
 
-/** A submission as it was when the reviewer reviewed it — kept after the resident resubmits. */
+/** A submission as it was when the reviewer reviewed it (kept after the resident resubmits). */
 interface SubmissionSnapshot {
   id: string;
   /** 1-based; the resident's original submission is 1. */
@@ -264,7 +264,7 @@ interface RequestRecord {
   code: string;
   title?: string;
   categoryId: string;
-  /** Category name at time of submission — preserved when categories change. */
+  /** Category name at time of submission (preserved when categories change). */
   categoryName: string;
   categorySlug?: string;
   category?: { id: string; slug: string; name: string };

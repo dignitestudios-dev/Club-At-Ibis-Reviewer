@@ -35,7 +35,7 @@ export default function ChangePasswordForm() {
       onSuccess: () => {
         isSubmittingRef.current = false;
         // Changing the password revokes the token used to make this
-        // request — the account is signed out server-side either way, so
+        // request; the account is signed out server-side either way, so
         // the client session has to follow, not just show a toast.
         toast.success("Password changed", "Sign in again with your new password.");
         logout();

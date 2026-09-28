@@ -24,9 +24,9 @@ function isValidReviewer(value: unknown): value is PublicReviewer {
  * background.
  *
  * A token that's expired, revoked, or belongs to a now-deactivated account
- * gets a 401 from /auth/me — the axios response interceptor (lib/axios.ts)
+ * gets a 401 from /auth/me; the axios response interceptor (lib/axios.ts)
  * handles that globally: clears the session and redirects to login. Any
- * other failure here is left alone — the optimistic session above stays in
+ * other failure here is left alone; the optimistic session above stays in
  * place rather than logging the reviewer out for something that wasn't
  * actually an auth problem.
  */
@@ -53,13 +53,13 @@ export default function AuthRehydrator({ children }: { children: React.ReactNode
           queryClient.setQueryData(authKeys.currentUser, parsed);
         }
       } catch {
-        // fall through — the validation call below corrects this either way
+        // fall through: the validation call below corrects this either way
       }
     }
 
     // `fetchQuery` (not the raw service call) so this shares one request
     // with any other mounted `useCurrentUserQuery()` instead of both firing
-    // their own /auth/me — and so it dedupes with itself under React
+    // their own /auth/me, and so it dedupes with itself under React
     // Strict Mode's double-effect in dev.
     queryClient
       .fetchQuery({ queryKey: authKeys.currentUser, queryFn: getCurrentUser, staleTime: 60_000 })

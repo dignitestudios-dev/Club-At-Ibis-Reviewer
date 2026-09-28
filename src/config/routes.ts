@@ -4,7 +4,7 @@ export const PUBLIC_ROUTES = [
   "/auth/forgot-password",
   "/auth/reset-password",
   "/auth/create-password",
-  // The reviewer-invitation email always links here (a backend-owned path —
+  // The reviewer-invitation email always links here (a backend-owned path;
   // see next.config.ts's rewrite to /auth/create-password).
   "/accept-invitation",
 ];

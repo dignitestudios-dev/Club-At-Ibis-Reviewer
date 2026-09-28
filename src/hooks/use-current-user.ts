@@ -12,10 +12,10 @@ export function useCurrentUser(): PublicReviewer | null {
 }
 
 /**
- * The signed-in reviewer with live account data — `/auth/me` is fetched
+ * The signed-in reviewer with live account data: `/auth/me` is fetched
  * fresh (subject to the query's staleTime) each time, so this reflects
  * Default-Reviewer changes the Super Admin makes without needing a
- * separate cross-reference against the (unrelated, mock) reviewers list.
+ * separate cross-reference against the reviewers list.
  */
 export function useMe() {
   const me = useCurrentUser();

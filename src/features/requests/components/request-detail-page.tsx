@@ -47,7 +47,7 @@ function InfoRow({ label, children }: { label: string; children: React.ReactNode
   return (
     <div className="space-y-1">
       <dt className="text-[11px] font-semibold tracking-wider text-muted-foreground uppercase">{label}</dt>
-      <dd className="text-sm text-foreground">{children}</dd>
+      <dd className="text-sm text-foreground break-words [overflow-wrap:anywhere]">{children}</dd>
     </div>
   );
 }
@@ -164,9 +164,9 @@ export default function RequestDetailPage({ id }: { id: string }) {
           <ArrowLeft className="size-4" aria-hidden="true" />
           {backHref === "/my-requests" ? "My assigned requests" : "Request oversight"}
         </Link>
-        <div className="space-y-2">
+        <div className="min-w-0 space-y-2">
           <div className="flex flex-wrap items-center gap-3">
-            <h1 className="font-heading text-2xl font-medium text-foreground sm:text-3xl">{req.code}</h1>
+            <h1 className="font-heading text-2xl font-medium text-foreground break-words [overflow-wrap:anywhere] sm:text-3xl">{req.code}</h1>
             <StatusBadge status={req.status} />
             {currentSubmissionNumber(req) > 1 && (
               <span className="rounded-full bg-purple-100 px-2.5 py-0.5 text-[11px] font-bold tracking-wider text-purple-800 uppercase dark:bg-purple-950/60 dark:text-purple-300">
@@ -182,14 +182,14 @@ export default function RequestDetailPage({ id }: { id: string }) {
             )}
           </div>
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-sm text-muted-foreground">
-            <span className="font-medium text-foreground">{req.categoryName}</span>
+            <span className="min-w-0 max-w-full font-medium text-foreground break-words [overflow-wrap:anywhere]">{req.categoryName}</span>
             {category?.status === "archived" && (
               <span className="rounded-full bg-slate-200 px-2 py-px text-[10px] font-bold tracking-wider text-slate-700 uppercase dark:bg-slate-700 dark:text-slate-200">Archived category</span>
             )}
             <span aria-hidden="true">·</span>
-            <span>{propAddress}</span>
+            <span className="min-w-0 max-w-full break-words [overflow-wrap:anywhere]">{propAddress}</span>
             <span aria-hidden="true">·</span>
-            <span>{propLot}</span>
+            <span className="min-w-0 max-w-full break-words [overflow-wrap:anywhere]">{propLot}</span>
           </div>
         </div>
       </div>
@@ -433,19 +433,19 @@ export default function RequestDetailPage({ id }: { id: string }) {
                 <Card className="rounded-xl border border-border/70 bg-transparent shadow-none ring-0">
                   <CardHeader className="border-b border-border/70 pb-3">
                     <CardTitle className="font-heading text-lg font-medium">Earlier Versions Retained</CardTitle>
-                    <p className="text-xs text-muted-foreground">Replaced during resubmission — kept in the request history.</p>
+                    <p className="text-xs text-muted-foreground">Replaced during resubmission and archived in request history.</p>
                   </CardHeader>
                   <CardContent className="space-y-3 pt-4">
                     {req.revisions.map((rev) => (
-                      <div key={rev.id} className="grid gap-2 rounded-xl border border-border/80 p-3.5 text-sm sm:grid-cols-[1fr_auto_1fr] sm:items-center">
-                        <div>
-                          <p className="text-[10px] font-semibold tracking-wider text-muted-foreground uppercase">Previous · {rev.label}</p>
-                          <p className="truncate text-muted-foreground line-through decoration-slate-400/60">{rev.previous}</p>
+                      <div key={rev.id} className="grid gap-2 rounded-xl border border-border/80 p-3.5 text-sm sm:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] sm:items-center">
+                        <div className="min-w-0">
+                          <p className="text-[10px] font-semibold tracking-wider text-muted-foreground uppercase break-words [overflow-wrap:anywhere]">Previous · {rev.label}</p>
+                          <p className="text-muted-foreground line-through decoration-slate-400/60 break-words [overflow-wrap:anywhere] line-clamp-3">{rev.previous}</p>
                         </div>
                         <span className="hidden text-muted-foreground sm:block" aria-hidden="true">→</span>
-                        <div>
+                        <div className="min-w-0">
                           <p className="text-[10px] font-semibold tracking-wider text-muted-foreground uppercase">Current · {format(new Date(rev.at), "MMM d")}</p>
-                          <p className="truncate font-medium text-foreground">{rev.current}</p>
+                          <p className="font-medium text-foreground break-words [overflow-wrap:anywhere] line-clamp-3">{rev.current}</p>
                         </div>
                       </div>
                     ))}
@@ -530,7 +530,7 @@ export default function RequestDetailPage({ id }: { id: string }) {
                       <p className="flex items-center gap-2 text-sm font-semibold text-rose-950 dark:text-rose-200">
                         <XCircle className="size-4" aria-hidden="true" /> Rejection reason
                       </p>
-                      <p className="mt-1.5 text-sm leading-relaxed text-rose-900/90 dark:text-rose-300/90">{req.rejectionReason}</p>
+                      <p className="mt-1.5 text-sm leading-relaxed text-rose-900/90 dark:text-rose-300/90 break-words [overflow-wrap:anywhere] whitespace-pre-wrap">{req.rejectionReason}</p>
                     </div>
                   )}
                   {(req.status === "changes_required" || req.status === "resubmitted") && (
@@ -539,7 +539,7 @@ export default function RequestDetailPage({ id }: { id: string }) {
                         <FileEdit className="size-4" aria-hidden="true" />
                         {req.status === "resubmitted" ? "Resident resubmitted corrections" : `Revision requested · ${flaggedCount} flagged item${flaggedCount === 1 ? "" : "s"}`}
                       </p>
-                      <p className="mt-1.5 text-sm text-amber-900/90 dark:text-amber-300/90">{req.feedback}</p>
+                      <p className="mt-1.5 text-sm text-amber-900/90 dark:text-amber-300/90 break-words [overflow-wrap:anywhere] whitespace-pre-wrap">{req.feedback}</p>
                     </div>
                   )}
                   {["approved", "completed"].includes(req.status) && req.decidedAt && (

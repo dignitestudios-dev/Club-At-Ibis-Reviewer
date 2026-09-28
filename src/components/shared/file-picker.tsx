@@ -12,7 +12,7 @@ export interface PickedFile {
 }
 
 /**
- * Prototype file chooser: reads the chosen file's name and size only — nothing
+ * Prototype file chooser: reads the chosen file's name and size only; nothing
  * is uploaded anywhere.
  */
 export function FilePicker({

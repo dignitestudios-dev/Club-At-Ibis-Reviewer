@@ -40,7 +40,7 @@ function SubmissionRow({ request, submission, onPreview, defaultOpen }: { reques
       {open && (
         <div className="space-y-3 border-t border-border/70 px-4 py-4">
           {submission.feedback && (
-            <div className="rounded-lg border border-amber-300/70 bg-amber-50 px-3 py-2 text-xs whitespace-pre-line text-amber-950 dark:border-amber-800/70 dark:bg-amber-950/30 dark:text-amber-200">
+            <div className="rounded-lg border border-amber-300/70 bg-amber-50 px-3 py-2 text-xs whitespace-pre-line break-words [overflow-wrap:anywhere] text-amber-950 dark:border-amber-800/70 dark:bg-amber-950/30 dark:text-amber-200">
               <span className="font-semibold">Feedback sent to the resident:</span> {submission.feedback}
             </div>
           )}
@@ -53,7 +53,7 @@ function SubmissionRow({ request, submission, onPreview, defaultOpen }: { reques
               return (
                 <li key={field.id} className={cn("space-y-1.5 rounded-lg border p-3", review?.state === "flagged" ? "border-amber-300/70 bg-amber-50/40 dark:border-amber-800/60 dark:bg-amber-950/10" : "border-border/70")}>
                   <div className="flex flex-wrap items-center justify-between gap-2">
-                    <p className="text-[11px] font-semibold tracking-wider text-muted-foreground uppercase">{field.label}</p>
+                    <p className="min-w-0 text-[11px] font-semibold tracking-wider text-muted-foreground uppercase break-words [overflow-wrap:anywhere]">{field.label}</p>
                     <ReviewState review={review} />
                   </div>
                   {field.type === "file" ? (
@@ -69,9 +69,9 @@ function SubmissionRow({ request, submission, onPreview, defaultOpen }: { reques
                       </div>
                     ))
                   ) : (
-                    <p className="text-sm whitespace-pre-line text-foreground">{value}</p>
+                    <p className="text-sm whitespace-pre-line break-words [overflow-wrap:anywhere] text-foreground">{value}</p>
                   )}
-                  {review?.state === "flagged" && review.reason && <p className="text-xs text-amber-900 dark:text-amber-300">Note: {review.reason}</p>}
+                  {review?.state === "flagged" && review.reason && <p className="text-xs break-words [overflow-wrap:anywhere] text-amber-900 dark:text-amber-300">Note: {review.reason}</p>}
                 </li>
               );
             })}

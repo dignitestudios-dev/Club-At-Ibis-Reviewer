@@ -67,7 +67,7 @@ export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenCh
           id: `r-${r.id}`,
           group: "Requests",
           label: `${r?.code ?? ""} · ${r?.categoryName ?? ""}`,
-          hint: `${residentFullName(res)}${propAddr ? ` — ${propAddr}` : ""}`,
+          hint: `${residentFullName(res)}${propAddr ? ` • ${propAddr}` : ""}`,
           href: `/requests/${r.id}`,
           icon: FileText,
         });
