@@ -25,6 +25,7 @@ import {
   markAllNotificationsRead,
   markNotificationRead,
 } from "@/features/notifications/api/notifications.service";
+import { getCategoryVersions } from "@/features/forms/api/forms.service";
 
 export const keys = {
   reviewers: ["reviewers"] as const,
@@ -60,6 +61,14 @@ export const useCategories = (options?: { enabled?: boolean }) =>
     queryFn: getCategories,
     enabled: options?.enabled ?? true,
     staleTime: 5 * 60 * 1000,
+  });
+/** The real version history for one category, same endpoint family the admin side's version viewer uses. */
+export const useCategoryVersions = (categoryId: string, options?: { enabled?: boolean }) =>
+  useQuery({
+    queryKey: [...keys.categories, categoryId, "versions"],
+    queryFn: () => getCategoryVersions(categoryId),
+    enabled: (options?.enabled ?? true) && !!categoryId,
+    staleTime: 60 * 1000,
   });
 export const useRequests = (params?: ReviewerRequestsQueryParams, options?: { enabled?: boolean }) =>
   useQuery({

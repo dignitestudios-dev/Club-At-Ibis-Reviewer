@@ -77,7 +77,7 @@ export default function FormsPage() {
             const updated = cat.version > 1;
             const latest = cat.versions[cat.versions.length - 1];
             const onOlder = (requests ?? []).filter((r) => r.categoryId === cat.id && r.formVersion < cat.version && (isDefault || r.assignedReviewerId === me?.id)).length;
-            const href = updated ? `/forms/${cat.id}?from=${cat.version - 1}&to=${cat.version}` : `/forms/${cat.id}`;
+            const href = `/forms/${cat.id}?v=${cat.version}`;
             return (
               <Link
                 key={cat.id}

@@ -2,84 +2,97 @@
 
 import { useMemo } from "react";
 import Link from "next/link";
-import { ArrowLeft, ArrowRight, FileDiff, FileText, Minus, Pencil, Plus } from "lucide-react";
+import { ArrowLeft, FileDiff, FileText, FilePlus2, GitCommitVertical, Minus, Pencil, Plus, RotateCcw, Tag } from "lucide-react";
 import { EmptyState } from "@/components/shared/empty-state";
-import { FilterSelect } from "@/components/shared/filter-select";
+import { RequiredMark } from "@/components/shared/required-mark";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { FIELD_TYPE_BY_ID, describeAccept } from "@/features/forms/components/field-types";
-import { useCategories, useRequests, useResidents } from "@/hooks/use-reviewer-data";
+import { FIELD_TYPE_BY_ID, describeAccept, isChoiceType } from "@/features/forms/components/field-types";
+import type { CategoryVersionDetail, VersionActor } from "@/features/forms/api/forms.service";
+import { useCategoryVersions, useRequests, useResidents } from "@/hooks/use-reviewer-data";
 import { useMe } from "@/hooks/use-current-user";
 import { useUrlParams } from "@/hooks/use-url-params";
-import { describeChanges, fieldDiffStates } from "@/lib/category-diff";
+import { fieldDiffStates } from "@/lib/category-diff";
 import { residentFullName } from "@/lib/domain";
-import { formatDateTime } from "@/utils/format";
+import { formatDateTime, formatRelative } from "@/utils/format";
 import { cn } from "@/utils/cn";
 
 function changeTone(text: string) {
   if (text.startsWith("Added")) return { icon: Plus, cls: "bg-emerald-50 text-emerald-700 border-emerald-200/80 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800" };
   if (text.startsWith("Removed")) return { icon: Minus, cls: "bg-rose-50 text-rose-700 border-rose-200/80 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800" };
+  if (text.startsWith("Restored")) return { icon: RotateCcw, cls: "bg-sky-50 text-sky-700 border-sky-200/80 dark:bg-sky-950/40 dark:text-sky-300 dark:border-sky-800" };
+  if (text === "Initial form") return { icon: FilePlus2, cls: "bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700" };
   return { icon: Pencil, cls: "bg-amber-50 text-amber-700 border-amber-200/80 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800" };
 }
 
-/** The properties of a field that a reviewer cares about, as short labelled chips. */
-function fieldBits(f: CategoryField): { key: string; text: string }[] {
-  const bits = [
-    { key: "type", text: FIELD_TYPE_BY_ID.get(f.type)?.label ?? f.type },
-    { key: "required", text: f.required ? "Required" : "Optional" },
-  ];
-  if (f.helpText) bits.push({ key: "help", text: `Help: ${f.helpText}` });
-  if (f.options?.length) bits.push({ key: "options", text: `Options: ${f.options.join(", ")}` });
-  if (f.type === "file") {
-    bits.push({ key: "accept", text: `Accepts ${describeAccept(f.accept)}` });
-    bits.push({ key: "multiple", text: f.multiple ? "Multiple files" : "Single file" });
-  }
-  return bits;
+function getActorName(actor?: VersionActor | null): string {
+  return actor?.displayName || "Super Admin";
 }
 
-const STATE_BADGE = {
-  added: { label: "Added", cls: "border-emerald-300/80 bg-emerald-50 text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300" },
-  removed: { label: "Removed", cls: "border-rose-300/80 bg-rose-50 text-rose-800 dark:border-rose-800 dark:bg-rose-950/40 dark:text-rose-300" },
-  changed: { label: "Changed", cls: "border-amber-300/80 bg-amber-50 text-amber-800 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-300" },
-  same: { label: "Unchanged", cls: "border-border bg-muted/50 text-muted-foreground" },
-} as const;
-
-function Chips({ bits, other, dim }: { bits: { key: string; text: string }[]; other?: { key: string; text: string }[]; dim?: boolean }) {
-  const otherMap = new Map((other ?? []).map((b) => [b.key, b.text]));
-  return (
-    <div className="flex flex-wrap gap-1.5">
-      {bits.map((b) => {
-        const differs = other && otherMap.get(b.key) !== b.text;
-        return (
-          <span
-            key={b.key}
-            className={cn(
-              "rounded-md border px-1.5 py-0.5 text-[11px]",
-              differs ? "border-amber-300 bg-amber-100 font-semibold text-amber-950 dark:border-amber-700 dark:bg-amber-950/60 dark:text-amber-200" : "border-border bg-muted/40 text-muted-foreground",
-              dim && "opacity-60"
-            )}
-          >
-            {b.text}
-          </span>
-        );
-      })}
-    </div>
-  );
-}
-
+/**
+ * Same version-history layout as the admin side's "Version history" page
+ * (list of every version on the left, selected version + diff highlighting
+ * on the right) — a reviewer can look but not touch: no restore, no editing.
+ */
 export default function FormComparePage({ id }: { id: string }) {
   const { me, isDefault } = useMe();
-  const { data: categories, isLoading } = useCategories();
+  const { data: versionData, isLoading } = useCategoryVersions(id);
   const { data: requests } = useRequests();
   const { data: residents } = useResidents();
-  const { values, set } = useUrlParams({ from: "", to: "" });
+  const { values, set } = useUrlParams({ v: "" });
 
-  const category = categories?.find((c) => c.id === id);
-  const versions = useMemo(() => [...(category?.versions ?? [])].sort((a, b) => a.version - b.version), [category]);
+  const category = versionData?.category;
+  const versions = useMemo(() => [...(versionData?.versions ?? [])].sort((a, b) => b.version - a.version), [versionData]);
+  const counts = useMemo(() => {
+    const map = new Map<number, number>();
+    (requests ?? []).filter((r) => r.categoryId === id).forEach((r) => map.set(r.formVersion, (map.get(r.formVersion) ?? 0) + 1));
+    return map;
+  }, [requests, id]);
 
-  if (isLoading) return <Skeleton className="h-96 w-full rounded-2xl" />;
+  if (isLoading) {
+    return (
+      <div className="space-y-6 animate-in fade-in duration-300">
+        <Skeleton className="h-4 w-36 rounded" />
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="space-y-1.5">
+            <Skeleton className="h-3.5 w-28 rounded" />
+            <Skeleton className="h-8 w-60 rounded" />
+            <Skeleton className="h-4 w-48 rounded" />
+          </div>
+        </div>
+        <div className="grid gap-6 lg:grid-cols-5">
+          <div className="lg:col-span-2">
+            <Card className="shadow-2xs">
+              <CardHeader className="border-b border-border/70 pb-3">
+                <Skeleton className="h-5 w-24 rounded" />
+              </CardHeader>
+              <CardContent className="space-y-2 pt-3">
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <Skeleton key={i} className="h-16 w-full rounded-xl" />
+                ))}
+              </CardContent>
+            </Card>
+          </div>
+          <div className="space-y-5 lg:col-span-3">
+            <Card className="shadow-2xs">
+              <CardHeader className="border-b border-border/70 pb-3">
+                <Skeleton className="h-5 w-32 rounded" />
+              </CardHeader>
+              <CardContent className="space-y-4 pt-5">
+                <Skeleton className="h-12 w-full rounded-xl" />
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <Skeleton key={i} className="h-16 w-full rounded-xl" />
+                ))}
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (!category || versions.length === 0) {
     return (
       <EmptyState
@@ -94,37 +107,25 @@ export default function FormComparePage({ id }: { id: string }) {
     );
   }
 
-  const latest = versions[versions.length - 1].version;
-  const toNumber = versions.some((v) => v.version === Number(values.to)) ? Number(values.to) : latest;
-  const fromDefault = Math.max(versions[0].version, toNumber - 1);
-  const fromNumber = versions.some((v) => v.version === Number(values.from)) ? Number(values.from) : fromDefault;
-  const from = versions.find((v) => v.version === fromNumber)!;
-  const to = versions.find((v) => v.version === toNumber)!;
-  const same = from.version === to.version;
+  const currentVersionNumber = category.currentVersion;
+  const selectedNumber = Number(values.v) || currentVersionNumber;
+  const selected: CategoryVersionDetail =
+    versions.find((v) => v.version === selectedNumber) ?? versions[0];
+  const previous = versions.find((v) => v.version === selected.version - 1);
+  const isCurrent = selected.version === currentVersionNumber;
+  const diff = fieldDiffStates(previous?.fields, selected.fields);
+  const removed = previous ? previous.fields.filter((f) => !selected.fields.some((x) => x.id === f.id)) : [];
 
-  const changes = same ? [] : describeChanges(from, to);
-  const states = fieldDiffStates(from.fields, to.fields);
-  const fromById = new Map(from.fields.map((f) => [f.id, f]));
-  const removed = from.fields.filter((f) => !to.fields.some((x) => x.id === f.id));
-  const rows = [
-    ...[...to.fields].sort((a, b) => a.order - b.order).map((f) => ({ field: f, was: fromById.get(f.id), state: states.get(f.id) ?? "same" })),
-    ...removed.map((f) => ({ field: f, was: f, state: "removed" as const })),
-  ];
-  // Differences first, unchanged fields last.
-  const priority = { added: 0, changed: 1, removed: 2, same: 3 } as const;
-  rows.sort((x, y) => priority[x.state] - priority[y.state]);
-  const counts = { added: 0, removed: 0, changed: 0 };
-  rows.forEach((r) => {
-    if (r.state !== "same") counts[r.state] += 1;
-  });
+  const changeList: string[] =
+    selected.changeSummaries.length > 0
+      ? selected.changeSummaries
+      : selected.changes.length > 0
+      ? selected.changes
+      : ["Initial form"];
 
   const visibleRequests = (requests ?? []).filter((r) => r.categoryId === id && (isDefault || r.assignedReviewerId === me?.id));
-  const outdated = visibleRequests.filter((r) => r.formVersion < latest);
+  const outdated = visibleRequests.filter((r) => r.formVersion < currentVersionNumber);
   const residentById = new Map((residents ?? []).map((r) => [r.id, r]));
-  const options = versions.map((v) => ({ label: `v${v.version}${v.version === latest ? " (latest)" : ""}`, value: String(v.version) }));
-
-  // Notes for every version between `from` (exclusive) and `to` (inclusive).
-  const between = versions.filter((v) => v.version > from.version && v.version <= to.version);
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
@@ -133,124 +134,182 @@ export default function FormComparePage({ id }: { id: string }) {
         Form updates
       </Link>
 
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <p className="text-xs font-semibold tracking-wider text-brand-gold uppercase">Form comparison</p>
+          <p className="text-xs font-semibold tracking-wider text-brand-gold uppercase">Version history</p>
           <h1 className="font-heading text-2xl font-medium text-foreground sm:text-3xl">{category.name}</h1>
           <p className="text-sm text-muted-foreground">
-            The form is on <span className="font-semibold text-foreground">v{latest}</span> · {versions.length} version{versions.length === 1 ? "" : "s"}. Requests keep the form they were submitted on.
+            {versions.length} version{versions.length === 1 ? "" : "s"} · current is <span className="font-semibold text-foreground">v{currentVersionNumber}</span>
           </p>
-        </div>
-        <div className="flex items-end gap-2">
-          <FilterSelect label="Was" value={String(from.version)} onChange={(v) => set({ from: v })} options={options} className="w-36" />
-          <ArrowRight className="mb-2.5 size-4 text-muted-foreground" aria-hidden="true" />
-          <FilterSelect label="Now" value={String(to.version)} onChange={(v) => set({ to: v })} options={options} className="w-36" />
         </div>
       </div>
 
-      {same ? (
-        <EmptyState icon={FileDiff} title="Pick two different versions" description="Choose an earlier version under “Was” and a later one under “Now” to compare them." />
-      ) : (
-        <>
-          <div className="grid gap-4 sm:grid-cols-3">
-            {[
-              { label: "Fields added", n: counts.added, cls: "text-emerald-700 dark:text-emerald-300" },
-              { label: "Fields changed", n: counts.changed, cls: "text-amber-700 dark:text-amber-300" },
-              { label: "Fields removed", n: counts.removed, cls: "text-rose-700 dark:text-rose-300" },
-            ].map((c) => (
-              <div key={c.label} className="rounded-2xl border border-border/80 bg-card p-4 shadow-2xs">
-                <p className="text-[11px] font-semibold tracking-wider text-muted-foreground uppercase">{c.label}</p>
-                <p className={cn("font-heading text-3xl font-semibold tabular-nums", c.cls)}>{c.n}</p>
-              </div>
-            ))}
-          </div>
+      <div className="grid gap-6 lg:grid-cols-5">
+        {/* Version list */}
+        <Card className="shadow-2xs lg:col-span-2">
+          <CardHeader className="border-b border-border/70 pb-3">
+            <CardTitle className="font-heading text-lg font-medium">All versions</CardTitle>
+            <p className="text-xs text-muted-foreground">Every saved edit creates a new version. Earlier versions are never changed.</p>
+          </CardHeader>
+          <CardContent className="p-0">
+            <ol className="max-h-[36rem] divide-y divide-border/60 overflow-y-auto custom-scrollbar">
+              {versions.map((v) => {
+                const active = v.version === selected.version;
+                const used = counts.get(v.version) ?? 0;
+                const firstChange = v.changeSummaries[0] || v.changes[0] || `v${v.version}`;
+                const extraChangesCount = (v.changeSummaries.length || v.changes.length || 1) - 1;
+                const author = getActorName(v.createdBy);
+                return (
+                  <li key={v.version}>
+                    <button
+                      type="button"
+                      onClick={() => set({ v: String(v.version) })}
+                      aria-current={active ? "true" : undefined}
+                      className={cn(
+                        "relative flex w-full items-start gap-3 px-5 py-4 text-left outline-none transition-colors hover:bg-muted/50 focus-visible:bg-muted/50",
+                        active && "bg-primary/5 dark:bg-amber-400/5"
+                      )}
+                    >
+                      {active && <span aria-hidden="true" className="absolute inset-y-2 left-0 w-1 rounded-r-full bg-primary dark:bg-amber-400" />}
+                      <span className={cn("mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-xl border font-mono text-xs font-bold", v.version === currentVersionNumber ? "border-primary bg-primary text-primary-foreground dark:border-amber-400 dark:bg-amber-400 dark:text-[#0d1522]" : "border-border bg-muted text-muted-foreground")}>
+                        v{v.version}
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span className="flex flex-wrap items-center gap-2">
+                          <span className="text-sm font-semibold text-foreground">{v.version === 1 ? "Initial version" : `Version ${v.version}`}</span>
+                          {v.version === currentVersionNumber && (
+                            <span className="rounded-full bg-emerald-50 px-2 py-px text-[10px] font-bold tracking-wider text-emerald-800 uppercase dark:bg-emerald-950/50 dark:text-emerald-300">Current</span>
+                          )}
+                        </span>
+                        <span className="block text-xs text-muted-foreground" title={formatDateTime(v.createdAt)}>
+                          {formatRelative(v.createdAt)} · {author}
+                        </span>
+                        <span className="mt-1 block truncate text-xs text-foreground/80">{firstChange}{extraChangesCount > 0 ? ` +${extraChangesCount} more` : ""}</span>
+                        <span className="mt-1.5 inline-flex items-center gap-1 text-[11px] text-muted-foreground">
+                          <FileText className="size-3" aria-hidden="true" />
+                          {used} request{used === 1 ? "" : "s"} submitted on this version
+                        </span>
+                      </span>
+                    </button>
+                  </li>
+                );
+              })}
+            </ol>
+          </CardContent>
+        </Card>
 
+        {/* Selected version */}
+        <div className="space-y-5 lg:col-span-3">
           <Card className="shadow-2xs">
             <CardHeader className="border-b border-border/70 pb-3">
-              <CardTitle className="font-heading text-lg font-medium">
-                What changed · v{from.version} → v{to.version}
-              </CardTitle>
-              <p className="text-xs text-muted-foreground">
-                {between.map((v) => `v${v.version} by ${v.createdBy}, ${formatDateTime(v.createdAt)}`).join(" · ")}
-              </p>
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <CardTitle className="font-heading text-lg font-medium">
+                    Version {selected.version} {isCurrent && <span className="ml-1 text-sm font-normal text-emerald-700 dark:text-emerald-300">· current</span>}
+                  </CardTitle>
+                  <p className="text-xs text-muted-foreground">
+                    Saved {formatDateTime(selected.createdAt)} by {getActorName(selected.createdBy)}
+                  </p>
+                </div>
+              </div>
             </CardHeader>
-            <CardContent className="space-y-3 pt-4">
-              {changes.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No differences between these two versions.</p>
-              ) : (
-                <ul className="space-y-2">
-                  {changes.map((text) => {
-                    const tone = changeTone(text);
-                    const Icon = tone.icon;
+            <CardContent className="space-y-5 pt-5">
+              {selected.note && (
+                <p className="flex items-start gap-2 rounded-xl border border-border bg-muted/40 px-3.5 py-2.5 text-sm text-foreground">
+                  <Tag className="mt-0.5 size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+                  {selected.note}
+                </p>
+              )}
+
+              <div>
+                <p className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold tracking-wider text-muted-foreground uppercase">
+                  <GitCommitVertical className="size-3.5" aria-hidden="true" />
+                  {previous ? `Changes from v${previous.version}` : "What this version contains"}
+                </p>
+                <ul className="space-y-1.5">
+                  {changeList.map((c, i) => {
+                    const tone = changeTone(c);
+                    const CI = tone.icon;
                     return (
-                      <li key={text} className={cn("flex items-start gap-2.5 rounded-lg border px-3 py-2 text-sm", tone.cls)}>
-                        <Icon className="mt-0.5 size-3.5 shrink-0" aria-hidden="true" />
-                        {text}
+                      <li key={i} className="flex items-start gap-2.5 text-sm text-foreground">
+                        <span className={cn("mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-md border", tone.cls)}>
+                          <CI className="size-3" aria-hidden="true" />
+                        </span>
+                        {c}
                       </li>
                     );
                   })}
                 </ul>
-              )}
-              {between.filter((v) => v.note).map((v) => (
-                <p key={v.version} className="rounded-lg border border-border bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
-                  <span className="font-semibold text-foreground">Note on v{v.version}:</span> {v.note}
-                </p>
-              ))}
+              </div>
             </CardContent>
           </Card>
 
           <Card className="shadow-2xs">
             <CardHeader className="border-b border-border/70 pb-3">
-              <CardTitle className="font-heading text-lg font-medium">Field by Field</CardTitle>
-              <p className="text-xs text-muted-foreground">Highlighted properties are the ones that differ.</p>
+              <CardTitle className="font-heading text-lg font-medium">Form as residents saw it</CardTitle>
+              <p className="text-xs text-muted-foreground">
+                The {selected.fields.length} configured field{selected.fields.length === 1 ? "" : "s"} for this version.
+              </p>
             </CardHeader>
-            <CardContent className="pt-2">
-              <div className="hidden grid-cols-[7rem_minmax(0,1fr)_minmax(0,1fr)] gap-4 border-b border-border/70 px-1 py-2 text-[11px] font-semibold tracking-wider text-muted-foreground uppercase md:grid">
-                <span>Status</span>
-                <span>Was · v{from.version}</span>
-                <span>Now · v{to.version}</span>
-              </div>
-              <ul className="divide-y divide-border/70">
-                {rows.map(({ field, was, state }) => {
-                  const badge = STATE_BADGE[state];
-                  const wasBits = was ? fieldBits(was) : [];
-                  const nowBits = state === "removed" ? [] : fieldBits(field);
+            <CardContent className="space-y-4 pt-5">
+              {selected.fields.length === 0 && <p className="py-4 text-center text-sm text-muted-foreground">No fields in this version.</p>}
+              <ol className="space-y-2.5">
+                {selected.fields.map((f, i) => {
+                  const meta = FIELD_TYPE_BY_ID.get(f.type)!;
+                  const TI = meta.icon;
+                  const state = diff.get(f.id);
                   return (
-                    <li key={field.id} className={cn("grid gap-3 px-1 py-3.5 md:grid-cols-[7rem_minmax(0,1fr)_minmax(0,1fr)] md:gap-4", state === "same" && "opacity-70")}>
-                      <div>
-                        <span className={cn("inline-flex rounded-full border px-2 py-0.5 text-[10px] font-bold tracking-wider uppercase", badge.cls)}>{badge.label}</span>
-                      </div>
-                      <div className="min-w-0 space-y-1.5">
-                        <p className="text-[10px] font-semibold tracking-wider text-muted-foreground uppercase md:hidden">Was · v{from.version}</p>
-                        {was ? (
-                          <>
-                            <p className={cn("text-sm font-medium text-foreground", was.label !== field.label && "line-through decoration-muted-foreground/60")}>{was.label}</p>
-                            <Chips bits={wasBits} other={state === "changed" ? nowBits : undefined} dim={state === "removed"} />
-                          </>
-                        ) : (
-                          <p className="text-xs text-muted-foreground italic">Did not exist</p>
-                        )}
-                      </div>
-                      <div className="min-w-0 space-y-1.5">
-                        <p className="text-[10px] font-semibold tracking-wider text-muted-foreground uppercase md:hidden">Now · v{to.version}</p>
-                        {state === "removed" ? (
-                          <p className="text-xs text-muted-foreground italic">Removed from the form</p>
-                        ) : (
-                          <>
-                            <p className="text-sm font-medium text-foreground">{field.label}</p>
-                            <Chips bits={nowBits} other={state === "changed" ? wasBits : undefined} />
-                          </>
+                    <li
+                      key={f.id || i}
+                      className={cn(
+                        "flex gap-3 rounded-xl border bg-card p-3.5",
+                        state === "added" ? "border-emerald-300/80 bg-emerald-50/60 dark:border-emerald-800 dark:bg-emerald-950/20" : state === "changed" ? "border-amber-300/80 bg-amber-50/60 dark:border-amber-800 dark:bg-amber-950/20" : "border-border"
+                      )}
+                    >
+                      <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-muted text-[11px] font-bold tabular-nums text-muted-foreground">{i + 1}</span>
+                      <div className="min-w-0 flex-1 space-y-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="text-sm font-medium text-foreground">{f.label}</span>
+                          {f.required && <RequiredMark />}
+                          <span className="inline-flex items-center gap-1 rounded-full border border-primary/20 bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary dark:text-amber-300">
+                            <TI className="size-3" aria-hidden="true" />
+                            {meta.label}
+                          </span>
+                          {state === "added" && <span className="rounded-full bg-emerald-100 px-2 py-px text-[10px] font-bold tracking-wider text-emerald-800 uppercase dark:bg-emerald-950 dark:text-emerald-300">New</span>}
+                          {state === "changed" && <span className="rounded-full bg-amber-100 px-2 py-px text-[10px] font-bold tracking-wider text-amber-900 uppercase dark:bg-amber-950 dark:text-amber-300">Changed</span>}
+                        </div>
+                        {f.helpText && <p className="text-xs break-all text-muted-foreground">{f.helpText}</p>}
+                        {isChoiceType(f.type) && <p className="text-xs text-muted-foreground">Options: {(f.options ?? []).join(" · ")}</p>}
+                        {f.type === "file" && (
+                          <p className="text-xs text-muted-foreground">
+                            {describeAccept(f.accept)}
+                            {f.multiple ? " · multiple files" : ""}
+                          </p>
                         )}
                       </div>
                     </li>
                   );
                 })}
-              </ul>
+              </ol>
+
+              {removed.length > 0 && (
+                <div className="rounded-xl border border-rose-300/70 bg-rose-50/60 p-3.5 dark:border-rose-900/70 dark:bg-rose-950/20">
+                  <p className="mb-1.5 text-[11px] font-semibold tracking-wider text-rose-800 uppercase dark:text-rose-300">Removed since v{previous?.version}</p>
+                  <ul className="space-y-1 text-sm text-foreground/80">
+                    {removed.map((f) => (
+                      <li key={f.id} className="line-through decoration-rose-400/70">
+                        {f.label}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
             </CardContent>
           </Card>
-        </>
-      )}
+        </div>
+      </div>
 
+      {/* Reviewer-specific: which of your requests used which version */}
       <Card className="shadow-2xs">
         <CardHeader className="border-b border-border/70 pb-3">
           <CardTitle className="font-heading text-lg font-medium">Requests on This Form</CardTitle>
@@ -274,7 +333,7 @@ export default function FormComparePage({ id }: { id: string }) {
                         <span className="font-mono text-xs font-semibold text-primary dark:text-amber-300">{r.code}</span>
                         <span className="block truncate text-sm text-foreground">{residentFullName(residentById.get(r.residentId))}</span>
                       </span>
-                      <span className={cn("rounded-full px-2 py-0.5 text-[11px] font-semibold", r.formVersion < latest ? "bg-amber-100 text-amber-900 dark:bg-amber-950/50 dark:text-amber-300" : "bg-muted text-muted-foreground")}>
+                      <span className={cn("rounded-full px-2 py-0.5 text-[11px] font-semibold", r.formVersion < currentVersionNumber ? "bg-amber-100 text-amber-900 dark:bg-amber-950/50 dark:text-amber-300" : "bg-muted text-muted-foreground")}>
                         Submitted on v{r.formVersion}
                       </span>
                       <StatusBadge status={r.status} />
