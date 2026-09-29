@@ -90,7 +90,7 @@ export const NotificationItem = memo(function NotificationItem({
             Mark read
           </Button>
         )}
-        {(notification.link || notification.requestId) && (
+        {notification.requestId && (
           <Button
             variant="outline"
             size="sm"
@@ -98,15 +98,15 @@ export const NotificationItem = memo(function NotificationItem({
             nativeButton={false}
             render={
               <Link
-                href={notification.link ?? `/requests/${notification.requestId}`}
+                href={`/requests/${notification.requestId}`}
                 onClick={() => {
                   if (!notification.read) onMarkRead(notification.id);
                 }}
-                aria-label={`${notification.link ? "Open" : "View request details for"} ${notification.title}`}
+                aria-label={`View request details for ${notification.title}`}
               />
             }
           >
-            {notification.link ? "View comparison" : "View Request"}
+            View Request
             <ArrowRight className="size-3.5" aria-hidden="true" />
           </Button>
         )}

@@ -82,8 +82,7 @@ export function NotificationBell() {
                     onClick={() => {
                       if (!n.read) markRead.mutate(n.id);
                       setOpen(false);
-                      if (n.link) router.push(n.link);
-                      else if (n.requestId) router.push(`/requests/${n.requestId}`);
+                      if (n.requestId) router.push(`/requests/${n.requestId}`);
                     }}
                     className={cn(
                       "flex w-full items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-muted/60",

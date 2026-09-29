@@ -133,6 +133,7 @@ interface Category {
 
 type RequestStatus =
   | "submitted"
+  | "assigned"
   | "under_review"
   | "changes_required"
   | "resubmitted"
@@ -322,8 +323,6 @@ interface ReviewerNotification {
   title: string;
   message: string;
   requestId: string | null;
-  /** Overrides the default link (the request) when set. */
-  link?: string;
   read: boolean;
   createdAt: string;
 }

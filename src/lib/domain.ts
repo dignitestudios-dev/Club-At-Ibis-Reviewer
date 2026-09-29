@@ -4,6 +4,7 @@
 
 export const STATUS_ORDER: RequestStatus[] = [
   "submitted",
+  "assigned",
   "under_review",
   "changes_required",
   "resubmitted",
@@ -15,6 +16,7 @@ export const STATUS_ORDER: RequestStatus[] = [
 
 export const STATUS_LABEL: Record<RequestStatus, string> = {
   submitted: "Submitted",
+  assigned: "Assigned",
   under_review: "Under Review",
   changes_required: "Changes Required",
   resubmitted: "Resubmitted",
@@ -27,6 +29,7 @@ export const STATUS_LABEL: Record<RequestStatus, string> = {
 /** Hex colours for charts: mirrors the status badge palette. */
 export const STATUS_COLOR: Record<RequestStatus, string> = {
   submitted: "#64748b",
+  assigned: "#4f46e5",
   under_review: "#0284c7",
   changes_required: "#d97706",
   resubmitted: "#9333ea",
@@ -37,7 +40,7 @@ export const STATUS_COLOR: Record<RequestStatus, string> = {
 };
 
 /** Requests still moving through the workflow. */
-export const IN_FLIGHT: RequestStatus[] = ["submitted", "under_review", "changes_required", "resubmitted", "approved"];
+export const IN_FLIGHT: RequestStatus[] = ["submitted", "assigned", "under_review", "changes_required", "resubmitted", "approved"];
 
 export const DEPOSIT_LABEL: Record<DepositStatus, string> = {
   not_required: "Not required",
@@ -235,6 +238,8 @@ export function nextStep(req: RequestRecord): { label: string; tone: NextTone } 
   switch (req.status) {
     case "submitted":
       return req.assignedReviewerId ? { label: "Start review", tone: "action" } : { label: "Waiting for an owner", tone: "waiting" };
+    case "assigned":
+      return { label: "Start review", tone: "action" };
     case "under_review":
       return progress.flagged.length > 0
         ? { label: `${progress.flagged.length} flagged · decide next step`, tone: "action" }

@@ -25,8 +25,14 @@ function toReviewerNotification(raw: any, reviewerId?: string): ReviewerNotifica
     type,
     title: raw.title ?? "",
     message: raw.message ?? "",
+    // Deliberately ignoring the backend's own `link` field: every notification
+    // type it currently sends (incoming_request, request_assigned,
+    // request_reassigned, request_ownership_removed — see
+    // REQUEST_NOTIFICATION_TYPES in the backend's request.constants.js) sets
+    // `link` to a path this app doesn't have (e.g. "/incoming-requests/:id",
+    // "/assigned-requests/:id"). The real, working route is /requests/:id,
+    // which is what `requestId` below resolves to.
     requestId: raw.entity?.kind === "request" ? raw.entity.id : (raw.entityId || raw.requestId || null),
-    link: raw.link || undefined,
     read: Boolean(raw.read || raw.readAt),
     createdAt: raw.createdAt || new Date().toISOString(),
   };

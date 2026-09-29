@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo } from "react";
 import { format } from "date-fns";
 import {
   AlertTriangle,
@@ -27,9 +26,9 @@ import { StatCard } from "@/components/shared/stat-card";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { NotificationIcon } from "@/features/notifications/components/notification-icon";
 import { DonutChart } from "@/features/dashboard/components/charts";
-import { useNotifications, useRequests, useResidents } from "@/hooks/use-reviewer-data";
+import { useReviewerDashboard } from "@/features/dashboard/api/dashboard.queries";
 import { useMe } from "@/hooks/use-current-user";
-import { IN_FLIGHT, STATUS_COLOR, STATUS_LABEL, STATUS_ORDER, attentionFor, isIncoming, nextStep, residentFullName } from "@/lib/domain";
+import { STATUS_COLOR, STATUS_LABEL, STATUS_ORDER } from "@/lib/domain";
 import { formatRelative } from "@/utils/format";
 import { cn } from "@/utils/cn";
 
@@ -50,26 +49,20 @@ interface AttentionItem {
 }
 
 export default function DashboardOverview() {
+  // The session's own Default-Reviewer flag is the single source of truth
+  // used everywhere else (sidebar, /incoming, /oversight) — reading it here
+  // too (rather than the dashboard payload's `capabilities.sharedIntake`)
+  // keeps this page in sync with them and avoids a general-reviewer flash
+  // of the shared-intake copy while the dashboard request is still loading.
   const { me, isDefault } = useMe();
-  const { data: requests, isLoading } = useRequests();
-  const { data: residents } = useResidents();
-  const { data: notifications } = useNotifications();
+  const { data, isLoading } = useReviewerDashboard();
 
-  const residentById = useMemo(() => new Map((residents ?? []).map((r) => [r.id, r])), [residents]);
-  const a = useMemo(() => attentionFor(requests ?? [], me?.id ?? ""), [requests, me?.id]);
-  const incoming = useMemo(() => (requests ?? []).filter(isIncoming), [requests]);
-
-  const counts = useMemo(() => {
-    const c = Object.fromEntries(STATUS_ORDER.map((s) => [s, 0])) as Record<RequestStatus, number>;
-    a.mine.forEach((r) => (c[r.status] += 1));
-    return c;
-  }, [a.mine]);
-
-  const upNext = a.mine
-    .filter((r) => nextStep(r).tone === "action")
-    // Resubmissions and stale work first.
-    .sort((x, y) => (x.updatedAt < y.updatedAt ? -1 : 1))
-    .slice(0, 6);
+  const attentionData = data?.attention;
+  const workload = data?.workload;
+  const statusCounts = data?.statusCounts ?? {};
+  const upNext = data?.upNext ?? [];
+  const notifications = data?.notifications.recent ?? [];
+  const unreadCount = data?.notifications.unreadCount ?? 0;
 
   const attention: AttentionItem[] = [
     ...(isDefault
@@ -77,7 +70,7 @@ export default function DashboardOverview() {
           {
             key: "incoming",
             label: "Incoming requests",
-            count: incoming.length,
+            count: attentionData?.incoming ?? 0,
             icon: Inbox,
             hint: "Waiting for someone to take ownership or assign them",
             href: "/incoming",
@@ -89,17 +82,17 @@ export default function DashboardOverview() {
     {
       key: "start",
       label: "Ready to start review",
-      count: a.toStart.length,
+      count: attentionData?.readyToStart ?? 0,
       icon: PlayCircle,
       hint: "Assigned to you. Open the request to begin your review.",
-      href: "/my-requests?status=submitted",
+      href: "/my-requests?status=assigned",
       bar: "bg-slate-500",
       tile: "bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700",
     },
     {
       key: "resubmitted",
       label: "Resubmitted by residents",
-      count: a.resubmitted.length,
+      count: attentionData?.resubmitted ?? 0,
       icon: Repeat2,
       hint: "Corrected items are ready for you to review again",
       href: "/my-requests?status=resubmitted",
@@ -109,7 +102,7 @@ export default function DashboardOverview() {
     {
       key: "approved",
       label: "Approved: Finish completion",
-      count: a.toComplete.length,
+      count: attentionData?.approvedForCompletion ?? 0,
       icon: FileCheck2,
       hint: "Deposit, final letter or completion still outstanding",
       href: "/my-requests?status=approved",
@@ -119,7 +112,7 @@ export default function DashboardOverview() {
     {
       key: "refunds",
       label: "Refund actions",
-      count: a.refunds.length,
+      count: attentionData?.refundActions ?? 0,
       icon: Undo2,
       hint: "Withdrawn with a received deposit. Record or complete the refund.",
       href: "/my-requests?tab=history&status=withdrawn",
@@ -127,9 +120,7 @@ export default function DashboardOverview() {
       tile: "bg-amber-50 text-amber-700 border-amber-200/80 dark:bg-amber-950/50 dark:text-amber-300 dark:border-amber-800",
     },
   ];
-  const attentionTotal = attention.reduce((s, x) => s + x.count, 0);
-  const openCount = a.mine.filter((r) => IN_FLIGHT.includes(r.status)).length;
-  const unread = (notifications ?? []).filter((n) => !n.read);
+  const attentionTotal = attentionData?.total ?? attention.reduce((s, x) => s + x.count, 0);
   const firstName = me?.name.split(" ")[0] ?? "reviewer";
 
   return (
@@ -150,7 +141,7 @@ export default function DashboardOverview() {
           {isDefault && (
             <Button variant="outline" nativeButton={false} render={<Link href="/incoming" />}>
               <Inbox className="size-4" />
-              Incoming ({incoming.length})
+              Incoming ({attentionData?.incoming ?? 0})
             </Button>
           )}
           <Button nativeButton={false} render={<Link href="/my-requests" />} className="shadow-xs">
@@ -224,10 +215,10 @@ export default function DashboardOverview() {
           Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-32 rounded-2xl" />)
         ) : (
           <>
-            <StatCard label="Open Requests" value={openCount} icon={ListChecks} accent="navy" href="/my-requests" hint="Assigned to me" />
-            <StatCard label="Under Review" value={counts.under_review + counts.resubmitted} icon={Search} accent="blue" href="/my-requests?status=under_review" hint="Including resubmissions" />
-            <StatCard label="Waiting on Residents" value={counts.changes_required} icon={Hourglass} accent="amber" href="/my-requests?status=changes_required" hint="Changes required" />
-            <StatCard label="Completed" value={counts.completed} icon={ClipboardCheck} accent="emerald" href="/my-requests?tab=history&status=completed" hint="Finished by me" />
+            <StatCard label="Open Requests" value={workload?.openRequests ?? 0} icon={ListChecks} accent="navy" href="/my-requests" hint="Assigned to me" />
+            <StatCard label="Under Review" value={workload?.underReview ?? 0} icon={Search} accent="blue" href="/my-requests?status=under_review" hint="Currently under review" />
+            <StatCard label="Waiting on Residents" value={workload?.waitingOnResidents ?? 0} icon={Hourglass} accent="amber" href="/my-requests?status=changes_required" hint="Changes required" />
+            <StatCard label="Completed" value={workload?.completed ?? 0} icon={ClipboardCheck} accent="emerald" href="/my-requests?tab=history&status=completed" hint="Finished by me" />
           </>
         )}
       </section>
@@ -246,7 +237,7 @@ export default function DashboardOverview() {
             </CardAction>
           </CardHeader>
           <CardContent className="pt-3">
-            {upNext.length === 0 ? (
+            {!isLoading && upNext.length === 0 ? (
               <p className="py-10 text-center text-sm text-muted-foreground">Nothing needs your action. New assignments will appear here.</p>
             ) : (
               <ul className="divide-y divide-border/70">
@@ -255,15 +246,13 @@ export default function DashboardOverview() {
                     <Link href={`/requests/${req.id}`} className="group flex items-center gap-3 py-3 outline-none hover:bg-muted/40 focus-visible:bg-muted/40">
                       <span className="min-w-0 flex-1">
                         <span className="flex items-center gap-2">
-                          <span className="font-mono text-xs font-semibold text-primary dark:text-amber-300">{req.code}</span>
+                          <span className="font-mono text-xs font-semibold text-primary dark:text-amber-300">{req.reference}</span>
                           <StatusBadge status={req.status} />
                         </span>
                         <span className="block truncate text-sm text-foreground">
-                          {req.categoryName} · {residentFullName(residentById.get(req.residentId))}
+                          {req.categoryName} · {req.residentName}
                         </span>
-                        <span className="block text-xs text-muted-foreground">
-                          {nextStep(req).label} · updated {formatRelative(req.updatedAt)}
-                        </span>
+                        <span className="block text-xs text-muted-foreground">updated {formatRelative(req.updatedAt)}</span>
                       </span>
                       <ArrowRight className="size-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-1" aria-hidden="true" />
                     </Link>
@@ -278,22 +267,22 @@ export default function DashboardOverview() {
         <Card className="shadow-2xs lg:col-span-2">
           <CardHeader className="border-b border-border/70 pb-3">
             <CardTitle className="font-heading text-lg font-medium">My Requests by Status</CardTitle>
-            <p className="text-xs text-muted-foreground">{a.mine.length} assigned overall</p>
+            <p className="text-xs text-muted-foreground">{workload?.totalAssigned ?? 0} assigned overall</p>
           </CardHeader>
           <CardContent className="pt-5">
             <InView fallback={<Skeleton className="mx-auto size-48 rounded-full" />}>
               <div className="flex flex-col items-center gap-5 sm:flex-row lg:flex-col xl:flex-row">
                 <DonutChart
                   centerLabel="Requests"
-                  centerValue={a.mine.length}
-                  segments={STATUS_ORDER.map((s) => ({ key: s, label: STATUS_LABEL[s], value: counts[s], color: STATUS_COLOR[s] }))}
+                  centerValue={workload?.totalAssigned ?? 0}
+                  segments={STATUS_ORDER.map((s) => ({ key: s, label: STATUS_LABEL[s], value: statusCounts[s] ?? 0, color: STATUS_COLOR[s] }))}
                 />
                 <ul className="grid w-full grid-cols-2 gap-x-4 gap-y-2 sm:grid-cols-1 lg:grid-cols-2 xl:grid-cols-1">
                   {STATUS_ORDER.map((s) => (
                     <li key={s} className="flex items-center gap-2 text-xs">
                       <span className="size-2.5 shrink-0 rounded-sm" style={{ backgroundColor: STATUS_COLOR[s] }} />
                       <span className="flex-1 truncate text-muted-foreground">{STATUS_LABEL[s]}</span>
-                      <span className="font-semibold tabular-nums text-foreground">{counts[s]}</span>
+                      <span className="font-semibold tabular-nums text-foreground">{statusCounts[s] ?? 0}</span>
                     </li>
                   ))}
                 </ul>
@@ -309,7 +298,7 @@ export default function DashboardOverview() {
           <CardHeader className="border-b border-border/70 pb-3">
             <CardTitle className="font-heading text-lg font-medium">Recent Notifications</CardTitle>
             <p className="text-xs text-muted-foreground">
-              {unread.length > 0 ? `${unread.length} unread` : "You're up to date"}
+              {unreadCount > 0 ? `${unreadCount} unread` : "You're up to date"}
             </p>
             <CardAction>
               <Button variant="ghost" size="sm" nativeButton={false} render={<Link href="/notifications" />}>
@@ -319,20 +308,33 @@ export default function DashboardOverview() {
             </CardAction>
           </CardHeader>
           <CardContent className="pt-2">
-            {(notifications ?? []).length === 0 ? (
+            {!isLoading && notifications.length === 0 ? (
               <p className="py-8 text-center text-sm text-muted-foreground">No notifications yet.</p>
             ) : (
               <ul className="divide-y divide-border/70">
-                {(notifications ?? []).slice(0, 4).map((n) => (
-                  <li key={n.id} className="flex items-start gap-3 py-3">
-                    <NotificationIcon type={n.type} />
-                    <div className="min-w-0 flex-1">
-                      <p className={cn("text-sm text-foreground", !n.read && "font-semibold")}>{n.title}</p>
-                      <p className="line-clamp-1 text-xs text-muted-foreground">{n.message}</p>
-                    </div>
-                    <span className="shrink-0 text-xs text-muted-foreground">{formatRelative(n.createdAt)}</span>
-                  </li>
-                ))}
+                {notifications.map((n) => {
+                  const content = (
+                    <>
+                      <NotificationIcon type={n.type} />
+                      <div className="min-w-0 flex-1">
+                        <p className={cn("text-sm text-foreground", !n.read && "font-semibold")}>{n.title}</p>
+                        <p className="line-clamp-1 text-xs text-muted-foreground">{n.message}</p>
+                      </div>
+                      <span className="shrink-0 text-xs text-muted-foreground">{formatRelative(n.createdAt)}</span>
+                    </>
+                  );
+                  return (
+                    <li key={n.id}>
+                      {n.requestId ? (
+                        <Link href={`/requests/${n.requestId}`} className="flex items-start gap-3 py-3 outline-none transition-colors hover:bg-muted/40 focus-visible:bg-muted/40">
+                          {content}
+                        </Link>
+                      ) : (
+                        <div className="flex items-start gap-3 py-3">{content}</div>
+                      )}
+                    </li>
+                  );
+                })}
               </ul>
             )}
           </CardContent>
