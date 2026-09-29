@@ -25,7 +25,7 @@ import { cn } from "@/utils/cn";
 
 type Tab = "active" | "history";
 
-const ACTIVE_STATUSES = "submitted,under_review,changes_required,resubmitted,approved";
+const ACTIVE_STATUSES = "submitted,assigned,under_review,changes_required,resubmitted,approved";
 const HISTORY_STATUSES = "completed,rejected,withdrawn";
 
 /** Default reviewers track every request's progress and can reassign work in flight. */

@@ -83,7 +83,7 @@ export default function ChangePasswordForm() {
             <Field data-invalid={!!errors.confirmNewPassword}>
               <FieldLabel htmlFor="confirmNewPassword">Confirm new password<RequiredMark /></FieldLabel>
               <FieldContent>
-                <PasswordInput id="confirmNewPassword" autoComplete="new-password" maxLength={128} disabled={isPending} value={field.value} onChange={field.onChange} onBlur={field.onBlur} ref={field.ref} />
+                <PasswordInput id="confirmNewPassword" placeholder="Re-enter new password" autoComplete="new-password" maxLength={128} disabled={isPending} value={field.value} onChange={field.onChange} onBlur={field.onBlur} ref={field.ref} />
                 <FieldError errors={errors.confirmNewPassword ? [errors.confirmNewPassword] : []} />
               </FieldContent>
             </Field>

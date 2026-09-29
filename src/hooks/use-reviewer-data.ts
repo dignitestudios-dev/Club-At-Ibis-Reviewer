@@ -12,7 +12,14 @@ import {
   getReviewers,
   type ReviewerRequestsQueryParams,
 } from "@/features/requests/api/requests.service";
-import { assignRequest } from "@/features/requests/api/review.service";
+import {
+  approveRequest,
+  assessReviewItem,
+  assignRequest,
+  rejectRequest,
+  requestRevision,
+  startReview,
+} from "@/features/requests/api/review.service";
 import {
   getNotifications,
   markAllNotificationsRead,
@@ -38,28 +45,42 @@ export const useReviewers = (
     queryKey: params?.search ? [...keys.reviewers, params.search] : keys.reviewers,
     queryFn: () => getReviewers(params),
     enabled: options?.enabled ?? true,
+    staleTime: 60 * 1000,
   });
 export const useResidents = (options?: { enabled?: boolean }) =>
-  useQuery({ queryKey: keys.residents, queryFn: getResidents, enabled: options?.enabled ?? true });
+  useQuery({
+    queryKey: keys.residents,
+    queryFn: getResidents,
+    enabled: options?.enabled ?? true,
+    staleTime: 60 * 1000,
+  });
 export const useCategories = (options?: { enabled?: boolean }) =>
-  useQuery({ queryKey: keys.categories, queryFn: getCategories, enabled: options?.enabled ?? true });
+  useQuery({
+    queryKey: keys.categories,
+    queryFn: getCategories,
+    enabled: options?.enabled ?? true,
+    staleTime: 5 * 60 * 1000,
+  });
 export const useRequests = (params?: ReviewerRequestsQueryParams, options?: { enabled?: boolean }) =>
   useQuery({
     queryKey: params ? [...keys.requests, params] : keys.requests,
     queryFn: () => getRequests(params),
     enabled: options?.enabled ?? true,
+    staleTime: 15 * 1000,
   });
 export const useRequestsPage = (params: ReviewerRequestsQueryParams, options?: { enabled?: boolean }) =>
   useQuery({
     queryKey: [...keys.requests, "page", params],
     queryFn: () => getRequestsPage(params),
     enabled: options?.enabled ?? true,
+    staleTime: 15 * 1000,
   });
 export const useRequest = (id: string, options?: { enabled?: boolean }) =>
   useQuery({
     queryKey: [...keys.requests, id],
     queryFn: () => getRequestById(id),
     enabled: (options?.enabled ?? true) && !!id,
+    staleTime: 15 * 1000,
   });
 export const useIncomingRequests = (
   params?: { search?: string; page?: number; limit?: number },
@@ -69,6 +90,7 @@ export const useIncomingRequests = (
     queryKey: params ? [...keys.incomingRequests, params] : keys.incomingRequests,
     queryFn: () => getIncomingRequests(params),
     enabled: options?.enabled ?? true,
+    staleTime: 15 * 1000,
   });
 export const useIncomingRequestsPage = (
   params?: { search?: string; page?: number; limit?: number },
@@ -78,9 +100,15 @@ export const useIncomingRequestsPage = (
     queryKey: [...keys.incomingRequests, "page", params],
     queryFn: () => getIncomingRequestsPage(params),
     enabled: options?.enabled ?? true,
+    staleTime: 15 * 1000,
   });
 export const useNotifications = (options?: { enabled?: boolean }) =>
-  useQuery({ queryKey: keys.notifications, queryFn: getNotifications, enabled: options?.enabled ?? true });
+  useQuery({
+    queryKey: keys.notifications,
+    queryFn: getNotifications,
+    enabled: options?.enabled ?? true,
+    staleTime: 15 * 1000,
+  });
 
 /* ----------------------------- mutations ----------------------------- */
 
@@ -98,6 +126,11 @@ function useRequestMutation<TVars>(fn: (vars: TVars) => Promise<unknown>) {
 }
 
 export const useAssignRequest = () => useRequestMutation(assignRequest);
+export const useStartReview = () => useRequestMutation(startReview);
+export const useAssessReviewItem = () => useRequestMutation(assessReviewItem);
+export const useRequestRevision = () => useRequestMutation(requestRevision);
+export const useApproveRequest = () => useRequestMutation(approveRequest);
+export const useRejectRequest = () => useRequestMutation(rejectRequest);
 
 export function useMarkNotificationRead() {
   const qc = useQueryClient();

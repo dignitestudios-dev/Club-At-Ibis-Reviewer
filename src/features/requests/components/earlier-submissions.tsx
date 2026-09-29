@@ -6,14 +6,58 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { PreviewableFile } from "@/components/shared/file-preview-dialog";
 import { ReviewState } from "@/features/requests/components/review-item";
-import { earlierSubmissions } from "@/lib/domain";
+import { earlierSubmissions, flaggedItemsForSubmission } from "@/lib/domain";
 import { formatDateTime, formatFileSize } from "@/utils/format";
 import { cn } from "@/utils/cn";
 
 function SubmissionRow({ request, submission, onPreview, defaultOpen }: { request: RequestRecord; submission: SubmissionSnapshot; onPreview: (f: PreviewableFile) => void; defaultOpen: boolean }) {
   const [open, setOpen] = useState(defaultOpen);
-  const fields = [...request.formSnapshot].sort((a, b) => a.order - b.order);
-  const flagged = Object.values(submission.itemReviews).filter((r) => r.state === "flagged").length;
+  const sortedFields = [...request.formSnapshot].sort((a, b) => a.order - b.order);
+  // Documents get their own section, same as the current submission's own
+  // Details/Documents tab split — not interleaved with the answer fields.
+  const answerFields = sortedFields.filter((f) => f.type !== "file");
+  const docFields = sortedFields.filter((f) => f.type === "file");
+  // submission.itemReviews is always empty — the backend never returns
+  // per-round item reviews on submissions[]/previousSubmissions[] — so the
+  // flagged state for a past round is reconstructed from the
+  // "revision-requested" history event recorded when that round was reviewed.
+  const flaggedReasons = flaggedItemsForSubmission(request, submission.number);
+  const flagged = flaggedReasons.size;
+
+  function renderFieldItem(field: CategoryField) {
+    const reason = flaggedReasons.get(field.id);
+    const review: ItemReview = reason !== undefined ? { state: "flagged", reason } : { state: "accepted" };
+    const files = submission.uploads[field.id] ?? [];
+    const value = submission.fieldValues[field.id];
+    if (field.type === "file" ? files.length === 0 : !value) return null;
+    return (
+      <li key={field.id} className={cn("space-y-1.5 rounded-lg border p-3", review.state === "flagged" ? "border-amber-300/70 bg-amber-50/40 dark:border-amber-800/60 dark:bg-amber-950/10" : "border-border/70")}>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <p className="min-w-0 text-[11px] font-semibold tracking-wider text-foreground uppercase break-words [overflow-wrap:anywhere]">{field.label}</p>
+          <ReviewState review={review} />
+        </div>
+        {field.type === "file" ? (
+          files.map((f) => (
+            <div key={f.id} className="flex items-center gap-2.5 text-sm">
+              <FileText className="size-4 shrink-0 text-rose-600" aria-hidden="true" />
+              <span className="min-w-0 flex-1 truncate">{f.name}</span>
+              <span className="text-[11px] text-muted-foreground">{formatFileSize(f.size)}</span>
+              <Button variant="outline" size="xs" onClick={() => onPreview(f)}>
+                <Eye />
+                Preview
+              </Button>
+            </div>
+          ))
+        ) : (
+          <p className="text-sm whitespace-pre-line break-words [overflow-wrap:anywhere] text-foreground">{value}</p>
+        )}
+        {review.state === "flagged" && review.reason && <p className="text-xs break-words [overflow-wrap:anywhere] text-amber-900 dark:text-amber-300">Note: {review.reason}</p>}
+      </li>
+    );
+  }
+
+  const answerItems = answerFields.map(renderFieldItem).filter(Boolean);
+  const docItems = docFields.map(renderFieldItem).filter(Boolean);
 
   return (
     <div className="rounded-xl border border-border/80">
@@ -38,44 +82,24 @@ function SubmissionRow({ request, submission, onPreview, defaultOpen }: { reques
       </button>
 
       {open && (
-        <div className="space-y-3 border-t border-border/70 px-4 py-4">
+        <div className="space-y-4 border-t border-border/70 px-4 py-4">
           {submission.feedback && (
             <div className="rounded-lg border border-amber-300/70 bg-amber-50 px-3 py-2 text-xs whitespace-pre-line break-words [overflow-wrap:anywhere] text-amber-950 dark:border-amber-800/70 dark:bg-amber-950/30 dark:text-amber-200">
               <span className="font-semibold">Feedback sent to the resident:</span> {submission.feedback}
             </div>
           )}
-          <ul className="space-y-2">
-            {fields.map((field) => {
-              const review = submission.itemReviews[field.id];
-              const files = submission.uploads[field.id] ?? [];
-              const value = submission.fieldValues[field.id];
-              if (field.type === "file" ? files.length === 0 : !value) return null;
-              return (
-                <li key={field.id} className={cn("space-y-1.5 rounded-lg border p-3", review?.state === "flagged" ? "border-amber-300/70 bg-amber-50/40 dark:border-amber-800/60 dark:bg-amber-950/10" : "border-border/70")}>
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <p className="min-w-0 text-[11px] font-semibold tracking-wider text-muted-foreground uppercase break-words [overflow-wrap:anywhere]">{field.label}</p>
-                    <ReviewState review={review} />
-                  </div>
-                  {field.type === "file" ? (
-                    files.map((f) => (
-                      <div key={f.id} className="flex items-center gap-2.5 text-sm">
-                        <FileText className="size-4 shrink-0 text-rose-600" aria-hidden="true" />
-                        <span className="min-w-0 flex-1 truncate">{f.name}</span>
-                        <span className="text-[11px] text-muted-foreground">{formatFileSize(f.size)}</span>
-                        <Button variant="outline" size="xs" onClick={() => onPreview(f)}>
-                          <Eye />
-                          Preview
-                        </Button>
-                      </div>
-                    ))
-                  ) : (
-                    <p className="text-sm whitespace-pre-line break-words [overflow-wrap:anywhere] text-foreground">{value}</p>
-                  )}
-                  {review?.state === "flagged" && review.reason && <p className="text-xs break-words [overflow-wrap:anywhere] text-amber-900 dark:text-amber-300">Note: {review.reason}</p>}
-                </li>
-              );
-            })}
-          </ul>
+          {answerItems.length > 0 && (
+            <div className="space-y-2">
+              <p className="text-[11px] font-semibold tracking-wider text-muted-foreground uppercase">Answers</p>
+              <ul className="space-y-2">{answerItems}</ul>
+            </div>
+          )}
+          {docItems.length > 0 && (
+            <div className="space-y-2">
+              <p className="text-[11px] font-semibold tracking-wider text-muted-foreground uppercase">Documents</p>
+              <ul className="space-y-2">{docItems}</ul>
+            </div>
+          )}
         </div>
       )}
     </div>

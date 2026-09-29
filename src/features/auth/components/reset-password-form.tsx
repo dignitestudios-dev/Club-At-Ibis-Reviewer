@@ -206,6 +206,7 @@ export default function ResetPasswordForm({ token, mode = "reset" }: { token: st
                   <FieldContent>
                     <PasswordInput
                       id="confirmPassword"
+                      placeholder="Re-enter password"
                       maxLength={128}
                       disabled={isResetting}
                       value={field.value}
@@ -387,6 +388,7 @@ export default function ResetPasswordForm({ token, mode = "reset" }: { token: st
                 <FieldContent>
                   <PasswordInput
                     id="confirmPassword"
+                    placeholder="Re-enter password"
                     maxLength={128}
                     disabled={isResetting}
                     value={field.value}

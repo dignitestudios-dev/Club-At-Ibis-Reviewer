@@ -22,12 +22,12 @@ import { cn } from "@/utils/cn";
 
 type Tab = "active" | "history";
 
-const ACTIVE_STATUSES = "submitted,under_review,changes_required,resubmitted,approved";
+const ACTIVE_STATUSES = "submitted,assigned,under_review,changes_required,resubmitted,approved";
 const HISTORY_STATUSES = "completed,rejected,withdrawn";
 
 export default function MyRequestsPage() {
   const toast = useToast();
-  const { me } = useMe();
+  const { me, isDefault } = useMe();
   const { values, set } = useUrlParams({ tab: "active", status: "all", category: "all", page: "1" });
   const [search, setSearch] = useUrlSearch("q");
   const [pageSize, setPageSize] = usePageSize();
@@ -36,16 +36,22 @@ export default function MyRequestsPage() {
   const page = Math.max(1, Number(values.page) || 1);
   const statusParam = values.status !== "all" ? values.status : tab === "active" ? ACTIVE_STATUSES : HISTORY_STATUSES;
 
-  const { data: pageData, isLoading, isFetching, refetch } = useRequestsPage({
-    page,
-    limit: pageSize,
-    search: search.trim() || undefined,
-    status: statusParam,
-    categoryId: values.category !== "all" ? values.category : undefined,
-    assignedReviewerId: me?.id,
-  });
+  const { data: pageData, isLoading, isFetching, refetch } = useRequestsPage(
+    {
+      page,
+      limit: pageSize,
+      search: search.trim() || undefined,
+      status: statusParam,
+      categoryId: values.category !== "all" ? values.category : undefined,
+      assignedReviewerId: isDefault ? me?.id : undefined,
+    },
+    { enabled: !me ? false : true }
+  );
 
-  const { data: allMine } = useRequests({ assignedReviewerId: me?.id, limit: 100 });
+  const { data: allMine } = useRequests(
+    isDefault ? { assignedReviewerId: me?.id } : undefined,
+    { enabled: !me ? false : true }
+  );
   const { data: categories } = useCategories();
 
   const rows = pageData?.requests ?? [];

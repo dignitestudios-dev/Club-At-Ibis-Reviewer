@@ -271,6 +271,10 @@ export function nextStep(req: RequestRecord): { label: string; tone: NextTone } 
 
 /** 1 for the original submission, +1 for every resubmission. */
 export function currentSubmissionNumber(req: RequestRecord) {
+  if (req.review?.roundNumber) return req.review.roundNumber;
+  if (req.submissions && req.submissions.length > 0) {
+    return req.submissions[req.submissions.length - 1].number;
+  }
   return Math.max(1, req.history.filter((e) => e.type === "submitted" || e.type === "resubmitted").length);
 }
 
@@ -284,4 +288,18 @@ export function currentSubmissionAt(req: RequestRecord) {
 export function earlierSubmissions(req: RequestRecord): SubmissionSnapshot[] {
   const current = currentSubmissionNumber(req);
   return (req.previousSubmissions ?? []).filter((s) => s.number < current).sort((a, b) => b.number - a.number);
+}
+
+/**
+ * What was flagged when a given submission round was reviewed, keyed by
+ * fieldId → reason. The "revision-requested" history event is the only
+ * place this survives — `submissions[]`/`previousSubmissions[]` never carry
+ * per-round item reviews, so without this an earlier round's flagged count
+ * always reads 0.
+ */
+export function flaggedItemsForSubmission(req: RequestRecord, submissionNumber: number): Map<string, string> {
+  const event = req.history.find(
+    (e) => e.type === "revision_requested" && e.submissionNumber === submissionNumber
+  );
+  return new Map((event?.flaggedItems ?? []).map((item) => [item.fieldId, item.reason]));
 }

@@ -27,7 +27,7 @@ const EVENT_CONFIG: Record<HistoryEventType, { icon: LucideIcon; label: string; 
   submitted: { icon: Send, label: "Submitted", node: "bg-primary text-primary-foreground" },
   assigned: { icon: UserCheck, label: "Assigned", node: "bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200" },
   reassigned: { icon: UserCog, label: "Reassigned", node: "bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200" },
-  review_started: { icon: PlayCircle, label: "Review started", node: "bg-sky-600 text-white" },
+  review_started: { icon: PlayCircle, label: "Review Started", node: "bg-sky-600 text-white" },
   item_accepted: { icon: CheckCheck, label: "Item accepted", node: "bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300" },
   item_flagged: { icon: Flag, label: "Flagged", node: "bg-amber-100 dark:bg-amber-950 text-amber-900 dark:text-amber-300" },
   revision_requested: { icon: FileEdit, label: "Revision requested", node: "bg-amber-500 text-white" },

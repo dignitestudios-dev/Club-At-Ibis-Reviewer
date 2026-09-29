@@ -96,6 +96,8 @@ interface CategoryField {
   multiple?: boolean;
   /** Display sequence in the resident form (1-based). */
   order: number;
+  /** "common" = the shared Project Information fields on every category; "category" = fields specific to this category's form. */
+  source?: "common" | "category";
 }
 
 type CategoryStatus = "active" | "archived";
@@ -186,11 +188,53 @@ interface HistoryEvent {
   assignment?: { from?: string; to: string };
   /** Staff-only records are not shown to the resident. */
   staffOnly?: boolean;
+  /** Set on a "revision-requested" event: the exact fields flagged for that review round, with the reviewer's reason. The `submissions[]`/`previousSubmissions[]` records never carry per-round item reviews, so this is the only place a past round's flagged items are reconstructable from. */
+  flaggedItems?: { fieldId: string; label: string; reason: string }[];
+  /** The submission round this event applies to (present on flag/accept/revision-requested/resubmitted events). */
+  submissionNumber?: number;
 }
 
 interface ItemReview {
-  state: "accepted" | "flagged";
+  state: "accepted" | "flagged" | "pending";
   reason?: string;
+}
+
+type ReviewItemDecision = "pending" | "accepted" | "flagged";
+
+interface ReviewItemRecord {
+  key?: string;
+  kind: "field" | "file";
+  fieldId: string;
+  label: string;
+  decision: ReviewItemDecision;
+  reason: string | null;
+  decidedBy?: { actorId: string; role: string; displayName: string } | null;
+  decidedAt?: string | null;
+  carriedForward?: boolean;
+}
+
+interface ActiveReviewRound {
+  id: string;
+  requestId?: string;
+  submissionId?: string;
+  roundNumber: number;
+  status: "active" | "approved" | "rejected" | "revision_requested";
+  reviewVersion: number;
+  items: ReviewItemRecord[];
+  startedBy?: { actorId: string; role: string; displayName: string };
+  startedAt?: string;
+  closedBy?: { actorId: string; role: string; displayName: string };
+  closedAt?: string;
+}
+
+interface SubmissionVersionRecord {
+  id: string;
+  number: number;
+  submittedAt: string;
+  changedFieldIds: string[];
+  fieldValues: Record<string, string>;
+  files: Record<string, AttachedFile[]>;
+  formSnapshot?: CategoryField[];
 }
 
 /** A submission as it was when the reviewer reviewed it (kept after the resident resubmits). */
@@ -277,6 +321,19 @@ interface RequestRecord {
   status: RequestStatus;
   assignedReviewerId: string | null;
   assignmentVersion?: number;
+  workflowVersion?: number;
+  activeReviewId?: string | null;
+  review?: ActiveReviewRound | null;
+  submissions?: SubmissionVersionRecord[];
+  revision?: {
+    revisionVersion: number;
+    items: Array<{ fieldId: string; label: string; reason: string }>;
+  } | null;
+  decision?: {
+    rejectionReason: string | null;
+    decidedAt: string | null;
+    decidedBy?: { actorId: string; role: string; displayName: string } | null;
+  } | null;
   draftRevision?: number | null;
   currentStep?: number | null;
   fieldValues: Record<string, string>;

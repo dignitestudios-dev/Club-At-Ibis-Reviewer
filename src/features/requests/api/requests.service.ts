@@ -52,6 +52,87 @@ export function toReviewerRequestRecord(raw: any): RequestRecord {
     }
   }
 
+  const itemReviews: Record<string, ItemReview> = { ...(raw.itemReviews || {}) };
+  let review: ActiveReviewRound | null = null;
+  if (raw.review) {
+    review = {
+      id: raw.review.id || raw.review._id || crypto.randomUUID(),
+      roundNumber: raw.review.roundNumber ?? 1,
+      status: raw.review.status || "active",
+      reviewVersion: raw.review.reviewVersion ?? 0,
+      items: Array.isArray(raw.review.items)
+        ? raw.review.items.map((it: any) => {
+            const decision: ReviewItemDecision =
+              it.decision === "accepted" || it.decision === "flagged" ? it.decision : "pending";
+            // Populate itemReviews map
+            itemReviews[it.fieldId] = {
+              state: decision,
+              reason: it.reason || undefined,
+            };
+            return {
+              key: it.key || `field:${it.fieldId}`,
+              kind: it.kind || "field",
+              fieldId: it.fieldId,
+              label: it.label || "",
+              decision,
+              reason: it.reason || null,
+              decidedBy: it.decidedBy || null,
+              decidedAt: it.decidedAt || null,
+              carriedForward: !!it.carriedForward,
+            };
+          })
+        : [],
+      startedBy: raw.review.startedBy,
+      startedAt: raw.review.startedAt,
+      closedBy: raw.review.closedBy,
+      closedAt: raw.review.closedAt,
+    };
+  }
+
+  const rawSubmissions = Array.isArray(raw.submissions) ? raw.submissions : [];
+  const submissions: SubmissionVersionRecord[] = rawSubmissions.map((s: any) => {
+    const sFiles: Record<string, AttachedFile[]> = {};
+    if (s.files) {
+      for (const [k, v] of Object.entries(s.files)) {
+        if (Array.isArray(v)) {
+          sFiles[k] = v.map((f: any) => ({
+            id: f.id || f._id || crypto.randomUUID(),
+            name: f.name || f.originalName || f.filename || "file",
+            originalName: f.originalName || f.filename || f.name || "file",
+            size: f.size || 0,
+            mimeType: f.mimeType || "application/octet-stream",
+            uploadedAt: f.uploadedAt || f.createdAt || new Date().toISOString(),
+            url: f.url || "",
+          }));
+        }
+      }
+    }
+    return {
+      id: s.id || s._id || crypto.randomUUID(),
+      number: s.number ?? 1,
+      submittedAt: s.submittedAt || new Date().toISOString(),
+      changedFieldIds: Array.isArray(s.changedFieldIds) ? s.changedFieldIds : [],
+      fieldValues: s.fieldValues || {},
+      files: sFiles,
+    };
+  });
+
+  const previousSubmissions: SubmissionSnapshot[] = raw.previousSubmissions || submissions.slice(0, -1).map((s) => ({
+    id: s.id,
+    number: s.number,
+    submittedAt: s.submittedAt,
+    reviewedAt: s.submittedAt,
+    fieldValues: s.fieldValues,
+    uploads: s.files,
+    itemReviews: {},
+  }));
+
+  const decision = raw.decision || (raw.rejectionReason || raw.decidedAt ? {
+    rejectionReason: raw.rejectionReason || null,
+    decidedAt: raw.decidedAt || null,
+    decidedBy: null,
+  } : null);
+
   return {
     id: raw.id || raw._id,
     code,
@@ -70,24 +151,30 @@ export function toReviewerRequestRecord(raw: any): RequestRecord {
     },
     status: raw.status || "submitted",
     assignedReviewerId: raw.assignedReviewerId || raw.assignedReviewer?.id || null,
-    assignmentVersion: raw.assignmentVersion,
+    assignmentVersion: raw.assignmentVersion ?? 0,
+    workflowVersion: raw.workflowVersion ?? 1,
+    activeReviewId: raw.activeReviewId || review?.id || null,
+    review,
+    submissions,
+    revision: raw.revision || null,
+    decision,
     draftRevision: raw.draftRevision,
     currentStep: raw.currentStep,
     fieldValues,
     uploads,
-    itemReviews: raw.itemReviews || {},
+    itemReviews,
     revisions: raw.revisions || [],
-    previousSubmissions: raw.previousSubmissions || [],
+    previousSubmissions,
     hoaApproved: !!(raw.hoaConfirmed ?? raw.hoaApproved),
     hoaConfirmedAt: raw.hoaConfirmedAt || raw.createdAt || new Date().toISOString(),
     submittedAt: raw.submittedAt || raw.createdAt || new Date().toISOString(),
     updatedAt: raw.updatedAt || new Date().toISOString(),
-    decidedAt: raw.decidedAt,
+    decidedAt: decision?.decidedAt || raw.decidedAt,
     completedAt: raw.completedAt,
     withdrawnAt: raw.withdrawnAt,
     withdrawnFrom: raw.withdrawnFrom,
     feedback: raw.feedback,
-    rejectionReason: raw.rejectionReason,
+    rejectionReason: decision?.rejectionReason || raw.rejectionReason,
     deposit: raw.deposit || {
       required: !!raw.depositRequired,
       amount: raw.depositAmount,
@@ -103,7 +190,12 @@ export function toReviewerRequestRecord(raw: any): RequestRecord {
     letterEmail: raw.letterEmail,
     history: Array.isArray(raw.history) ? raw.history.map((h: any) => ({
       id: h.id || h._id || crypto.randomUUID(),
-      type: (h.type?.replace(/^request\./, "") || "submitted") as HistoryEventType,
+      // The backend's event slugs are hyphenated (e.g. "request.review-started"),
+      // but HistoryEventType/EVENT_CONFIG use underscores ("review_started") —
+      // without this replace, hyphenated types (review-started, item-accepted,
+      // item-flagged, revision-requested) never match EVENT_CONFIG and fall
+      // back to the raw slug as the displayed label.
+      type: (h.type?.replace(/^request\./, "").replace(/-/g, "_") || "submitted") as HistoryEventType,
       actor: typeof h.actor === "string" ? { name: h.actor, role: "reviewer" as const } : {
         name: h.actor?.displayName || h.actor?.name || "User",
         role: (h.actor?.role === "super_admin" || h.actor?.role === "admin" ? "super_admin" : h.actor?.role === "reviewer" ? "reviewer" : h.actor?.role === "resident" ? "resident" : "system") as ActorRole,
@@ -112,6 +204,8 @@ export function toReviewerRequestRecord(raw: any): RequestRecord {
       createdAt: h.occurredAt || h.createdAt || new Date().toISOString(),
       assignment: h.details?.assignment || h.assignment,
       staffOnly: !!(h.details?.staffOnly || h.staffOnly),
+      flaggedItems: Array.isArray(h.details?.flaggedItems) ? h.details.flaggedItems : undefined,
+      submissionNumber: typeof h.details?.submissionNumber === "number" ? h.details.submissionNumber : undefined,
     })) : (Array.isArray(raw.activity) ? raw.activity.map((a: any) => ({
       id: a.id || crypto.randomUUID(),
       type: a.type || "updated",

@@ -34,8 +34,8 @@ export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenCh
   const [active, setActive] = useState(0);
   const listRef = useRef<HTMLDivElement>(null);
 
-  const { data: allRequests } = useRequests();
-  const { data: residents } = useResidents();
+  const { data: allRequests } = useRequests(undefined, { enabled: open });
+  const { data: residents } = useResidents({ enabled: open });
   const { me, isDefault } = useMe();
   // Reviewers can open their own requests; default reviewers can open any in-flight request too.
   const requests = useMemo(

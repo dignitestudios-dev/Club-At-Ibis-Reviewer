@@ -58,7 +58,11 @@ export default function IncomingPage() {
     if (!me) return;
     setTaking(req.id);
     take.mutate(
-      { requestId: req.id, reviewerId: me.id },
+      {
+        requestId: req.id,
+        reviewerId: me.id,
+        expectedAssignmentVersion: req.assignmentVersion ?? 0,
+      },
       {
         onSuccess: () => toast.success("Ownership taken", `${req.code} is now in My Assigned Requests.`),
         onError: (e: Error) => toast.error("Could not take ownership", e.message),
