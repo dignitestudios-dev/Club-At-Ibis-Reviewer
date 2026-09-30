@@ -48,7 +48,7 @@ import {
 } from "@/features/requests/components/decision-dialogs";
 import {
   useApproveRequest,
-  useAssessReviewItem,
+  useAssessReviewItems,
   useAssignRequest,
   useCategories,
   useRejectRequest,
@@ -137,7 +137,7 @@ export default function RequestDetailPage({ id }: { id: string }) {
 
   const takeOwnership = useAssignRequest();
   const startReviewMutation = useStartReview();
-  const assessItemMutation = useAssessReviewItem();
+  const assessItemsMutation = useAssessReviewItems();
   const requestRevisionMutation = useRequestRevision();
   const approveMutation = useApproveRequest();
   const rejectMutation = useRejectRequest();
@@ -251,14 +251,12 @@ export default function RequestDetailPage({ id }: { id: string }) {
     if (!req) return;
     setIsAssessingField(true);
     try {
-      await assessItemMutation.mutateAsync({
+      await assessItemsMutation.mutateAsync({
         requestId: req.id,
-        itemKey: fieldId,
-        decision: "flagged",
-        reason,
         expectedAssignmentVersion: req.assignmentVersion ?? 0,
         expectedWorkflowVersion: req.workflowVersion ?? 1,
         expectedReviewVersion: req.review?.reviewVersion ?? 0,
+        items: [{ field: fieldId, decision: "flagged", reason }],
       });
       toast.success("Field flagged", "The correction note has been recorded.");
     } catch (err: any) {
@@ -278,13 +276,12 @@ export default function RequestDetailPage({ id }: { id: string }) {
     if (!req) return;
     setIsAssessingField(true);
     try {
-      await assessItemMutation.mutateAsync({
+      await assessItemsMutation.mutateAsync({
         requestId: req.id,
-        itemKey: field.id,
-        decision: "accepted",
         expectedAssignmentVersion: req.assignmentVersion ?? 0,
         expectedWorkflowVersion: req.workflowVersion ?? 1,
         expectedReviewVersion: req.review?.reviewVersion ?? 0,
+        items: [{ field: field.id, decision: "accepted" }],
       });
       toast.success("Flag cleared", `${field.label} is marked as accepted.`);
     } catch (err: any) {
@@ -304,14 +301,12 @@ export default function RequestDetailPage({ id }: { id: string }) {
     if (!req) return;
     setIsAssessingField(true);
     try {
-      await assessItemMutation.mutateAsync({
+      await assessItemsMutation.mutateAsync({
         requestId: req.id,
-        itemKey: `file:${fileId}`,
-        decision: "flagged",
-        reason,
         expectedAssignmentVersion: req.assignmentVersion ?? 0,
         expectedWorkflowVersion: req.workflowVersion ?? 1,
         expectedReviewVersion: req.review?.reviewVersion ?? 0,
+        items: [{ field: `file:${fileId}`, decision: "flagged", reason }],
       });
       toast.success("Document flagged", "The correction note has been recorded.");
     } catch (err: any) {
@@ -331,13 +326,12 @@ export default function RequestDetailPage({ id }: { id: string }) {
     if (!req) return;
     setIsAssessingField(true);
     try {
-      await assessItemMutation.mutateAsync({
+      await assessItemsMutation.mutateAsync({
         requestId: req.id,
-        itemKey: `file:${fileId}`,
-        decision: "accepted",
         expectedAssignmentVersion: req.assignmentVersion ?? 0,
         expectedWorkflowVersion: req.workflowVersion ?? 1,
         expectedReviewVersion: req.review?.reviewVersion ?? 0,
+        items: [{ field: `file:${fileId}`, decision: "accepted" }],
       });
       toast.success("Flag cleared", "The document is marked as accepted.");
     } catch (err: any) {
@@ -358,16 +352,19 @@ export default function RequestDetailPage({ id }: { id: string }) {
     setIsProcessingDecision(true);
     try {
       let currentReviewVersion = req.review?.reviewVersion ?? 0;
+      // Auto-accept any items still in pending state, in one atomic batch —
+      // using item.key (not fieldId) so file-kind items resolve correctly.
       const pendingItems = (req.review?.items || []).filter((it) => it.decision === "pending");
-      for (const item of pendingItems) {
-        const itemKey = item.key || (item.kind === "file" && item.fileId ? `file:${item.fileId}` : item.fieldId);
-        const updated = await assessItemMutation.mutateAsync({
+      if (pendingItems.length > 0) {
+        const updated = await assessItemsMutation.mutateAsync({
           requestId: req.id,
-          itemKey,
-          decision: "accepted",
           expectedAssignmentVersion: req.assignmentVersion ?? 0,
           expectedWorkflowVersion: req.workflowVersion ?? 1,
           expectedReviewVersion: currentReviewVersion,
+          items: pendingItems.map((item) => ({
+            field: item.key || (item.kind === "file" && item.fileId ? `file:${item.fileId}` : item.fieldId),
+            decision: "accepted" as const,
+          })),
         });
         currentReviewVersion = updated.review?.reviewVersion ?? currentReviewVersion + 1;
       }
@@ -397,16 +394,20 @@ export default function RequestDetailPage({ id }: { id: string }) {
     setIsProcessingDecision(true);
     try {
       let currentReviewVersion = req.review?.reviewVersion ?? 0;
+      // Auto-accept any unflagged items still in pending state, in one
+      // atomic batch — using item.key (not fieldId) so file-kind items
+      // resolve correctly.
       const pendingItems = (req.review?.items || []).filter((it) => it.decision === "pending");
-      for (const item of pendingItems) {
-        const itemKey = item.key || (item.kind === "file" && item.fileId ? `file:${item.fileId}` : item.fieldId);
-        const updated = await assessItemMutation.mutateAsync({
+      if (pendingItems.length > 0) {
+        const updated = await assessItemsMutation.mutateAsync({
           requestId: req.id,
-          itemKey,
-          decision: "accepted",
           expectedAssignmentVersion: req.assignmentVersion ?? 0,
           expectedWorkflowVersion: req.workflowVersion ?? 1,
           expectedReviewVersion: currentReviewVersion,
+          items: pendingItems.map((item) => ({
+            field: item.key || (item.kind === "file" && item.fileId ? `file:${item.fileId}` : item.fieldId),
+            decision: "accepted" as const,
+          })),
         });
         currentReviewVersion = updated.review?.reviewVersion ?? currentReviewVersion + 1;
       }
@@ -1279,7 +1280,7 @@ export default function RequestDetailPage({ id }: { id: string }) {
         file={preview}
         open={!!preview}
         onOpenChange={(o) => !o && setPreview(null)}
-        onRequestDownloadUrl={(fileId, disposition) => getReviewerFileDownloadUrl(req.id, fileId, disposition).then((r) => r.url)}
+        onRequestDownloadUrl={(fileId) => getReviewerFileDownloadUrl(req.id, fileId).then((r) => r.url)}
       />
       <ApproveRequestDialog
         request={req}

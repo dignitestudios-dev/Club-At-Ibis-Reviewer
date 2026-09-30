@@ -345,14 +345,8 @@ export async function assignReviewerRequest({
 }
 
 /** Get a fresh short-lived (10 minute) read-only SAS URL for one submitted file. Never persist it. */
-export async function getReviewerFileDownloadUrl(
-  requestId: string,
-  fileId: string,
-  disposition?: "inline" | "attachment"
-): Promise<{ url: string; expiresAt: string }> {
-  const { data } = await axiosInstance.get(`/reviewer/requests/${requestId}/files/${fileId}/download`, {
-    params: disposition ? { disposition } : undefined,
-  });
+export async function getReviewerFileDownloadUrl(requestId: string, fileId: string): Promise<{ url: string; expiresAt: string }> {
+  const { data } = await axiosInstance.get(`/reviewer/requests/${requestId}/files/${fileId}/download`);
   return data.data.download;
 }
 
