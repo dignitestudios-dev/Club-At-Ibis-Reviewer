@@ -14,7 +14,7 @@ import {
 } from "@/features/requests/api/requests.service";
 import {
   approveRequest,
-  assessReviewItems,
+  assessReviewItem,
   assignRequest,
   rejectRequest,
   requestRevision,
@@ -136,7 +136,7 @@ function useRequestMutation<TVars, TResult = unknown>(fn: (vars: TVars) => Promi
 
 export const useAssignRequest = () => useRequestMutation(assignRequest);
 export const useStartReview = () => useRequestMutation(startReview);
-export const useAssessReviewItems = () => useRequestMutation(assessReviewItems);
+export const useAssessReviewItem = () => useRequestMutation(assessReviewItem);
 export const useRequestRevision = () => useRequestMutation(requestRevision);
 export const useApproveRequest = () => useRequestMutation(approveRequest);
 export const useRejectRequest = () => useRequestMutation(rejectRequest);

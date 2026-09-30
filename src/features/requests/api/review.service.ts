@@ -38,43 +38,33 @@ export async function startReview({
   return toReviewerRequestRecord(req);
 }
 
-export interface ReviewItemAssessment {
-  /** The review item's `key` (e.g. `field:<fieldId>` or `file:<fileId>`), or — for a field-kind item only — the bare fieldId as a backward-compatible shorthand. */
-  field: string;
-  decision: "accepted" | "flagged";
-  reason?: string;
-}
-
-/**
- * Accept/flag one or more review items in a single atomic call. Replaces the
- * old per-item `PATCH /review-items/:fieldId` endpoint, which no longer
- * exists — the backend now generates one review item per uploaded file (not
- * just one per field), so a batch call is required to assess several items
- * without racing `expectedReviewVersion` against yourself.
- */
-export async function assessReviewItems({
+export async function assessReviewItem({
   requestId,
-  items,
+  itemKey,
+  decision,
+  reason,
   expectedAssignmentVersion,
   expectedWorkflowVersion,
   expectedReviewVersion,
 }: {
   requestId: string;
-  items: ReviewItemAssessment[];
+  itemKey: string;
+  decision: "accepted" | "flagged";
+  reason?: string;
   expectedAssignmentVersion: number;
   expectedWorkflowVersion: number;
   expectedReviewVersion: number;
 }): Promise<RequestRecord> {
-  const { data } = await axiosInstance.patch(`/reviewer/requests/${requestId}/review-items`, {
-    expectedAssignmentVersion,
-    expectedWorkflowVersion,
-    expectedReviewVersion,
-    items: items.map((item) => ({
-      field: item.field,
-      decision: item.decision,
-      ...(item.decision === "flagged" ? { reason: item.reason || "" } : {}),
-    })),
-  });
+  const { data } = await axiosInstance.patch(
+    `/reviewer/requests/${requestId}/review-items/${encodeURIComponent(itemKey)}`,
+    {
+      expectedAssignmentVersion,
+      expectedWorkflowVersion,
+      expectedReviewVersion,
+      decision,
+      ...(decision === "flagged" ? { reason: reason || "" } : {}),
+    }
+  );
   const req = data?.data?.request ?? data?.request ?? data?.data;
   return toReviewerRequestRecord(req);
 }
