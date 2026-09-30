@@ -192,11 +192,29 @@ export function reviewItems(req: RequestRecord): CategoryField[] {
 }
 
 export function reviewProgress(req: RequestRecord) {
+  if (req.review?.items && req.review.items.length > 0) {
+    const accepted = req.review.items.filter((it) => it.decision === "accepted");
+    const flagged = req.review.items.filter((it) => it.decision === "flagged");
+    const pending = req.review.items.filter((it) => it.decision === "pending");
+    return { items: req.review.items, accepted, flagged, pending };
+  }
+
   const items = reviewItems(req);
-  const accepted = items.filter((f) => req.itemReviews[f.id]?.state === "accepted");
-  const flagged = items.filter((f) => req.itemReviews[f.id]?.state === "flagged");
-  const pending = items.filter((f) => !req.itemReviews[f.id]);
-  return { items, accepted, flagged, pending };
+  const fieldAccepted = items.filter((f) => f.type !== "file" && req.itemReviews[f.id]?.state === "accepted");
+  const fieldFlagged = items.filter((f) => f.type !== "file" && req.itemReviews[f.id]?.state === "flagged");
+  const fieldPending = items.filter((f) => f.type !== "file" && (!req.itemReviews[f.id] || req.itemReviews[f.id].state === "pending"));
+
+  const fileItems = Object.values(req.uploads || {}).flat();
+  const fileAccepted = fileItems.filter((f) => req.fileItemReviews?.[f.id]?.state === "accepted");
+  const fileFlagged = fileItems.filter((f) => req.fileItemReviews?.[f.id]?.state === "flagged");
+  const filePending = fileItems.filter((f) => !req.fileItemReviews?.[f.id] || req.fileItemReviews[f.id].state === "pending");
+
+  return {
+    items: [...items.filter((f) => f.type !== "file"), ...fileItems],
+    accepted: [...fieldAccepted, ...fileAccepted],
+    flagged: [...fieldFlagged, ...fileFlagged],
+    pending: [...fieldPending, ...filePending],
+  };
 }
 
 /** Fields the resident changed while resubmitting. */

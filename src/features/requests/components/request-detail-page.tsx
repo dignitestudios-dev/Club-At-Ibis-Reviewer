@@ -209,7 +209,11 @@ export default function RequestDetailPage({ id }: { id: string }) {
   const projectInfoFields = infoFields.filter((f) => f.source !== "category");
   const categoryInfoFields = infoFields.filter((f) => f.source === "category");
   const docCount = fileFields.reduce((n, f) => n + (req.uploads?.[f.id]?.length ?? 0), 0);
-  const flaggedCount = Object.values(req.itemReviews || {}).filter((r) => r.state === "flagged").length;
+  const flaggedFieldCount = Object.values(req.itemReviews || {}).filter((r) => r.state === "flagged").length;
+  const flaggedFileCount = Object.values(req.fileItemReviews || {}).filter((r) => r.state === "flagged").length;
+  const flaggedCount = (req.review?.items || []).length > 0
+    ? (req.review?.items || []).filter((it) => it.decision === "flagged").length
+    : flaggedFieldCount + flaggedFileCount;
   const changedIds = changedFieldIds(req);
   const earlierRounds = earlierSubmissions(req);
 
@@ -1218,12 +1222,12 @@ export default function RequestDetailPage({ id }: { id: string }) {
             <div>
               <p className="text-sm font-semibold text-foreground">
                 {flaggedCount === 0
-                  ? "All fields verified · Ready for approval"
-                  : `${flaggedCount} field${flaggedCount === 1 ? "" : "s"} flagged for correction`}
+                  ? "All fields & documents verified · Ready for approval"
+                  : `${flaggedCount} item${flaggedCount === 1 ? "" : "s"} flagged for correction`}
               </p>
               <p className="text-xs text-muted-foreground">
                 {flaggedCount === 0
-                  ? "Unflagged fields are accepted automatically."
+                  ? "Unflagged fields and documents are accepted automatically."
                   : "Submit revision request or clear flags to approve."}
               </p>
             </div>
