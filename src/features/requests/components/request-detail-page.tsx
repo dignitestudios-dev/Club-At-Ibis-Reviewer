@@ -720,15 +720,15 @@ export default function RequestDetailPage({ id }: { id: string }) {
           <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as string)}>
             <TabsList aria-label="Request sections">
               <TabsTrigger value="overview">Latest Submission</TabsTrigger>
+              <TabsTrigger value="decisions">Decisions &amp; deposit</TabsTrigger>
+              <TabsTrigger value="history">
+                Activity timeline{req.history.length > 0 ? ` (${req.history.length})` : ""}
+              </TabsTrigger>
               {earlierRounds.length > 0 && (
                 <TabsTrigger value="submissionHistory">
                   Submission History ({earlierRounds.length})
                 </TabsTrigger>
               )}
-              <TabsTrigger value="decisions">Decisions &amp; deposit</TabsTrigger>
-              <TabsTrigger value="history">
-                Activity timeline{req.history.length > 0 ? ` (${req.history.length})` : ""}
-              </TabsTrigger>
             </TabsList>
 
             {/* Latest submission: project info + category-specific fields, kept
