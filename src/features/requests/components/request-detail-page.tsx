@@ -13,7 +13,6 @@ import {
   FileCheck2,
   FileDiff,
   FileEdit,
-  FileImage,
   FileText,
   Flag,
   History,
@@ -35,6 +34,7 @@ import { FieldHelpTooltip } from "@/components/shared/field-help-tooltip";
 import { PersonAvatar } from "@/components/shared/person-avatar";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { FilePreviewDialog, type PreviewableFile } from "@/components/shared/file-preview-dialog";
+import { getReviewerFileDownloadUrl } from "@/features/requests/api/requests.service";
 import { AssignReviewerDialog } from "@/features/requests/components/assign-reviewer-dialog";
 import { EarlierSubmissions } from "@/features/requests/components/earlier-submissions";
 import { HistoryTimeline } from "@/features/requests/components/history-timeline";
@@ -48,7 +48,7 @@ import {
 } from "@/features/requests/components/decision-dialogs";
 import {
   useApproveRequest,
-  useAssessReviewItem,
+  useAssessReviewItems,
   useAssignRequest,
   useCategories,
   useRejectRequest,
@@ -137,7 +137,7 @@ export default function RequestDetailPage({ id }: { id: string }) {
 
   const takeOwnership = useAssignRequest();
   const startReviewMutation = useStartReview();
-  const assessItemMutation = useAssessReviewItem();
+  const assessItemsMutation = useAssessReviewItems();
   const requestRevisionMutation = useRequestRevision();
   const approveMutation = useApproveRequest();
   const rejectMutation = useRejectRequest();
@@ -247,14 +247,12 @@ export default function RequestDetailPage({ id }: { id: string }) {
     if (!req) return;
     setIsAssessingField(true);
     try {
-      await assessItemMutation.mutateAsync({
+      await assessItemsMutation.mutateAsync({
         requestId: req.id,
-        fieldId,
         expectedAssignmentVersion: req.assignmentVersion ?? 0,
         expectedWorkflowVersion: req.workflowVersion ?? 1,
         expectedReviewVersion: req.review?.reviewVersion ?? 0,
-        decision: "flagged",
-        reason,
+        items: [{ field: fieldId, decision: "flagged", reason }],
       });
       toast.success("Field flagged", "The correction note has been recorded.");
     } catch (err: any) {
@@ -274,13 +272,12 @@ export default function RequestDetailPage({ id }: { id: string }) {
     if (!req) return;
     setIsAssessingField(true);
     try {
-      await assessItemMutation.mutateAsync({
+      await assessItemsMutation.mutateAsync({
         requestId: req.id,
-        fieldId: field.id,
         expectedAssignmentVersion: req.assignmentVersion ?? 0,
         expectedWorkflowVersion: req.workflowVersion ?? 1,
         expectedReviewVersion: req.review?.reviewVersion ?? 0,
-        decision: "accepted",
+        items: [{ field: field.id, decision: "accepted" }],
       });
       toast.success("Flag cleared", `${field.label} is marked as accepted.`);
     } catch (err: any) {
@@ -296,23 +293,73 @@ export default function RequestDetailPage({ id }: { id: string }) {
     }
   }
 
+  async function handleSaveFileFlag(fileId: string, reason: string) {
+    if (!req) return;
+    setIsAssessingField(true);
+    try {
+      await assessItemsMutation.mutateAsync({
+        requestId: req.id,
+        expectedAssignmentVersion: req.assignmentVersion ?? 0,
+        expectedWorkflowVersion: req.workflowVersion ?? 1,
+        expectedReviewVersion: req.review?.reviewVersion ?? 0,
+        items: [{ field: `file:${fileId}`, decision: "flagged", reason }],
+      });
+      toast.success("Document flagged", "The correction note has been recorded.");
+    } catch (err: any) {
+      if (err?.response?.status === 409) {
+        toast.error("Conflict", "The review was updated in another session. Refreshed.");
+        qc.invalidateQueries({ queryKey: ["requests", req.id] });
+      } else {
+        toast.error("Could not flag document", err.message || "An unexpected error occurred.");
+      }
+      throw err;
+    } finally {
+      setIsAssessingField(false);
+    }
+  }
+
+  async function handleClearFileFlag(fileId: string) {
+    if (!req) return;
+    setIsAssessingField(true);
+    try {
+      await assessItemsMutation.mutateAsync({
+        requestId: req.id,
+        expectedAssignmentVersion: req.assignmentVersion ?? 0,
+        expectedWorkflowVersion: req.workflowVersion ?? 1,
+        expectedReviewVersion: req.review?.reviewVersion ?? 0,
+        items: [{ field: `file:${fileId}`, decision: "accepted" }],
+      });
+      toast.success("Flag cleared", "The document is marked as accepted.");
+    } catch (err: any) {
+      if (err?.response?.status === 409) {
+        toast.error("Conflict", "The review was updated in another session. Refreshed.");
+        qc.invalidateQueries({ queryKey: ["requests", req.id] });
+      } else {
+        toast.error("Could not update document", err.message || "An unexpected error occurred.");
+      }
+      throw err;
+    } finally {
+      setIsAssessingField(false);
+    }
+  }
+
   async function handleApprove() {
     if (!req) return;
     setIsProcessingDecision(true);
     try {
       let currentReviewVersion = req.review?.reviewVersion ?? 0;
-      // Auto-accept any items still in pending state
+      // Auto-accept any items still in pending state, in one atomic batch —
+      // using item.key (not fieldId) so file-kind items resolve correctly.
       const pendingItems = (req.review?.items || []).filter((it) => it.decision === "pending");
-      for (const item of pendingItems) {
-        await assessItemMutation.mutateAsync({
+      if (pendingItems.length > 0) {
+        const updated = await assessItemsMutation.mutateAsync({
           requestId: req.id,
-          fieldId: item.fieldId,
           expectedAssignmentVersion: req.assignmentVersion ?? 0,
           expectedWorkflowVersion: req.workflowVersion ?? 1,
           expectedReviewVersion: currentReviewVersion,
-          decision: "accepted",
+          items: pendingItems.map((item) => ({ field: item.key || item.fieldId, decision: "accepted" as const })),
         });
-        currentReviewVersion += 1;
+        currentReviewVersion = updated.review?.reviewVersion ?? currentReviewVersion + 1;
       }
 
       await approveMutation.mutateAsync({
@@ -340,18 +387,19 @@ export default function RequestDetailPage({ id }: { id: string }) {
     setIsProcessingDecision(true);
     try {
       let currentReviewVersion = req.review?.reviewVersion ?? 0;
-      // Auto-accept any unflagged items still in pending state
+      // Auto-accept any unflagged items still in pending state, in one
+      // atomic batch — using item.key (not fieldId) so file-kind items
+      // resolve correctly.
       const pendingItems = (req.review?.items || []).filter((it) => it.decision === "pending");
-      for (const item of pendingItems) {
-        await assessItemMutation.mutateAsync({
+      if (pendingItems.length > 0) {
+        const updated = await assessItemsMutation.mutateAsync({
           requestId: req.id,
-          fieldId: item.fieldId,
           expectedAssignmentVersion: req.assignmentVersion ?? 0,
           expectedWorkflowVersion: req.workflowVersion ?? 1,
           expectedReviewVersion: currentReviewVersion,
-          decision: "accepted",
+          items: pendingItems.map((item) => ({ field: item.key || item.fieldId, decision: "accepted" as const })),
         });
-        currentReviewVersion += 1;
+        currentReviewVersion = updated.review?.reviewVersion ?? currentReviewVersion + 1;
       }
 
       await requestRevisionMutation.mutateAsync({
@@ -826,50 +874,27 @@ export default function RequestDetailPage({ id }: { id: string }) {
               <Card className="rounded-xl border border-border/70 bg-transparent shadow-none ring-0">
                 <CardHeader className="border-b border-border/70 pb-3">
                   <CardTitle className="font-heading text-lg font-medium">Documents{docCount > 0 ? ` (${docCount})` : ""}</CardTitle>
-                  <p className="text-xs text-muted-foreground">Uploaded with this submission. Open a preview to inspect a file.</p>
+                  <p className="text-xs text-muted-foreground">
+                    Uploaded with this submission. Open a preview to inspect a file.
+                    {canReview && " Each document is accepted by default; flag one if the resident needs to replace it."}
+                  </p>
                 </CardHeader>
-                <CardContent className="divide-y divide-border/70 pt-2">
+                <CardContent className="pt-5 space-y-4">
                   {fileFields.length === 0 && (
                     <p className="py-6 text-center text-sm text-muted-foreground">This form had no document uploads.</p>
                   )}
-                  {fileFields.map((field) => {
-                    const files = req.uploads[field.id] ?? [];
-                    return (
-                      <div key={field.id} className="space-y-2.5 py-4">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <p className="text-sm font-semibold text-foreground">{field.label}</p>
-                          <span className="text-[11px] text-muted-foreground">
-                            {field.required ? "Required" : "Optional"}
-                          </span>
-                        </div>
-                        {files.length === 0 && <p className="text-xs text-muted-foreground italic">No file uploaded</p>}
-                        {files.map((file) => (
-                          <div
-                            key={file.id}
-                            className="flex items-center gap-3 rounded-xl border border-border/80 bg-muted/30 px-3.5 py-2.5"
-                          >
-                            <span className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-border bg-card">
-                              {/\.(jpe?g|png)$/i.test(file.name) ? (
-                                <FileImage className="size-4 text-sky-600" />
-                              ) : (
-                                <FileText className="size-4 text-rose-600" />
-                              )}
-                            </span>
-                            <div className="min-w-0 flex-1">
-                              <p className="truncate text-sm font-medium text-foreground">{file.name}</p>
-                              <p className="text-[11px] text-muted-foreground">
-                                {formatFileSize(file.size)} · uploaded {formatDate(file.uploadedAt)}
-                              </p>
-                            </div>
-                            <Button variant="outline" size="sm" onClick={() => setPreview(file)}>
-                              <Eye />
-                              Preview
-                            </Button>
-                          </div>
-                        ))}
-                      </div>
-                    );
-                  })}
+                  {fileFields.map((field) => (
+                    <ReviewItem
+                      key={field.id}
+                      request={req}
+                      field={field}
+                      canReview={canReview}
+                      onPreview={setPreview}
+                      onSaveFileFlag={(fileId, reason) => handleSaveFileFlag(fileId, reason)}
+                      onClearFileFlag={(fileId) => handleClearFileFlag(fileId)}
+                      isAssessing={isAssessingField}
+                    />
+                  ))}
                 </CardContent>
               </Card>
 
@@ -1241,7 +1266,12 @@ export default function RequestDetailPage({ id }: { id: string }) {
 
       {/* Dialogs */}
       <AssignReviewerDialog request={assigning} onOpenChange={(o) => !o && setAssigning(null)} />
-      <FilePreviewDialog file={preview} open={!!preview} onOpenChange={(o) => !o && setPreview(null)} />
+      <FilePreviewDialog
+        file={preview}
+        open={!!preview}
+        onOpenChange={(o) => !o && setPreview(null)}
+        onRequestDownloadUrl={(fileId, disposition) => getReviewerFileDownloadUrl(req.id, fileId, disposition).then((r) => r.url)}
+      />
       <ApproveRequestDialog
         request={req}
         open={approveOpen}

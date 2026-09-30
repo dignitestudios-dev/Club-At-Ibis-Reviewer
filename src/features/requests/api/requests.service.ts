@@ -53,6 +53,10 @@ export function toReviewerRequestRecord(raw: any): RequestRecord {
   }
 
   const itemReviews: Record<string, ItemReview> = { ...(raw.itemReviews || {}) };
+  // A file field can hold several files, each getting its own review item
+  // (kind: "file", keyed by fileId) — those can't share the fieldId-keyed
+  // itemReviews map above without one file's state overwriting another's.
+  const fileItemReviews: Record<string, ItemReview> = {};
   let review: ActiveReviewRound | null = null;
   if (raw.review) {
     review = {
@@ -64,15 +68,17 @@ export function toReviewerRequestRecord(raw: any): RequestRecord {
         ? raw.review.items.map((it: any) => {
             const decision: ReviewItemDecision =
               it.decision === "accepted" || it.decision === "flagged" ? it.decision : "pending";
-            // Populate itemReviews map
-            itemReviews[it.fieldId] = {
-              state: decision,
-              reason: it.reason || undefined,
-            };
+            const itemState: ItemReview = { state: decision, reason: it.reason || undefined };
+            if (it.kind === "file" && it.fileId) {
+              fileItemReviews[it.fileId] = itemState;
+            } else {
+              itemReviews[it.fieldId] = itemState;
+            }
             return {
-              key: it.key || `field:${it.fieldId}`,
+              key: it.key || (it.kind === "file" && it.fileId ? `file:${it.fileId}` : `field:${it.fieldId}`),
               kind: it.kind || "field",
               fieldId: it.fieldId,
+              fileId: it.fileId || undefined,
               label: it.label || "",
               decision,
               reason: it.reason || null,
@@ -163,6 +169,7 @@ export function toReviewerRequestRecord(raw: any): RequestRecord {
     fieldValues,
     uploads,
     itemReviews,
+    fileItemReviews,
     revisions: raw.revisions || [],
     previousSubmissions,
     hoaApproved: !!(raw.hoaConfirmed ?? raw.hoaApproved),
@@ -335,6 +342,18 @@ export async function assignReviewerRequest({
     expectedAssignmentVersion: expectedAssignmentVersion ?? 0,
   });
   return toReviewerRequestRecord(data.data.request);
+}
+
+/** Get a fresh short-lived (10 minute) read-only SAS URL for one submitted file. Never persist it. */
+export async function getReviewerFileDownloadUrl(
+  requestId: string,
+  fileId: string,
+  disposition?: "inline" | "attachment"
+): Promise<{ url: string; expiresAt: string }> {
+  const { data } = await axiosInstance.get(`/reviewer/requests/${requestId}/files/${fileId}/download`, {
+    params: disposition ? { disposition } : undefined,
+  });
+  return data.data.download;
 }
 
 export async function getResidents(): Promise<Resident[]> {

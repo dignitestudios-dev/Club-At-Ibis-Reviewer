@@ -205,6 +205,8 @@ interface ReviewItemRecord {
   key?: string;
   kind: "field" | "file";
   fieldId: string;
+  /** Set when kind === "file": identifies which uploaded file this item covers. */
+  fileId?: string;
   label: string;
   decision: ReviewItemDecision;
   reason: string | null;
@@ -339,6 +341,8 @@ interface RequestRecord {
   fieldValues: Record<string, string>;
   uploads: Record<string, AttachedFile[]>;
   itemReviews: Record<string, ItemReview>;
+  /** Same as itemReviews but keyed by fileId — a file field can hold several files, each with its own review item, so they can't share the fieldId-keyed map without colliding. */
+  fileItemReviews: Record<string, ItemReview>;
   revisions: RequestRevision[];
   /** Earlier submissions, oldest first, retained when the resident resubmits. */
   previousSubmissions?: SubmissionSnapshot[];

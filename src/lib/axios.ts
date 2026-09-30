@@ -83,8 +83,13 @@ axiosInstance.interceptors.response.use(
       window.dispatchEvent(new CustomEvent("app:server-error"));
     }
 
-    const message = error.response?.data?.message ?? error.message;
-    return Promise.reject(new Error(message));
+    const data = error.response?.data;
+    const message = data?.message ?? error.message;
+    const err = new Error(message) as Error & { code?: string; statusCode?: number; responseData?: unknown };
+    if (data?.code) err.code = data.code;
+    if (status) err.statusCode = status;
+    err.responseData = data;
+    return Promise.reject(err);
   }
 );
 

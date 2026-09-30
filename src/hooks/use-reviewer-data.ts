@@ -14,7 +14,7 @@ import {
 } from "@/features/requests/api/requests.service";
 import {
   approveRequest,
-  assessReviewItem,
+  assessReviewItems,
   assignRequest,
   rejectRequest,
   requestRevision,
@@ -121,7 +121,7 @@ export const useNotifications = (options?: { enabled?: boolean }) =>
 
 /* ----------------------------- mutations ----------------------------- */
 
-function useRequestMutation<TVars>(fn: (vars: TVars) => Promise<unknown>) {
+function useRequestMutation<TVars, TResult = unknown>(fn: (vars: TVars) => Promise<TResult>) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: fn,
@@ -136,7 +136,7 @@ function useRequestMutation<TVars>(fn: (vars: TVars) => Promise<unknown>) {
 
 export const useAssignRequest = () => useRequestMutation(assignRequest);
 export const useStartReview = () => useRequestMutation(startReview);
-export const useAssessReviewItem = () => useRequestMutation(assessReviewItem);
+export const useAssessReviewItems = () => useRequestMutation(assessReviewItems);
 export const useRequestRevision = () => useRequestMutation(requestRevision);
 export const useApproveRequest = () => useRequestMutation(approveRequest);
 export const useRejectRequest = () => useRequestMutation(rejectRequest);

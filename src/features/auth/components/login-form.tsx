@@ -1,16 +1,17 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Controller, useForm, type FieldErrors } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { LockKeyhole } from "lucide-react";
+import { LockKeyhole, ShieldOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { RequiredMark } from "@/components/shared/required-mark";
 import { PasswordInput } from "@/components/shared/password-input";
 import { Field, FieldContent, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Spinner } from "@/components/ui/spinner";
 import { loginSchema } from "@/features/auth/schemas/auth.schema";
 import { useLoginMutation } from "@/features/auth/api/auth.mutations";
@@ -26,6 +27,7 @@ export default function LoginForm() {
   const returnUrl = searchParams.get("returnUrl");
   const { mutate: login, isPending } = useLoginMutation();
   const isSubmittingRef = useRef(false);
+  const [accountDisabled, setAccountDisabled] = useState(false);
 
   const {
     control,
@@ -65,6 +67,7 @@ export default function LoginForm() {
   function onSubmit(data: LoginCredentials) {
     if (isSubmittingRef.current) return;
     isSubmittingRef.current = true;
+    setAccountDisabled(false);
     login(data, {
       onSuccess: ({ token, user }) => {
         isSubmittingRef.current = false;
@@ -76,8 +79,12 @@ export default function LoginForm() {
         toast.success(`Welcome back, ${user.name.split(" ")[0]}.`);
         window.location.href = returnUrl ? decodeURIComponent(returnUrl) : DEFAULT_REDIRECT;
       },
-      onError: (error: Error) => {
+      onError: (error: Error & { code?: string }) => {
         isSubmittingRef.current = false;
+        if (error.code === "ACCOUNT_DISABLED") {
+          setAccountDisabled(true);
+          return;
+        }
         toast.error(error.message || "Unable to sign in.");
       },
     });
@@ -174,6 +181,25 @@ export default function LoginForm() {
         </FieldGroup>
       </form>
 
+      <Dialog open={accountDisabled} onOpenChange={(open) => !open && setAccountDisabled(false)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <div className="mb-1 flex size-11 items-center justify-center rounded-xl border border-destructive/30 bg-destructive/10 text-destructive">
+              <ShieldOff className="size-5" aria-hidden="true" />
+            </div>
+            <DialogTitle className="font-heading text-xl font-medium">Your Account Has Been Deactivated</DialogTitle>
+            <DialogDescription>
+              Your account access has been disabled by the Super Admin. Please contact the Super Admin for more
+              information about this decision and to request account recovery.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button onClick={() => setAccountDisabled(false)} className="w-full sm:w-auto">
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

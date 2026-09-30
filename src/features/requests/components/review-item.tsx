@@ -43,6 +43,201 @@ export function ReviewState({
   return null;
 }
 
+/** One uploaded file's own flag/accept row — each file gets its own review item on the backend, so its state and edit UI must be independent of any sibling files under the same field. */
+function FileReviewRow({
+  file,
+  review,
+  canReview,
+  onPreview,
+  onSaveFlag,
+  onClearFlag,
+  isAssessing = false,
+}: {
+  file: AttachedFile;
+  review?: ItemReview;
+  canReview: boolean;
+  onPreview: (file: PreviewableFile) => void;
+  onSaveFlag?: (fileId: string, reason: string) => Promise<void> | void;
+  onClearFlag?: (fileId: string) => Promise<void> | void;
+  isAssessing?: boolean;
+}) {
+  const isFlagged = review?.state === "flagged";
+  const [isEditing, setIsEditing] = useState(false);
+  const [reason, setReason] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleOpenEdit = () => {
+    setReason(review?.reason || "");
+    setIsEditing(true);
+  };
+  const handleCancelEdit = () => {
+    setIsEditing(false);
+    setReason("");
+  };
+  const handleSave = async () => {
+    if (isSubmitting || !onSaveFlag) return;
+    setIsSubmitting(true);
+    try {
+      const finalReason = reason.trim() || "Please replace this document.";
+      await onSaveFlag(file.id, finalReason);
+      setIsEditing(false);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+  const handleClear = async () => {
+    if (isSubmitting || !onClearFlag) return;
+    setIsSubmitting(true);
+    try {
+      await onClearFlag(file.id);
+      setIsEditing(false);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <div
+      className={cn(
+        "rounded-xl border px-3.5 py-2.5 transition-colors",
+        isFlagged
+          ? "border-amber-300/90 bg-amber-50/60 dark:border-amber-800/80 dark:bg-amber-950/20"
+          : review?.state === "accepted" || canReview
+            ? "border-emerald-200/80 bg-card"
+            : "border-border/80 bg-muted/30"
+      )}
+    >
+      <div className="flex items-center gap-3">
+        <span className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-border bg-card">
+          {/\.(jpe?g|png)$/i.test(file.name) ? (
+            <FileImage className="size-4 text-sky-600" />
+          ) : (
+            <FileText className="size-4 text-rose-600" />
+          )}
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-sm font-medium text-foreground">{file.name}</p>
+          <p className="text-[11px] text-muted-foreground">
+            {formatFileSize(file.size)} · uploaded {formatDate(file.uploadedAt)}
+          </p>
+        </div>
+        <ReviewState review={review} canReview={canReview} />
+        <Button variant="outline" size="sm" onClick={() => onPreview(file)}>
+          <Eye />
+          Preview
+        </Button>
+      </div>
+
+      {isFlagged && review?.reason && !isEditing && (
+        <div className="mt-2.5 rounded-lg border border-amber-300/80 bg-amber-50/90 px-3.5 py-2.5 text-xs text-amber-950 dark:border-amber-800/80 dark:bg-amber-950/40 dark:text-amber-200 break-words [overflow-wrap:anywhere]">
+          <p className="mb-1 flex items-center gap-1.5 font-semibold">
+            <Flag className="size-3.5 text-amber-700 dark:text-amber-400" />
+            Reviewer Correction Note:
+          </p>
+          <p className="whitespace-pre-wrap">{review.reason}</p>
+        </div>
+      )}
+
+      {isEditing && (
+        <div className="mt-2.5 space-y-3 rounded-lg border border-amber-300/80 bg-amber-50/50 p-3.5 dark:border-amber-800/80 dark:bg-amber-950/30">
+          <div className="space-y-1.5">
+            <label
+              htmlFor={`flag-reason-${file.id}`}
+              className="flex items-center justify-between text-[11px] font-semibold tracking-wider text-amber-950 uppercase dark:text-amber-300"
+            >
+              <span>Correction instructions (Optional)</span>
+              <span className="text-[10px] font-normal text-muted-foreground">{reason.length}/1000</span>
+            </label>
+            <Textarea
+              id={`flag-reason-${file.id}`}
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              onKeyDown={(e) => {
+                if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
+                  e.preventDefault();
+                  handleSave();
+                } else if (e.key === "Escape") {
+                  e.preventDefault();
+                  handleCancelEdit();
+                }
+              }}
+              placeholder="Optional: explain what's wrong with this document..."
+              rows={3}
+              maxLength={1000}
+              disabled={isSubmitting || isAssessing}
+              className="resize-none bg-background text-xs"
+              autoFocus
+            />
+          </div>
+          <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
+            <p className="text-[11px] text-muted-foreground">
+              Press <kbd className="rounded bg-muted px-1.5 py-0.5 font-mono text-[10px]">Ctrl+Enter</kbd> to save
+            </p>
+            <div className="flex items-center gap-2">
+              <Button type="button" variant="outline" size="sm" className="h-7 text-xs" onClick={handleCancelEdit} disabled={isSubmitting || isAssessing}>
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                className="h-7 text-xs bg-amber-600 hover:bg-amber-700 text-white dark:bg-amber-600 dark:hover:bg-amber-700"
+                onClick={handleSave}
+                disabled={isSubmitting || isAssessing}
+              >
+                {isSubmitting || isAssessing ? <Spinner className="size-3 mr-1" /> : <Flag className="size-3 mr-1" />}
+                {isFlagged ? "Update Flag" : "Flag Document"}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {canReview && !isEditing && (
+        <div className="mt-2.5 flex flex-wrap items-center justify-end gap-2 border-t border-border/50 pt-2.5">
+          {isFlagged ? (
+            <>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="text-xs h-7 text-muted-foreground hover:text-foreground"
+                onClick={handleClear}
+                disabled={isSubmitting || isAssessing}
+              >
+                {isSubmitting ? <Spinner className="size-3 mr-1" /> : <Undo2 className="size-3 mr-1" />}
+                Clear Flag (Accept)
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="text-xs h-7 border-amber-300 text-amber-900 hover:bg-amber-50 dark:border-amber-800 dark:text-amber-300 dark:hover:bg-amber-950/40"
+                onClick={handleOpenEdit}
+                disabled={isSubmitting || isAssessing}
+              >
+                <Edit2 className="size-3 mr-1" />
+                Edit Note
+              </Button>
+            </>
+          ) : (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="text-xs h-7 text-amber-700 hover:text-amber-800 hover:bg-amber-50 hover:border-amber-300 dark:text-amber-400 dark:hover:bg-amber-950/40 dark:hover:border-amber-800"
+              onClick={handleOpenEdit}
+              disabled={isSubmitting || isAssessing}
+            >
+              <Flag className="size-3 mr-1" />
+              Flag Document
+            </Button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function ReviewItem({
   request,
   field,
@@ -52,6 +247,8 @@ export function ReviewItem({
   onPreview,
   onSaveFlag,
   onClearFlag,
+  onSaveFileFlag,
+  onClearFileFlag,
   isAssessing = false,
 }: {
   request: RequestRecord;
@@ -62,6 +259,8 @@ export function ReviewItem({
   onPreview: (file: PreviewableFile) => void;
   onSaveFlag?: (fieldId: string, reason: string) => Promise<void> | void;
   onClearFlag?: (field: CategoryField) => Promise<void> | void;
+  onSaveFileFlag?: (fileId: string, reason: string) => Promise<void> | void;
+  onClearFileFlag?: (fileId: string) => Promise<void> | void;
   isAssessing?: boolean;
 }) {
   const state = request.itemReviews[field.id];
@@ -149,28 +348,16 @@ export function ReviewItem({
             <p className="text-xs text-muted-foreground italic">No file uploaded</p>
           ) : (
             files.map((file) => (
-              <div
+              <FileReviewRow
                 key={file.id}
-                className="flex items-center gap-3 rounded-xl border border-border/80 bg-muted/30 px-3.5 py-2.5"
-              >
-                <span className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-border bg-card">
-                  {/\.(jpe?g|png)$/i.test(file.name) ? (
-                    <FileImage className="size-4 text-sky-600" />
-                  ) : (
-                    <FileText className="size-4 text-rose-600" />
-                  )}
-                </span>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium text-foreground">{file.name}</p>
-                  <p className="text-[11px] text-muted-foreground">
-                    {formatFileSize(file.size)} · uploaded {formatDate(file.uploadedAt)}
-                  </p>
-                </div>
-                <Button variant="outline" size="sm" onClick={() => onPreview(file)}>
-                  <Eye />
-                  Preview
-                </Button>
-              </div>
+                file={file}
+                review={request.fileItemReviews?.[file.id]}
+                canReview={canReview}
+                onPreview={onPreview}
+                onSaveFlag={onSaveFileFlag}
+                onClearFlag={onClearFileFlag}
+                isAssessing={isAssessing}
+              />
             ))
           )}
         </div>

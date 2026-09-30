@@ -38,29 +38,42 @@ export async function startReview({
   return toReviewerRequestRecord(req);
 }
 
-export async function assessReviewItem({
+export interface ReviewItemAssessment {
+  /** The review item's `key` (e.g. `field:<fieldId>` or `file:<fileId>`), or — for a field-kind item only — the bare fieldId as a backward-compatible shorthand. */
+  field: string;
+  decision: "accepted" | "flagged";
+  reason?: string;
+}
+
+/**
+ * Accept/flag one or more review items in a single atomic call. Replaces the
+ * old per-item `PATCH /review-items/:fieldId` endpoint, which no longer
+ * exists — the backend now generates one review item per uploaded file (not
+ * just one per field), so a batch call is required to assess several items
+ * without racing `expectedReviewVersion` against yourself.
+ */
+export async function assessReviewItems({
   requestId,
-  fieldId,
+  items,
   expectedAssignmentVersion,
   expectedWorkflowVersion,
   expectedReviewVersion,
-  decision,
-  reason,
 }: {
   requestId: string;
-  fieldId: string;
+  items: ReviewItemAssessment[];
   expectedAssignmentVersion: number;
   expectedWorkflowVersion: number;
   expectedReviewVersion: number;
-  decision: "accepted" | "flagged";
-  reason?: string;
 }): Promise<RequestRecord> {
-  const { data } = await axiosInstance.patch(`/reviewer/requests/${requestId}/review-items/${fieldId}`, {
+  const { data } = await axiosInstance.patch(`/reviewer/requests/${requestId}/review-items`, {
     expectedAssignmentVersion,
     expectedWorkflowVersion,
     expectedReviewVersion,
-    decision,
-    reason: decision === "flagged" ? reason || "" : undefined,
+    items: items.map((item) => ({
+      field: item.field,
+      decision: item.decision,
+      ...(item.decision === "flagged" ? { reason: item.reason || "" } : {}),
+    })),
   });
   const req = data?.data?.request ?? data?.request ?? data?.data;
   return toReviewerRequestRecord(req);
