@@ -32,8 +32,13 @@ export function AppSidebar({ onNavigate }: { onNavigate?: () => void }) {
   const { data: toStartPage } = useRequestsPage({ status: "submitted", assignedReviewerId: me?.id, limit: 1 }, { enabled: !!me });
   const { data: resubmittedPage } = useRequestsPage({ status: "resubmitted", assignedReviewerId: me?.id, limit: 1 }, { enabled: !!me });
   const { data: toCompletePage } = useRequestsPage({ status: "approved", assignedReviewerId: me?.id, limit: 1 }, { enabled: !!me });
-  const { data: refundsPage } = useRequestsPage({ refundOutcome: "awaiting", assignedReviewerId: me?.id, limit: 1 }, { enabled: !!me });
-  const { data: incomingPage } = useIncomingRequestsPage({ limit: 1 });
+  // The backend's refundOutcome filter uses "awaiting_refund_action", not
+  // the shorter "awaiting" the UI uses internally for RefundOutcome.
+  const { data: refundsPage } = useRequestsPage({ refundOutcome: "awaiting_refund_action", assignedReviewerId: me?.id, limit: 1 }, { enabled: !!me });
+  // /reviewer/requests/incoming is the shared Default Reviewer intake queue —
+  // a general (non-default) reviewer has no permission for it and the
+  // backend returns 403, so this must stay gated behind `isDefault`.
+  const { data: incomingPage } = useIncomingRequestsPage({ limit: 1 }, { enabled: isDefault });
   const { data: notifications } = useNotifications();
   const mineCount =
     (toStartPage?.pagination?.total ?? 0) +
