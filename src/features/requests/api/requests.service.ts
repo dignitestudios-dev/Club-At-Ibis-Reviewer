@@ -95,6 +95,20 @@ export function toReviewerRequestRecord(raw: any): RequestRecord {
     };
   }
 
+  // The reviewer's general feedback for a past round only survives on that
+  // round's "revision-requested" history event — `submissions[]` never
+  // carries it — so look it up per submissionNumber the same way flagged
+  // items are reconstructed in lib/domain.ts's flaggedItemsForSubmission.
+  const feedbackBySubmissionNumber = new Map<number, string>();
+  if (Array.isArray(raw.history)) {
+    for (const h of raw.history) {
+      const type = h.type?.replace(/^request\./, "").replace(/-/g, "_");
+      if (type === "revision_requested" && typeof h.details?.submissionNumber === "number" && h.details?.feedback) {
+        feedbackBySubmissionNumber.set(h.details.submissionNumber, h.details.feedback);
+      }
+    }
+  }
+
   const rawSubmissions = Array.isArray(raw.submissions) ? raw.submissions : [];
   const submissions: SubmissionVersionRecord[] = rawSubmissions.map((s: any) => {
     const sFiles: Record<string, AttachedFile[]> = {};
@@ -131,6 +145,7 @@ export function toReviewerRequestRecord(raw: any): RequestRecord {
     fieldValues: s.fieldValues,
     uploads: s.files,
     itemReviews: {},
+    feedback: feedbackBySubmissionNumber.get(s.number) || undefined,
   }));
 
   const decision = raw.decision || (raw.rejectionReason || raw.decidedAt ? {
@@ -180,7 +195,9 @@ export function toReviewerRequestRecord(raw: any): RequestRecord {
     completedAt: raw.completedAt,
     withdrawnAt: raw.withdrawnAt,
     withdrawnFrom: raw.withdrawnFrom,
-    feedback: raw.feedback,
+    // The current round's general feedback lives under `revision.feedback`,
+    // not a top-level `feedback` key on the real response.
+    feedback: raw.revision?.feedback || raw.feedback || undefined,
     rejectionReason: decision?.rejectionReason || raw.rejectionReason,
     deposit: raw.deposit || {
       required: !!raw.depositRequired,

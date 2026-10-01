@@ -330,6 +330,7 @@ interface RequestRecord {
   revision?: {
     revisionVersion: number;
     items: Array<{ fieldId: string; label: string; reason: string }>;
+    feedback?: string;
   } | null;
   decision?: {
     rejectionReason: string | null;

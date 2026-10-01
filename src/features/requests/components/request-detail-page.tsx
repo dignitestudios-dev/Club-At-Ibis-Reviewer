@@ -779,7 +779,9 @@ export default function RequestDetailPage({ id }: { id: string }) {
           <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as string)}>
             <TabsList aria-label="Request sections">
               <TabsTrigger value="overview">Latest Submission</TabsTrigger>
-              <TabsTrigger value="decisions">Decisions &amp; deposit</TabsTrigger>
+              <TabsTrigger value="decisions">Decision</TabsTrigger>
+              <TabsTrigger value="deposit">Deposit</TabsTrigger>
+              <TabsTrigger value="refund">Refund</TabsTrigger>
               <TabsTrigger value="history">
                 Activity timeline{req.history.length > 0 ? ` (${req.history.length})` : ""}
               </TabsTrigger>
@@ -979,24 +981,14 @@ export default function RequestDetailPage({ id }: { id: string }) {
 
             {/* Decisions & deposit */}
             <TabsContent value="decisions" className="space-y-5 pt-4">
-              {(req.deposit.receipt || req.approvalLetter) && (
+              {req.approvalLetter && (
                 <Card className="rounded-xl border border-border/70 bg-transparent shadow-none ring-0">
                   <CardHeader className="border-b border-border/70 pb-3">
                     <CardTitle className="font-heading text-lg font-medium">Staff Documents</CardTitle>
-                    <p className="text-xs text-muted-foreground">Associated with deposit and final completion.</p>
+                    <p className="text-xs text-muted-foreground">Associated with final completion.</p>
                   </CardHeader>
                   <CardContent className="space-y-2.5 pt-4">
-                    {req.deposit.receipt && (
-                      <StaffFile
-                        label="Deposit payment receipt"
-                        staffOnly
-                        file={req.deposit.receipt}
-                        onPreview={setPreview}
-                      />
-                    )}
-                    {req.approvalLetter && (
-                      <StaffFile label="Final approval letter" file={req.approvalLetter} onPreview={setPreview} />
-                    )}
+                    <StaffFile label="Final approval letter" file={req.approvalLetter} onPreview={setPreview} />
                   </CardContent>
                 </Card>
               )}
@@ -1070,99 +1062,32 @@ export default function RequestDetailPage({ id }: { id: string }) {
                 </CardContent>
               </Card>
 
-              <div className="grid gap-5 lg:grid-cols-2">
-                <Card className="rounded-xl border border-border/70 bg-transparent shadow-none ring-0">
-                  <CardHeader className="border-b border-border/70 pb-3">
-                    <div className="flex items-center justify-between">
-                      <CardTitle className="font-heading text-lg font-medium">Deposit</CardTitle>
-                      <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-semibold tracking-wide text-amber-900 uppercase dark:bg-amber-950/40 dark:text-amber-300">
-                        <Lock className="size-2.5" /> Staff only
-                      </span>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="space-y-4 pt-5">
-                    {!req.deposit.required ? (
-                      <p className="text-sm text-muted-foreground">
-                        {req.decidedAt
-                          ? "This request does not require a deposit."
-                          : "Deposit requirement is recorded after approval."}
-                      </p>
-                    ) : (
-                      <dl className="space-y-3">
-                        <InfoRow label="Amount">
-                          <span className="font-mono text-lg font-bold">${req.deposit.amount?.toLocaleString()}</span>
-                        </InfoRow>
-                        <InfoRow label="Status">
-                          <DepositChip deposit={{ ...req.deposit, amount: undefined }} />
-                        </InfoRow>
-                        {req.deposit.receivedAt && (
-                          <InfoRow label="Received">{formatDateTime(req.deposit.receivedAt)}</InfoRow>
-                        )}
-                        {req.deposit.receipt && (
-                          <InfoRow label="Receipt">
-                            <button
-                              type="button"
-                              onClick={() => setPreview(req.deposit.receipt!)}
-                              className="inline-flex items-center gap-1.5 text-primary hover:underline dark:text-amber-300"
-                            >
-                              <ReceiptText className="size-3.5" />
-                              {req.deposit.receipt.name}
-                            </button>
-                          </InfoRow>
-                        )}
-                      </dl>
-                    )}
-                  </CardContent>
-                </Card>
-
-                <Card className="rounded-xl border border-border/70 bg-transparent shadow-none ring-0">
-                  <CardHeader className="border-b border-border/70 pb-3">
-                    <div className="flex items-center justify-between">
-                      <CardTitle className="font-heading text-lg font-medium">Refund Outcome</CardTitle>
-                      <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-semibold tracking-wide text-amber-900 uppercase dark:bg-amber-950/40 dark:text-amber-300">
-                        <Lock className="size-2.5" /> Staff only
-                      </span>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="space-y-4 pt-5">
-                    {!req.refund ? (
-                      <p className="text-sm text-muted-foreground">
-                        {req.deposit.status === "received" && req.status !== "withdrawn"
-                          ? "A refund outcome is only recorded if the request is withdrawn after a deposit is received."
-                          : "No refund applies to this request."}
-                      </p>
-                    ) : (
-                      <dl className="space-y-3">
-                        <InfoRow label="Outcome">
-                          <RefundChip refund={req.refund} />
-                        </InfoRow>
-                        {req.refund.outcome === "no_refund" && (
-                          <p className="rounded-lg border border-border bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
-                            <span className="font-semibold text-foreground">&ldquo;-&rdquo; means No Refund.</span> A refund is not applicable or not agreed.
-                          </p>
-                        )}
-                        <InfoRow label="Recorded by">{req.refund.recordedBy}</InfoRow>
-                        {req.refund.proof && (
-                          <InfoRow label="Proof">
-                            <button
-                              type="button"
-                              onClick={() => setPreview(req.refund!.proof!)}
-                              className="inline-flex items-center gap-1.5 text-primary hover:underline dark:text-amber-300"
-                            >
-                              <ReceiptText className="size-3.5" />
-                              {req.refund.proof.name}
-                            </button>
-                          </InfoRow>
-                        )}
-                        <InfoRow label={req.refund.outcome === "refunded" ? "Refund date" : "Recorded on"}>
-                          {formatDateTime(req.refund.date)}
-                        </InfoRow>
-                        <p className="text-[11px] text-muted-foreground">{REFUND_LABEL[req.refund.outcome]}</p>
-                      </dl>
-                    )}
-                  </CardContent>
-                </Card>
-              </div>
+              {(() => {
+                const current = currentSubmissionNumber(req);
+                const rounds = [
+                  ...earlierRounds.map((s) => ({ number: s.number, feedback: s.feedback })),
+                  ...(req.status === "changes_required" && req.feedback ? [{ number: current, feedback: req.feedback }] : []),
+                ].filter((r): r is { number: number; feedback: string } => !!r.feedback);
+                if (rounds.length === 0) return null;
+                return (
+                  <Card className="rounded-xl border border-border/70 bg-transparent shadow-none ring-0">
+                    <CardHeader className="border-b border-border/70 pb-3">
+                      <CardTitle className="font-heading text-lg font-medium">Feedback by submission round</CardTitle>
+                      <p className="text-xs text-muted-foreground">Your note sent to the resident each time changes were requested.</p>
+                    </CardHeader>
+                    <CardContent className="space-y-2.5 pt-4">
+                      {rounds
+                        .sort((a, b) => b.number - a.number)
+                        .map((r) => (
+                          <div key={r.number} className="rounded-lg border border-amber-300/70 bg-amber-50 px-3 py-2.5 text-xs dark:border-amber-800/70 dark:bg-amber-950/30">
+                            <p className="font-semibold text-amber-950 dark:text-amber-200">Round {r.number}</p>
+                            <p className="mt-1 whitespace-pre-line break-words [overflow-wrap:anywhere] text-amber-900/90 dark:text-amber-300/90">{r.feedback}</p>
+                          </div>
+                        ))}
+                    </CardContent>
+                  </Card>
+                );
+              })()}
 
               <Card className="rounded-xl border border-border/70 bg-transparent shadow-none ring-0">
                 <CardHeader className="border-b border-border/70 pb-3">
@@ -1195,6 +1120,115 @@ export default function RequestDetailPage({ id }: { id: string }) {
                         </div>
                       </div>
                     </div>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            {/* Deposit */}
+            <TabsContent value="deposit" className="space-y-5 pt-4">
+              {req.deposit.receipt && (
+                <Card className="rounded-xl border border-border/70 bg-transparent shadow-none ring-0">
+                  <CardHeader className="border-b border-border/70 pb-3">
+                    <CardTitle className="font-heading text-lg font-medium">Staff Documents</CardTitle>
+                    <p className="text-xs text-muted-foreground">Uploaded when the deposit was recorded.</p>
+                  </CardHeader>
+                  <CardContent className="space-y-2.5 pt-4">
+                    <StaffFile label="Deposit payment receipt" staffOnly file={req.deposit.receipt} onPreview={setPreview} />
+                  </CardContent>
+                </Card>
+              )}
+              <Card className="rounded-xl border border-border/70 bg-transparent shadow-none ring-0">
+                <CardHeader className="border-b border-border/70 pb-3">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="font-heading text-lg font-medium">Deposit</CardTitle>
+                    <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-semibold tracking-wide text-amber-900 uppercase dark:bg-amber-950/40 dark:text-amber-300">
+                      <Lock className="size-2.5" /> Staff only
+                    </span>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-4 pt-5">
+                  {!req.deposit.required ? (
+                    <p className="text-sm text-muted-foreground">
+                      {req.decidedAt
+                        ? "This request does not require a deposit."
+                        : "Deposit requirement is recorded after approval."}
+                    </p>
+                  ) : (
+                    <dl className="space-y-3">
+                      <InfoRow label="Amount">
+                        <span className="font-mono text-lg font-bold">${req.deposit.amount?.toLocaleString()}</span>
+                      </InfoRow>
+                      <InfoRow label="Status">
+                        <DepositChip deposit={{ ...req.deposit, amount: undefined }} />
+                      </InfoRow>
+                      {req.deposit.receivedAt && (
+                        <InfoRow label="Received">{formatDateTime(req.deposit.receivedAt)}</InfoRow>
+                      )}
+                      {req.deposit.receipt && (
+                        <InfoRow label="Receipt">
+                          <button
+                            type="button"
+                            onClick={() => setPreview(req.deposit.receipt!)}
+                            className="inline-flex items-center gap-1.5 text-primary hover:underline dark:text-amber-300"
+                          >
+                            <ReceiptText className="size-3.5" />
+                            {req.deposit.receipt.name}
+                          </button>
+                        </InfoRow>
+                      )}
+                    </dl>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            {/* Refund */}
+            <TabsContent value="refund" className="space-y-5 pt-4">
+              <Card className="rounded-xl border border-border/70 bg-transparent shadow-none ring-0">
+                <CardHeader className="border-b border-border/70 pb-3">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="font-heading text-lg font-medium">Refund Outcome</CardTitle>
+                    <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-semibold tracking-wide text-amber-900 uppercase dark:bg-amber-950/40 dark:text-amber-300">
+                      <Lock className="size-2.5" /> Staff only
+                    </span>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-4 pt-5">
+                  {!req.refund ? (
+                    <p className="text-sm text-muted-foreground">
+                      {req.deposit.status === "received" && req.status !== "withdrawn"
+                        ? "A refund outcome is only recorded if the request is withdrawn after a deposit is received."
+                        : "No refund applies to this request."}
+                    </p>
+                  ) : (
+                    <dl className="space-y-3">
+                      <InfoRow label="Outcome">
+                        <RefundChip refund={req.refund} />
+                      </InfoRow>
+                      {req.refund.outcome === "no_refund" && (
+                        <p className="rounded-lg border border-border bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
+                          <span className="font-semibold text-foreground">&ldquo;-&rdquo; means No Refund.</span> A refund is not applicable or not agreed.
+                        </p>
+                      )}
+                      <InfoRow label="Recorded by">{req.refund.recordedBy}</InfoRow>
+                      {req.refund.proof && (
+                        <InfoRow label="Proof">
+                          <button
+                            type="button"
+                            onClick={() => setPreview(req.refund!.proof!)}
+                            className="inline-flex items-center gap-1.5 text-primary hover:underline dark:text-amber-300"
+                          >
+                            <ReceiptText className="size-3.5" />
+                            {req.refund.proof.name}
+                          </button>
+                        </InfoRow>
+                      )}
+                      <InfoRow label={req.refund.outcome === "refunded" ? "Refund date" : "Recorded on"}>
+                        {formatDateTime(req.refund.date)}
+                      </InfoRow>
+                      <p className="text-[11px] text-muted-foreground">{REFUND_LABEL[req.refund.outcome]}</p>
+                    </dl>
                   )}
                 </CardContent>
               </Card>
@@ -1260,9 +1294,10 @@ export default function RequestDetailPage({ id }: { id: string }) {
                 type="button"
                 className="bg-amber-600 hover:bg-amber-700 text-white dark:bg-amber-600 dark:hover:bg-amber-700"
                 onClick={() => setRevisionOpen(true)}
-                disabled={isProcessingDecision}
+                disabled={isProcessingDecision || isAssessingField}
+                title={isAssessingField ? "Wait for the flagged item to finish saving." : undefined}
               >
-                {isProcessingDecision ? <Spinner className="size-4 mr-1.5" /> : <FileEdit className="size-4 mr-1.5" />}
+                {isProcessingDecision || isAssessingField ? <Spinner className="size-4 mr-1.5" /> : <FileEdit className="size-4 mr-1.5" />}
                 Request Revision ({flaggedCount})
               </Button>
             ) : (
