@@ -29,7 +29,7 @@ export const navGroups: NavGroup[] = [
     label: "My work",
     items: [
       { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-      { href: "/my-requests", label: "My Assigned Requests", icon: ListChecks, badge: "mine" },
+      { href: "/my-requests", label: "Assigned Requests", icon: ListChecks, badge: "mine" },
       { href: "/forms", label: "Form Updates", icon: FileDiff },
     ],
   },
