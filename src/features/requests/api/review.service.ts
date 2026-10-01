@@ -84,16 +84,19 @@ export async function requestRevision({
   expectedAssignmentVersion,
   expectedWorkflowVersion,
   expectedReviewVersion,
+  feedback,
 }: {
   requestId: string;
   expectedAssignmentVersion: number;
   expectedWorkflowVersion: number;
   expectedReviewVersion: number;
+  feedback?: string;
 }): Promise<RequestRecord> {
   const { data } = await axiosInstance.post(`/reviewer/requests/${requestId}/request-revision`, {
     expectedAssignmentVersion,
     expectedWorkflowVersion,
     expectedReviewVersion,
+    ...(feedback?.trim() ? { feedback: feedback.trim() } : {}),
   });
   const req = data?.data?.request ?? data?.request ?? data?.data;
   return toReviewerRequestRecord(req);

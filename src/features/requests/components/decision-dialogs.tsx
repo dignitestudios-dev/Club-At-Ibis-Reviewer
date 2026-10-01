@@ -108,10 +108,20 @@ export function RequestRevisionDialog({
   request: RequestRecord;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onConfirm: () => Promise<void> | void;
+  onConfirm: (feedback: string) => Promise<void> | void;
   isPending?: boolean;
 }) {
+  const [feedback, setFeedback] = useState("");
+  const [error, setError] = useState<string | null>(null);
   const isSubmittingRef = useRef(false);
+
+  useEffect(() => {
+    if (open) {
+      setFeedback("");
+      setError(null);
+      isSubmittingRef.current = false;
+    }
+  }, [open]);
 
   const flaggedItems = useMemo(() => {
     if (request.review?.items && request.review.items.length > 0) {
@@ -163,11 +173,19 @@ export function RequestRevisionDialog({
     return [...fieldFlags, ...fileFlags];
   }, [request]);
 
-  async function handleConfirm() {
+  async function handleSubmit(e?: React.FormEvent) {
+    if (e) e.preventDefault();
     if (isSubmittingRef.current || isPending) return;
+
+    const trimmed = feedback.trim();
+    if (!trimmed) {
+      setError("Please provide instructions or feedback for the requested revision.");
+      return;
+    }
+
     isSubmittingRef.current = true;
     try {
-      await onConfirm();
+      await onConfirm(trimmed);
       onOpenChange(false);
     } finally {
       isSubmittingRef.current = false;
@@ -177,56 +195,84 @@ export function RequestRevisionDialog({
   return (
     <Dialog open={open} onOpenChange={(o) => !isPending && onOpenChange(o)}>
       <DialogContent className="sm:max-w-lg w-full max-w-[calc(100vw-2rem)]">
-        <DialogHeader>
-          <div className="mb-1 flex size-10 items-center justify-center rounded-xl border border-amber-300/80 bg-amber-50 text-amber-700 dark:border-amber-800 dark:bg-amber-950/50 dark:text-amber-300">
-            <FileEdit className="size-5" aria-hidden="true" />
-          </div>
-          <DialogTitle className="font-heading text-xl font-medium">Request Corrections</DialogTitle>
-          <DialogDescription className="break-words">
-            The resident will be asked to update{" "}
-            <span className="font-semibold text-foreground">
-              {flaggedItems.length} flagged item{flaggedItems.length === 1 ? "" : "s"}
-            </span>{" "}
-            for <span className="font-mono font-semibold text-foreground">{request.code}</span>.
-          </DialogDescription>
-        </DialogHeader>
-
-        <div className="space-y-3 max-h-60 overflow-y-auto pr-1">
-          <p className="text-xs font-semibold tracking-wider text-muted-foreground uppercase">
-            Correction Items Summary
-          </p>
-          {flaggedItems.map((item) => (
-            <div
-              key={item.id}
-              className="rounded-lg border border-amber-200/80 bg-amber-50/50 p-3 text-xs dark:border-amber-900/60 dark:bg-amber-950/20"
-            >
-              <p className="font-semibold text-foreground">{item.label}</p>
-              <p className="mt-1 text-muted-foreground whitespace-pre-wrap">
-                {item.reason || "Please review and update this item."}
-              </p>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <DialogHeader>
+            <div className="mb-1 flex size-10 items-center justify-center rounded-xl border border-amber-300/80 bg-amber-50 text-amber-700 dark:border-amber-800 dark:bg-amber-950/50 dark:text-amber-300">
+              <FileEdit className="size-5" aria-hidden="true" />
             </div>
-          ))}
-        </div>
+            <DialogTitle className="font-heading text-xl font-medium">Request Corrections</DialogTitle>
+            <DialogDescription className="break-words">
+              The resident will be asked to update{" "}
+              <span className="font-semibold text-foreground">
+                {flaggedItems.length} flagged item{flaggedItems.length === 1 ? "" : "s"}
+              </span>{" "}
+              for <span className="font-mono font-semibold text-foreground">{request.code}</span>.
+            </DialogDescription>
+          </DialogHeader>
 
-        <DialogFooter className="gap-2 sm:gap-0">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => onOpenChange(false)}
-            disabled={isPending}
-          >
-            Cancel
-          </Button>
-          <Button
-            type="button"
-            className="bg-amber-600 hover:bg-amber-700 text-white dark:bg-amber-600 dark:hover:bg-amber-700"
-            onClick={handleConfirm}
-            disabled={isPending || flaggedItems.length === 0}
-          >
-            {isPending ? <Spinner className="size-4 mr-2" /> : <FileEdit className="size-4 mr-2" />}
-            Send Revision Request
-          </Button>
-        </DialogFooter>
+          <div className="space-y-2">
+            <label
+              htmlFor="revision-feedback-input"
+              className="text-xs font-semibold tracking-wider text-muted-foreground uppercase"
+            >
+              Revision Feedback &amp; Instructions <span className="text-destructive">*</span>
+            </label>
+            <Textarea
+              id="revision-feedback-input"
+              value={feedback}
+              onChange={(e) => {
+                setFeedback(e.target.value);
+                if (error) setError(null);
+              }}
+              placeholder="Your request needs changes. See each flagged item for details."
+              rows={3}
+              maxLength={2000}
+              disabled={isPending}
+              className="resize-none"
+              autoFocus
+            />
+            <div className="flex justify-between text-[11px] text-muted-foreground">
+              {error ? <span className="font-medium text-destructive">{error}</span> : <span />}
+              <span>{feedback.length}/2000</span>
+            </div>
+          </div>
+
+          <div className="space-y-2.5 max-h-48 overflow-y-auto pr-1">
+            <p className="text-xs font-semibold tracking-wider text-muted-foreground uppercase">
+              Flagged Items to Correct ({flaggedItems.length})
+            </p>
+            {flaggedItems.map((item) => (
+              <div
+                key={item.id}
+                className="rounded-lg border border-amber-200/80 bg-amber-50/50 p-2.5 text-xs dark:border-amber-900/60 dark:bg-amber-950/20"
+              >
+                <p className="font-semibold text-foreground">{item.label}</p>
+                <p className="mt-1 text-muted-foreground whitespace-pre-wrap">
+                  {item.reason || "Please review and update this item."}
+                </p>
+              </div>
+            ))}
+          </div>
+
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+              disabled={isPending}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              className="bg-amber-600 hover:bg-amber-700 text-white dark:bg-amber-600 dark:hover:bg-amber-700"
+              disabled={isPending || flaggedItems.length === 0 || !feedback.trim()}
+            >
+              {isPending ? <Spinner className="size-4 mr-2" /> : <FileEdit className="size-4 mr-2" />}
+              Send Revision Request
+            </Button>
+          </DialogFooter>
+        </form>
       </DialogContent>
     </Dialog>
   );

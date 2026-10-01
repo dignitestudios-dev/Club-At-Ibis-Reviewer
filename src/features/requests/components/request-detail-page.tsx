@@ -389,7 +389,7 @@ export default function RequestDetailPage({ id }: { id: string }) {
     }
   }
 
-  async function handleRequestRevision() {
+  async function handleRequestRevision(feedback: string) {
     if (!req) return;
     setIsProcessingDecision(true);
     try {
@@ -417,6 +417,7 @@ export default function RequestDetailPage({ id }: { id: string }) {
         expectedAssignmentVersion: req.assignmentVersion ?? 0,
         expectedWorkflowVersion: req.workflowVersion ?? 1,
         expectedReviewVersion: currentReviewVersion,
+        feedback,
       });
       toast.success("Revision requested", `Resident notified to submit corrections for ${req.code}.`);
       setRevisionOpen(false);
@@ -1038,6 +1039,11 @@ export default function RequestDetailPage({ id }: { id: string }) {
                               <span className="text-muted-foreground">{it.reason}</span>
                             </div>
                           ))}
+                          {req.feedback && (
+                            <p className="mt-2 text-xs text-amber-950 dark:text-amber-200 font-medium break-words [overflow-wrap:anywhere] whitespace-pre-wrap">
+                              <span className="font-semibold">Reviewer Instructions: </span>{req.feedback}
+                            </p>
+                          )}
                         </div>
                       ) : (
                         <p className="mt-1.5 text-sm text-amber-900/90 dark:text-amber-300/90 break-words [overflow-wrap:anywhere] whitespace-pre-wrap">
