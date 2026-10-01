@@ -5,9 +5,8 @@ import { usePathname } from "next/navigation";
 import { ClipboardCheck, Crown } from "lucide-react";
 import { Logo } from "@/components/shared/logo";
 import { navGroupsFor, type NavItem } from "@/components/shared/nav-items";
-import { useNotifications, useRequests } from "@/hooks/use-reviewer-data";
+import { useIncomingRequestsPage, useNotifications, useRequestsPage } from "@/hooks/use-reviewer-data";
 import { useMe } from "@/hooks/use-current-user";
-import { attentionFor, isIncoming } from "@/lib/domain";
 import { cn } from "@/utils/cn";
 
 function findActiveHref(pathname: string, items: NavItem[]): string | null {
@@ -25,15 +24,26 @@ export function AppSidebar({ onNavigate }: { onNavigate?: () => void }) {
   const allItems = navGroups.flatMap((g) => g.items);
   const activeHref = findActiveHref(pathname, allItems);
 
-  const { data: requests } = useRequests();
+  // Each bucket's count comes straight from its own filtered query's
+  // `pagination.total` — not `.length` of one capped, unfiltered
+  // `useRequests()` fetch — so the sidebar badge always matches what that
+  // bucket's own list page actually shows. `limit: 1` keeps these
+  // background requests cheap.
+  const { data: toStartPage } = useRequestsPage({ status: "submitted", assignedReviewerId: me?.id, limit: 1 }, { enabled: !!me });
+  const { data: resubmittedPage } = useRequestsPage({ status: "resubmitted", assignedReviewerId: me?.id, limit: 1 }, { enabled: !!me });
+  const { data: toCompletePage } = useRequestsPage({ status: "approved", assignedReviewerId: me?.id, limit: 1 }, { enabled: !!me });
+  const { data: refundsPage } = useRequestsPage({ refundOutcome: "awaiting", assignedReviewerId: me?.id, limit: 1 }, { enabled: !!me });
+  const { data: incomingPage } = useIncomingRequestsPage({ limit: 1 });
   const { data: notifications } = useNotifications();
-  const attention = requests && me ? attentionFor(requests, me.id) : null;
+  const mineCount =
+    (toStartPage?.pagination?.total ?? 0) +
+    (resubmittedPage?.pagination?.total ?? 0) +
+    (toCompletePage?.pagination?.total ?? 0) +
+    (refundsPage?.pagination?.total ?? 0);
   const counts = {
     // Work that needs this reviewer to act right now.
-    mine: attention
-      ? attention.toStart.length + attention.resubmitted.length + attention.toComplete.length + attention.refunds.length
-      : 0,
-    incoming: requests ? requests.filter(isIncoming).length : 0,
+    mine: mineCount,
+    incoming: incomingPage?.pagination?.total ?? 0,
     notifications: notifications?.filter((n) => !n.read).length ?? 0,
   };
 

@@ -15,7 +15,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { DefaultReviewersOnly } from "@/features/requests/components/incoming-page";
 import { AssignReviewerDialog } from "@/features/requests/components/assign-reviewer-dialog";
 import { RequestsTable } from "@/features/requests/components/requests-table";
-import { useRequests, useRequestsPage, useReviewers } from "@/hooks/use-reviewer-data";
+import { useRequestsPage, useReviewers } from "@/hooks/use-reviewer-data";
 import { useMe } from "@/hooks/use-current-user";
 import { usePageSize } from "@/hooks/use-page-size";
 import { useToast } from "@/hooks/use-toast";
@@ -52,16 +52,28 @@ export default function OversightPage() {
     { enabled: isDefault }
   );
 
-  const { data: allRequests } = useRequests({ limit: 100 }, { enabled: isDefault });
+  // Active/History StatCards and tab badges come from the same paginated
+  // endpoint's `pagination.total` for each status bucket — not a separately
+  // fetched, 100-row-capped "all requests" list that silently undercounts
+  // once there are more than 100 requests system-wide.
+  const { data: activeTotalsPage } = useRequestsPage({ limit: 1, status: ACTIVE_STATUSES }, { enabled: isDefault });
+  const { data: historyTotalsPage } = useRequestsPage({ limit: 1, status: HISTORY_STATUSES }, { enabled: isDefault });
+  const { data: changesRequiredPage } = useRequestsPage({ limit: 1, status: "changes_required" }, { enabled: isDefault });
+  // "With a reviewer" = active requests that have moved past "submitted"
+  // (every later status implies an assignment already happened), so it's a
+  // plain status filter too — no need to fetch and scan raw request rows.
+  const { data: withReviewerPage } = useRequestsPage(
+    { limit: 1, status: "assigned,under_review,changes_required,resubmitted,approved" },
+    { enabled: isDefault }
+  );
   const { data: reviewers } = useReviewers(undefined, { enabled: isDefault });
 
   if (me && !isDefault) return <DefaultReviewersOnly />;
 
-  const all = allRequests ?? [];
-  const active = all.filter((r) => IN_FLIGHT.includes(r.status));
-  const history = all.filter((r) => !IN_FLIGHT.includes(r.status));
-  const waitingOnResident = active.filter((r) => r.status === "changes_required").length;
-  const withReviewers = active.filter((r) => r.assignedReviewerId).length;
+  const activeCount = activeTotalsPage?.pagination?.total ?? 0;
+  const historyCount = historyTotalsPage?.pagination?.total ?? 0;
+  const waitingOnResident = changesRequiredPage?.pagination?.total ?? 0;
+  const withReviewers = withReviewerPage?.pagination?.total ?? 0;
 
   const rows = pageData?.requests ?? [];
   const total = pageData?.pagination?.total ?? 0;
@@ -109,10 +121,10 @@ export default function OversightPage() {
       />
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <StatCard label="Active requests" value={active.length} icon={ListChecks} accent="navy" hint="Across all reviewers" />
+        <StatCard label="Active requests" value={activeCount} icon={ListChecks} accent="navy" hint="Across all reviewers" />
         <StatCard label="With a reviewer" value={withReviewers} icon={Eye} accent="blue" hint="Owned and moving" />
         <StatCard label="Waiting on residents" value={waitingOnResident} icon={Hourglass} accent="amber" hint="Changes required" />
-        <StatCard label="History" value={history.length} icon={History} accent="emerald" hint="Completed, rejected, withdrawn" />
+        <StatCard label="History" value={historyCount} icon={History} accent="emerald" hint="Completed, rejected, withdrawn" />
       </div>
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -121,8 +133,8 @@ export default function OversightPage() {
           value={tab}
           onChange={(v) => set({ tab: v, status: "all", page: "1" })}
           options={[
-            { value: "active", label: "Active Requests", icon: ListChecks, count: active.length },
-            { value: "history", label: "History", icon: History, count: history.length },
+            { value: "active", label: "Active Requests", icon: ListChecks, count: activeCount },
+            { value: "history", label: "History", icon: History, count: historyCount },
           ]}
         />
         <SearchInput value={search} onChange={setSearch} placeholder="Search reference, resident, property or reviewer…" className="sm:max-w-sm" />

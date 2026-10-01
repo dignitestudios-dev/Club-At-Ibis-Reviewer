@@ -12,7 +12,7 @@ import { SearchInput } from "@/components/shared/search-input";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { RequestsTable } from "@/features/requests/components/requests-table";
-import { useCategories, useRequests, useRequestsPage } from "@/hooks/use-reviewer-data";
+import { useCategories, useRequestsPage } from "@/hooks/use-reviewer-data";
 import { useMe } from "@/hooks/use-current-user";
 import { usePageSize } from "@/hooks/use-page-size";
 import { useToast } from "@/hooks/use-toast";
@@ -48,8 +48,16 @@ export default function MyRequestsPage() {
     { enabled: !me ? false : true }
   );
 
-  const { data: allMine } = useRequests(
-    isDefault ? { assignedReviewerId: me?.id } : undefined,
+  // Tab badge counts come from the same paginated endpoint that powers the
+  // table — `pagination.total` for each status bucket — not a separately
+  // fetched, differently-capped "all mine" list that can drift from what's
+  // actually shown once there are more requests than one page holds.
+  const { data: activeTotalsPage } = useRequestsPage(
+    { limit: 1, status: ACTIVE_STATUSES, assignedReviewerId: isDefault ? me?.id : undefined },
+    { enabled: !me ? false : true }
+  );
+  const { data: historyTotalsPage } = useRequestsPage(
+    { limit: 1, status: HISTORY_STATUSES, assignedReviewerId: isDefault ? me?.id : undefined },
     { enabled: !me ? false : true }
   );
   const { data: categories } = useCategories();
@@ -59,14 +67,9 @@ export default function MyRequestsPage() {
   const q = search.trim();
   const filtersOn = values.status !== "all" || values.category !== "all" || !!q;
 
-  const activeCount = useMemo(
-    () => (allMine ?? []).filter((r) => IN_FLIGHT.includes(r.status)).length,
-    [allMine]
-  );
-  const historyCount = useMemo(
-    () => (allMine ?? []).filter((r) => !IN_FLIGHT.includes(r.status)).length,
-    [allMine]
-  );
+  const activeCount = activeTotalsPage?.pagination?.total ?? 0;
+  const historyCount = historyTotalsPage?.pagination?.total ?? 0;
+  const totalMine = activeCount + historyCount;
 
   const categoryOptions = useMemo(
     () => [
@@ -144,11 +147,11 @@ export default function MyRequestsPage() {
       ) : rows.length === 0 ? (
         <EmptyState
           icon={filtersOn ? Filter : ListChecks}
-          title={filtersOn ? "No requests match" : (allMine ?? []).length === 0 ? "Nothing assigned to you yet" : tab === "active" ? "No active requests" : "No history yet"}
+          title={filtersOn ? "No requests match" : totalMine === 0 ? "Nothing assigned to you yet" : tab === "active" ? "No active requests" : "No history yet"}
           description={
             filtersOn
               ? "Try a different search or clear the filters."
-              : (allMine ?? []).length === 0
+              : totalMine === 0
                 ? "Requests assigned to you will appear here, and you'll be notified when one arrives."
                 : tab === "active" ? "Requests you are working on will appear here." : "Completed, rejected and withdrawn requests will appear here."
           }
