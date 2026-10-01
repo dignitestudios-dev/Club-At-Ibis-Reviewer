@@ -129,12 +129,12 @@ function FileReviewRow({
       </div>
 
       {isFlagged && review?.reason && !isEditing && (
-        <div className="mt-2.5 rounded-lg border border-amber-300/80 bg-amber-50/90 px-3.5 py-2.5 text-xs text-amber-950 dark:border-amber-800/80 dark:bg-amber-950/40 dark:text-amber-200 break-words [overflow-wrap:anywhere]">
+        <div className="mt-2.5 rounded-lg border border-amber-300/80 bg-amber-50/90 px-3.5 py-2.5 text-xs text-amber-950 dark:border-amber-800/80 dark:bg-amber-950/40 dark:text-amber-200 min-w-0 break-words [overflow-wrap:anywhere]">
           <p className="mb-1 flex items-center gap-1.5 font-semibold">
-            <Flag className="size-3.5 text-amber-700 dark:text-amber-400" />
+            <Flag className="size-3.5 text-amber-700 dark:text-amber-400 shrink-0" />
             Reviewer Correction Note:
           </p>
-          <p className="whitespace-pre-wrap">{review.reason}</p>
+          <p className="whitespace-pre-wrap break-words [overflow-wrap:anywhere] [word-break:break-word]">{review.reason}</p>
         </div>
       )}
 
@@ -377,12 +377,12 @@ export function ReviewItem({
       )}
 
       {isFlagged && state.reason && !isEditing && (
-        <div className="rounded-lg border border-amber-300/80 bg-amber-50/90 px-3.5 py-2.5 text-xs text-amber-950 dark:border-amber-800/80 dark:bg-amber-950/40 dark:text-amber-200 break-words [overflow-wrap:anywhere]">
+        <div className="rounded-lg border border-amber-300/80 bg-amber-50/90 px-3.5 py-2.5 text-xs text-amber-950 dark:border-amber-800/80 dark:bg-amber-950/40 dark:text-amber-200 min-w-0 break-words [overflow-wrap:anywhere]">
           <p className="font-semibold flex items-center gap-1.5 mb-1">
-            <Flag className="size-3.5 text-amber-700 dark:text-amber-400" />
+            <Flag className="size-3.5 text-amber-700 dark:text-amber-400 shrink-0" />
             Reviewer Correction Note:
           </p>
-          <p className="whitespace-pre-wrap">{state.reason}</p>
+          <p className="whitespace-pre-wrap break-words [overflow-wrap:anywhere] [word-break:break-word]">{state.reason}</p>
         </div>
       )}
 

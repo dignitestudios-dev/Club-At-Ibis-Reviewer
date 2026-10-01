@@ -45,26 +45,26 @@ export function ApproveRequestDialog({
 
   return (
     <Dialog open={open} onOpenChange={(o) => !isPending && onOpenChange(o)}>
-      <DialogContent className="sm:max-w-md w-full max-w-[calc(100vw-2rem)]">
-        <DialogHeader>
+      <DialogContent className="sm:max-w-md w-full max-w-[calc(100vw-2rem)] overflow-hidden">
+        <DialogHeader className="min-w-0">
           <div className="mb-1 flex size-10 items-center justify-center rounded-xl border border-emerald-300/80 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-300">
             <CheckCircle2 className="size-5" aria-hidden="true" />
           </div>
-          <DialogTitle className="font-heading text-xl font-medium">Approve Request</DialogTitle>
-          <DialogDescription className="break-words">
+          <DialogTitle className="font-heading text-xl font-medium break-words [overflow-wrap:anywhere]">Approve Request</DialogTitle>
+          <DialogDescription className="break-words [overflow-wrap:anywhere]">
             Are you sure you want to approve request{" "}
-            <span className="font-mono font-semibold text-foreground">{request.code}</span>?
+            <span className="font-mono font-semibold text-foreground break-all">{request.code}</span>?
           </DialogDescription>
         </DialogHeader>
 
         {flaggedCount > 0 ? (
-          <div className="rounded-xl border border-destructive/40 bg-destructive/10 p-3.5 text-xs text-destructive">
+          <div className="rounded-xl border border-destructive/40 bg-destructive/10 p-3.5 text-xs text-destructive min-w-0 break-words [overflow-wrap:anywhere]">
             <p className="font-medium">
               This request has {flaggedCount} flagged item{flaggedCount === 1 ? "" : "s"} requiring correction. Clear all flags or click &ldquo;Request Revision&rdquo; instead.
             </p>
           </div>
         ) : (
-          <div className="rounded-xl border border-emerald-200/80 bg-emerald-50/40 p-3.5 text-xs text-emerald-900 dark:border-emerald-900/60 dark:bg-emerald-950/20 dark:text-emerald-300">
+          <div className="rounded-xl border border-emerald-200/80 bg-emerald-50/40 p-3.5 text-xs text-emerald-900 dark:border-emerald-900/60 dark:bg-emerald-950/20 dark:text-emerald-300 min-w-0 break-words [overflow-wrap:anywhere]">
             <p className="font-medium">All form fields and submitted materials will be marked as accepted.</p>
             <p className="mt-1 text-muted-foreground">The resident will be notified that their request has been approved.</p>
           </div>
@@ -194,23 +194,23 @@ export function RequestRevisionDialog({
 
   return (
     <Dialog open={open} onOpenChange={(o) => !isPending && onOpenChange(o)}>
-      <DialogContent className="sm:max-w-lg w-full max-w-[calc(100vw-2rem)]">
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <DialogHeader>
+      <DialogContent className="sm:max-w-lg w-full max-w-[calc(100vw-2rem)] overflow-hidden">
+        <form onSubmit={handleSubmit} className="space-y-4 min-w-0">
+          <DialogHeader className="min-w-0">
             <div className="mb-1 flex size-10 items-center justify-center rounded-xl border border-amber-300/80 bg-amber-50 text-amber-700 dark:border-amber-800 dark:bg-amber-950/50 dark:text-amber-300">
               <FileEdit className="size-5" aria-hidden="true" />
             </div>
-            <DialogTitle className="font-heading text-xl font-medium">Request Corrections</DialogTitle>
-            <DialogDescription className="break-words">
+            <DialogTitle className="font-heading text-xl font-medium break-words [overflow-wrap:anywhere]">Request Corrections</DialogTitle>
+            <DialogDescription className="break-words [overflow-wrap:anywhere]">
               The resident will be asked to update{" "}
               <span className="font-semibold text-foreground">
                 {flaggedItems.length} flagged item{flaggedItems.length === 1 ? "" : "s"}
               </span>{" "}
-              for <span className="font-mono font-semibold text-foreground">{request.code}</span>.
+              for <span className="font-mono font-semibold text-foreground break-all">{request.code}</span>.
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-2">
+          <div className="space-y-2 min-w-0">
             <label
               htmlFor="revision-feedback-input"
               className="text-xs font-semibold tracking-wider text-muted-foreground uppercase"
@@ -228,26 +228,26 @@ export function RequestRevisionDialog({
               rows={3}
               maxLength={2000}
               disabled={isPending}
-              className="resize-none"
+              className="resize-none break-words [overflow-wrap:anywhere]"
               autoFocus
             />
             <div className="flex justify-between text-[11px] text-muted-foreground">
-              {error ? <span className="font-medium text-destructive">{error}</span> : <span />}
+              {error ? <span className="font-medium text-destructive break-words [overflow-wrap:anywhere]">{error}</span> : <span />}
               <span>{feedback.length}/2000</span>
             </div>
           </div>
 
-          <div className="space-y-2.5 max-h-48 overflow-y-auto pr-1">
+          <div className="space-y-2.5 max-h-48 overflow-y-auto pr-1 min-w-0">
             <p className="text-xs font-semibold tracking-wider text-muted-foreground uppercase">
               Flagged Items to Correct ({flaggedItems.length})
             </p>
             {flaggedItems.map((item) => (
               <div
                 key={item.id}
-                className="rounded-lg border border-amber-200/80 bg-amber-50/50 p-2.5 text-xs dark:border-amber-900/60 dark:bg-amber-950/20"
+                className="rounded-lg border border-amber-200/80 bg-amber-50/50 p-2.5 text-xs dark:border-amber-900/60 dark:bg-amber-950/20 min-w-0 break-words [overflow-wrap:anywhere]"
               >
-                <p className="font-semibold text-foreground">{item.label}</p>
-                <p className="mt-1 text-muted-foreground whitespace-pre-wrap">
+                <p className="font-semibold text-foreground break-words [overflow-wrap:anywhere]">{item.label}</p>
+                <p className="mt-1 text-muted-foreground whitespace-pre-wrap break-words [overflow-wrap:anywhere] [word-break:break-word]">
                   {item.reason || "Please review and update this item."}
                 </p>
               </div>
@@ -328,20 +328,20 @@ export function RejectRequestDialog({
 
   return (
     <Dialog open={open} onOpenChange={(o) => !isPending && onOpenChange(o)}>
-      <DialogContent className="sm:max-w-md w-full max-w-[calc(100vw-2rem)]">
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <DialogHeader>
+      <DialogContent className="sm:max-w-md w-full max-w-[calc(100vw-2rem)] overflow-hidden">
+        <form onSubmit={handleSubmit} className="space-y-4 min-w-0">
+          <DialogHeader className="min-w-0">
             <div className="mb-1 flex size-10 items-center justify-center rounded-xl border border-rose-300/80 bg-rose-50 text-rose-700 dark:border-rose-800 dark:bg-rose-950/50 dark:text-rose-300">
               <XCircle className="size-5" aria-hidden="true" />
             </div>
-            <DialogTitle className="font-heading text-xl font-medium">Reject Request</DialogTitle>
-            <DialogDescription className="break-words">
-              Rejecting request <span className="font-mono font-semibold text-foreground">{request.code}</span>{" "}
+            <DialogTitle className="font-heading text-xl font-medium break-words [overflow-wrap:anywhere]">Reject Request</DialogTitle>
+            <DialogDescription className="break-words [overflow-wrap:anywhere]">
+              Rejecting request <span className="font-mono font-semibold text-foreground break-all">{request.code}</span>{" "}
               will permanently close the review and notify the resident.
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-2">
+          <div className="space-y-2 min-w-0">
             <label htmlFor="rejection-reason-input" className="text-xs font-semibold tracking-wider text-muted-foreground uppercase">
               Rejection Reason <span className="text-destructive">*</span>
             </label>
@@ -356,11 +356,11 @@ export function RejectRequestDialog({
               rows={4}
               maxLength={2000}
               disabled={isPending}
-              className="resize-none"
+              className="resize-none break-words [overflow-wrap:anywhere]"
               autoFocus
             />
             <div className="flex justify-between text-[11px] text-muted-foreground">
-              {error ? <span className="font-medium text-destructive">{error}</span> : <span />}
+              {error ? <span className="font-medium text-destructive break-words [overflow-wrap:anywhere]">{error}</span> : <span />}
               <span>{reason.length}/2000</span>
             </div>
           </div>

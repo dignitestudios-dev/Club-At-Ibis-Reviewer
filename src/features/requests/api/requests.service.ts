@@ -414,16 +414,25 @@ export async function getReviewers(params?: {
   const { data } = await axiosInstance.get(url);
   const list = data?.data?.reviewers ?? data?.reviewers ?? [];
 
-  return list.map((r: any) => ({
-    id: r.id || r._id,
-    name: r.name || `${r.firstName || ""} ${r.lastName || ""}`.trim() || "Reviewer",
-    email: r.email || "",
-    employeeNumber: r.employeeNumber || "",
-    designation: r.designation || undefined,
-    receiveNewRequests: r.isDefaultReviewer ?? r.receiveNewRequests ?? false,
-    inviteStatus: "active" as const,
-    loginEnabled: true,
-    activeRequestsCount: r.activeRequestsCount,
-    createdAt: r.createdAt || new Date().toISOString(),
-  }));
+  return list.map((r: any) => {
+    const firstName = (r.firstName || "").trim();
+    const lastName = (r.lastName || "").trim();
+    // A reviewer invited without a last name has it stored as a copy of the
+    // first name (the backend requires lastName non-empty on create), so
+    // skip it here too rather than showing "Riley Riley".
+    const hasDistinctLastName = !!lastName && lastName.toLowerCase() !== firstName.toLowerCase();
+    const builtName = hasDistinctLastName ? `${firstName} ${lastName}`.trim() : firstName;
+    return {
+      id: r.id || r._id,
+      name: r.name || builtName || "Reviewer",
+      email: r.email || "",
+      employeeNumber: r.employeeNumber || "",
+      designation: r.designation || undefined,
+      receiveNewRequests: r.isDefaultReviewer ?? r.receiveNewRequests ?? false,
+      inviteStatus: "active" as const,
+      loginEnabled: true,
+      activeRequestsCount: r.activeRequestsCount,
+      createdAt: r.createdAt || new Date().toISOString(),
+    };
+  });
 }

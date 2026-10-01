@@ -16,9 +16,16 @@ interface ReviewerApiUser {
 }
 
 function toPublicReviewer(u: ReviewerApiUser): PublicReviewer {
+  const firstName = (u.firstName ?? "").trim();
+  const lastName = (u.lastName ?? "").trim();
+  // Admin lets inviting with a blank last name, but the backend requires a
+  // non-empty lastName on create, so it's stored as a copy of the first name
+  // in that case. Detect that synthetic duplicate so this reviewer's own
+  // name never renders as "Riley Riley".
+  const hasDistinctLastName = !!lastName && lastName.toLowerCase() !== firstName.toLowerCase();
   return {
     id: u._id,
-    name: `${u.firstName ?? ""} ${u.lastName ?? ""}`.trim(),
+    name: hasDistinctLastName ? `${firstName} ${lastName}`.trim() : firstName,
     employeeNumber: u.employeeNumber ?? "",
     designation: u.designation ?? "",
     email: u.email,
