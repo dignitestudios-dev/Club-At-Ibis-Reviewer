@@ -50,6 +50,7 @@ export const DEPOSIT_LABEL: Record<DepositStatus, string> = {
 
 export const REFUND_LABEL: Record<RefundOutcome, string> = {
   awaiting: "Awaiting refund action",
+  awaiting_refund_action: "Awaiting refund action",
   refunded: "Refunded",
   no_refund: "No Refund",
 };

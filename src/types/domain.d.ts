@@ -263,30 +263,60 @@ interface RequestRevision {
 }
 
 type DepositStatus = "not_required" | "pending" | "received";
-type RefundOutcome = "awaiting" | "refunded" | "no_refund";
+type RefundOutcome = "awaiting" | "awaiting_refund_action" | "refunded" | "no_refund";
+type EmailDeliveryStatus = "PENDING" | "PROCESSING" | "SENT" | "FAILED" | "CANCELED";
 
 interface DepositRecord {
   required: boolean;
-  amount?: number;
+  amount?: number | string | null;
+  amountMinor?: number | null;
   status: DepositStatus;
   /** True once the reviewer has answered "Deposit Required?" (either way). */
   confirmed?: boolean;
-  receipt?: AttachedFile;
-  receivedAt?: string;
+  receipt?: AttachedFile | null;
+  receivedAt?: string | null;
+}
+
+interface CompletionEmailRecord {
+  status: EmailDeliveryStatus;
+  attemptCount: number;
+  retryCycle: number;
+  sentAt?: string | null;
+  lastErrorCode?: string | null;
+  lastErrorMessage?: string | null;
+}
+
+interface RequestCompletion {
+  completedAt: string | null;
+  completedBy?: { id?: string; actorId?: string; name?: string; email?: string; displayName?: string } | null;
+  finalApprovalLetter?: AttachedFile | null;
+  email?: CompletionEmailRecord | null;
+}
+
+interface RequestWithdrawal {
+  withdrawnAt: string | null;
+  withdrawnBy?: { id?: string; actorId?: string; name?: string; role?: string; displayName?: string } | null;
+  withdrawnFrom?: RequestStatus | null;
+  residentContactAcknowledged?: boolean;
 }
 
 interface RefundRecord {
-  outcome: RefundOutcome;
+  outcome: RefundOutcome | null;
+  refundDate?: string | null;
+  displayValue?: string | null;
+  explanation?: string | null;
   /** Optional proof of refund / supporting document. */
-  proof?: AttachedFile;
-  recordedBy: string;
-  /** Not yet set for every outcome (e.g. a fresh "awaiting" record has no date until a reviewer acts) — never fabricate one for display. */
-  date?: string;
+  proof?: AttachedFile | null;
+  recordedBy?: string | null;
+  recordedAt?: string | null;
+  date?: string | null;
+  correctionReason?: string | null;
 }
 
 interface LetterEmailRecord {
-  status: "sent";
-  at: string;
+  status: "sent" | EmailDeliveryStatus;
+  at?: string;
+  sentAt?: string | null;
 }
 
 interface RequestResidentSnapshot {
@@ -325,6 +355,7 @@ interface RequestRecord {
   assignedReviewerId: string | null;
   assignmentVersion?: number;
   workflowVersion?: number;
+  mediaRevision?: number;
   activeReviewId?: string | null;
   review?: ActiveReviewRound | null;
   submissions?: SubmissionVersionRecord[];
@@ -359,9 +390,11 @@ interface RequestRecord {
   feedback?: string;
   rejectionReason?: string;
   deposit: DepositRecord;
-  refund?: RefundRecord;
-  approvalLetter?: AttachedFile;
-  letterEmail?: LetterEmailRecord;
+  completion?: RequestCompletion | null;
+  withdrawal?: RequestWithdrawal | null;
+  refund?: RefundRecord | null;
+  approvalLetter?: AttachedFile | null;
+  letterEmail?: LetterEmailRecord | null;
   history: HistoryEvent[];
 }
 

@@ -46,6 +46,14 @@ import {
   RejectRequestDialog,
   RequestRevisionDialog,
 } from "@/features/requests/components/decision-dialogs";
+import { DepositConfigCard } from "@/features/requests/components/deposit-config-card";
+import { UploadReceiptDialog } from "@/features/requests/components/upload-receipt-dialog";
+import { ApprovalLetterCard } from "@/features/requests/components/approval-letter-card";
+import { UploadLetterDialog } from "@/features/requests/components/upload-letter-dialog";
+import { CompleteRequestDialog } from "@/features/requests/components/complete-request-dialog";
+import { EmailStatusCard } from "@/features/requests/components/email-status-card";
+import { WithdrawRequestDialog } from "@/features/requests/components/withdraw-request-dialog";
+import { RefundOutcomeDialog } from "@/features/requests/components/refund-outcome-dialog";
 import {
   useApproveRequest,
   useAssessReviewItems,
@@ -148,6 +156,12 @@ export default function RequestDetailPage({ id }: { id: string }) {
   const [approveOpen, setApproveOpen] = useState(false);
   const [revisionOpen, setRevisionOpen] = useState(false);
   const [rejectOpen, setRejectOpen] = useState(false);
+  const [completeOpen, setCompleteOpen] = useState(false);
+  const [withdrawOpen, setWithdrawOpen] = useState(false);
+  const [refundDialogOpen, setRefundDialogOpen] = useState(false);
+  const [isCorrectingRefund, setIsCorrectingRefund] = useState(false);
+  const [uploadReceiptOpen, setUploadReceiptOpen] = useState(false);
+  const [uploadLetterOpen, setUploadLetterOpen] = useState(false);
   const [isProcessingDecision, setIsProcessingDecision] = useState(false);
   const [isAssessingField, setIsAssessingField] = useState(false);
 
@@ -218,13 +232,37 @@ export default function RequestDetailPage({ id }: { id: string }) {
   const earlierRounds = earlierSubmissions(req);
 
   const canOwnIncoming = isDefault && !req.assignedReviewerId && IN_FLIGHT.includes(req.status);
-  const refundAlert = needsRefundOutcome(req) || req.refund?.outcome === "awaiting";
+  const refundAlert = needsRefundOutcome(req) || req.refund?.outcome === "awaiting" || req.refund?.outcome === "awaiting_refund_action";
 
   const propAddress = req.property?.address || req.fieldValues?.propertyAddress || "—";
   const propLot = req.property?.lotNo || req.fieldValues?.lotNo || "—";
 
   const canStartReview = isOwner && req.status === "assigned";
   const canReview = isOwner && ["under_review", "resubmitted"].includes(req.status);
+
+  const WITHDRAWABLE_STATUSES: RequestStatus[] = [
+    "submitted",
+    "assigned",
+    "under_review",
+    "changes_required",
+    "resubmitted",
+    "approved",
+    "completed",
+  ];
+  const canWithdraw = isOwner && WITHDRAWABLE_STATUSES.includes(req.status);
+
+  const isApproved = req.status === "approved";
+  const hasLetter = !!(req.approvalLetter || req.completion?.finalApprovalLetter);
+  const depositIsConfigured =
+    req.deposit?.status === "not_required" ||
+    req.deposit?.required === false ||
+    (req.deposit?.required === true && req.deposit?.status === "received");
+
+  const canComplete = isOwner && isApproved && hasLetter && depositIsConfigured;
+  const needsRefundAction =
+    req.status === "withdrawn" &&
+    req.deposit?.status === "received" &&
+    (req.refund?.outcome === "awaiting" || req.refund?.outcome === "awaiting_refund_action" || !req.refund?.outcome);
 
   /* ------------------------------ handlers ----------------------------- */
 
@@ -469,51 +507,68 @@ export default function RequestDetailPage({ id }: { id: string }) {
           <ArrowLeft className="size-4" aria-hidden="true" />
           {backHref === "/my-requests" ? "My assigned requests" : "Request oversight"}
         </Link>
-        <div className="min-w-0 space-y-2">
-          <div className="flex flex-wrap items-center gap-3">
-            <h1 className="font-heading text-2xl font-medium text-foreground break-words [overflow-wrap:anywhere] sm:text-3xl">
-              {req.code}
-            </h1>
-            <StatusBadge status={req.status} />
-            {currentSubmissionNumber(req) > 1 && (
-              <span className="rounded-full bg-purple-100 px-2.5 py-0.5 text-[11px] font-bold tracking-wider text-purple-800 uppercase dark:bg-purple-950/60 dark:text-purple-300">
-                Submission #{currentSubmissionNumber(req)}
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div className="min-w-0 space-y-2">
+            <div className="flex flex-wrap items-center gap-3">
+              <h1 className="font-heading text-2xl font-medium text-foreground break-words [overflow-wrap:anywhere] sm:text-3xl">
+                {req.code}
+              </h1>
+              <StatusBadge status={req.status} />
+              {currentSubmissionNumber(req) > 1 && (
+                <span className="rounded-full bg-purple-100 px-2.5 py-0.5 text-[11px] font-bold tracking-wider text-purple-800 uppercase dark:bg-purple-950/60 dark:text-purple-300">
+                  Submission #{currentSubmissionNumber(req)}
+                </span>
+              )}
+              {earlierRounds.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setActiveTab("submissionHistory")}
+                  className="inline-flex items-center gap-1 rounded-full border border-border/80 bg-card px-2.5 py-0.5 text-[11px] font-semibold text-muted-foreground transition-colors hover:border-primary/40 hover:text-primary dark:hover:text-amber-300"
+                >
+                  <History className="size-3" aria-hidden="true" />
+                  {earlierRounds.length} earlier round{earlierRounds.length === 1 ? "" : "s"}
+                </button>
+              )}
+              {isOwner ? (
+                <span className="rounded-full bg-primary/10 px-2.5 py-0.5 text-[11px] font-bold tracking-wider text-primary uppercase dark:bg-primary/20 dark:text-amber-300">
+                  Assigned to you
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2.5 py-0.5 text-[11px] font-semibold text-muted-foreground">
+                  <Lock className="size-3" aria-hidden="true" /> Read-only
+                </span>
+              )}
+            </div>
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-sm text-muted-foreground">
+              <span className="min-w-0 max-w-full font-medium text-foreground break-words [overflow-wrap:anywhere]">
+                {req.categoryName}
               </span>
-            )}
-            {earlierRounds.length > 0 && (
-              <button
+              {category?.status === "archived" && (
+                <span className="rounded-full bg-slate-200 px-2 py-px text-[10px] font-bold tracking-wider text-slate-700 uppercase dark:bg-slate-700 dark:text-slate-200">
+                  Archived category
+                </span>
+              )}
+              <span aria-hidden="true">·</span>
+              <span className="min-w-0 max-w-full break-words [overflow-wrap:anywhere]">{propAddress}</span>
+              <span aria-hidden="true">·</span>
+              <span className="min-w-0 max-w-full break-words [overflow-wrap:anywhere]">{propLot}</span>
+            </div>
+          </div>
+
+          {canWithdraw && !canReview && !isApproved && (
+            <div className="shrink-0 pt-1">
+              <Button
                 type="button"
-                onClick={() => setActiveTab("submissionHistory")}
-                className="inline-flex items-center gap-1 rounded-full border border-border/80 bg-card px-2.5 py-0.5 text-[11px] font-semibold text-muted-foreground transition-colors hover:border-primary/40 hover:text-primary dark:hover:text-amber-300"
+                variant="outline"
+                size="sm"
+                className="text-rose-600 hover:bg-rose-50 hover:text-rose-700 dark:text-rose-400 dark:hover:bg-rose-950/40 text-xs"
+                onClick={() => setWithdrawOpen(true)}
               >
-                <History className="size-3" aria-hidden="true" />
-                {earlierRounds.length} earlier round{earlierRounds.length === 1 ? "" : "s"}
-              </button>
-            )}
-            {isOwner ? (
-              <span className="rounded-full bg-primary/10 px-2.5 py-0.5 text-[11px] font-bold tracking-wider text-primary uppercase dark:bg-primary/20 dark:text-amber-300">
-                Assigned to you
-              </span>
-            ) : (
-              <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2.5 py-0.5 text-[11px] font-semibold text-muted-foreground">
-                <Lock className="size-3" aria-hidden="true" /> Read-only
-              </span>
-            )}
-          </div>
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-sm text-muted-foreground">
-            <span className="min-w-0 max-w-full font-medium text-foreground break-words [overflow-wrap:anywhere]">
-              {req.categoryName}
-            </span>
-            {category?.status === "archived" && (
-              <span className="rounded-full bg-slate-200 px-2 py-px text-[10px] font-bold tracking-wider text-slate-700 uppercase dark:bg-slate-700 dark:text-slate-200">
-                Archived category
-              </span>
-            )}
-            <span aria-hidden="true">·</span>
-            <span className="min-w-0 max-w-full break-words [overflow-wrap:anywhere]">{propAddress}</span>
-            <span aria-hidden="true">·</span>
-            <span className="min-w-0 max-w-full break-words [overflow-wrap:anywhere]">{propLot}</span>
-          </div>
+                <Ban className="size-3.5 mr-1.5" />
+                Withdraw Request
+              </Button>
+            </div>
+          )}
         </div>
       </div>
 
@@ -655,22 +710,80 @@ export default function RequestDetailPage({ id }: { id: string }) {
           </div>
         </div>
       )}
-      {refundAlert && (
-        <div className="flex items-start gap-3 rounded-2xl border border-amber-300/80 bg-amber-50 p-4 dark:border-amber-900 dark:bg-amber-950/30">
-          <AlertTriangle className="mt-0.5 size-5 shrink-0 text-amber-600 dark:text-amber-400" aria-hidden="true" />
-          <div className="min-w-0 flex-1 text-sm">
-            <p className="font-semibold text-amber-950 dark:text-amber-200">
-              {needsRefundOutcome(req) ? "Refund outcome needed" : "Awaiting refund action"}
-            </p>
-            <p className="text-amber-900/80 dark:text-amber-300/80">
-              {needsRefundOutcome(req)
-                ? "The resident withdrew after a deposit was received. Refund happens outside the application."
-                : "The refund action is pending completion outside the application."}
-            </p>
+      {/* Approved Action Banner */}
+      {isApproved && isOwner && (
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-2xl border border-emerald-300/80 bg-emerald-50/50 p-4 dark:border-emerald-900/80 dark:bg-emerald-950/20">
+          <div className="flex items-start gap-3 text-sm">
+            <CheckCircle2 className="mt-0.5 size-5 shrink-0 text-emerald-600 dark:text-emerald-400" aria-hidden="true" />
+            <div className="min-w-0 flex-1">
+              <p className="font-semibold text-emerald-950 dark:text-emerald-200">
+                Approved Project · Finalization in Progress
+              </p>
+              <p className="text-xs text-emerald-900/80 dark:text-emerald-300/80 mt-0.5">
+                {canComplete
+                  ? "All completion prerequisites are fulfilled. You can now complete the request."
+                  : "Final approval letter and deposit requirements must be configured to complete this request."}
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            {canWithdraw && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="text-rose-600 hover:bg-rose-50 hover:text-rose-700 dark:text-rose-400 dark:hover:bg-rose-950/40 text-xs"
+                onClick={() => setWithdrawOpen(true)}
+              >
+                <Ban className="size-3.5 mr-1.5" />
+                Withdraw
+              </Button>
+            )}
+            <Button
+              type="button"
+              size="sm"
+              className="bg-emerald-600 hover:bg-emerald-700 text-white dark:bg-emerald-600 dark:hover:bg-emerald-700 text-xs"
+              onClick={() => setCompleteOpen(true)}
+            >
+              <CheckCircle2 className="size-3.5 mr-1.5" />
+              Complete Request
+            </Button>
           </div>
         </div>
       )}
-      {req.status === "withdrawn" && !refundAlert && (
+
+      {/* Refund Outcome Needed Banner */}
+      {needsRefundAction && (
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-2xl border border-amber-300/80 bg-amber-50 p-4 dark:border-amber-900 dark:bg-amber-950/30">
+          <div className="flex items-start gap-3 text-sm">
+            <AlertTriangle className="mt-0.5 size-5 shrink-0 text-amber-600 dark:text-amber-400" aria-hidden="true" />
+            <div className="min-w-0 flex-1">
+              <p className="font-semibold text-amber-950 dark:text-amber-200">
+                Refund Action Required
+              </p>
+              <p className="text-xs text-amber-900/80 dark:text-amber-300/80 mt-0.5">
+                The resident withdrew this application after a security deposit was collected. Please record the final refund outcome.
+              </p>
+            </div>
+          </div>
+          {isOwner && (
+            <Button
+              type="button"
+              size="sm"
+              className="bg-amber-600 hover:bg-amber-700 text-white dark:bg-amber-600 dark:hover:bg-amber-700 text-xs shrink-0"
+              onClick={() => {
+                setIsCorrectingRefund(false);
+                setRefundDialogOpen(true);
+              }}
+            >
+              <ReceiptText className="size-3.5 mr-1.5" />
+              Record Refund Outcome
+            </Button>
+          )}
+        </div>
+      )}
+
+      {req.status === "withdrawn" && !needsRefundAction && (
         <div className="flex items-start gap-3 rounded-2xl border border-slate-300/80 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-900/50">
           <Ban className="mt-0.5 size-5 shrink-0 text-slate-600 dark:text-slate-300" aria-hidden="true" />
           <div className="text-sm">
@@ -1007,17 +1120,12 @@ export default function RequestDetailPage({ id }: { id: string }) {
 
             {/* Decisions & deposit */}
             <TabsContent value="decisions" className="space-y-5 pt-4">
-              {req.approvalLetter && (
-                <Card className="rounded-xl border border-border/70 bg-transparent shadow-none ring-0">
-                  <CardHeader className="border-b border-border/70 pb-3">
-                    <CardTitle className="font-heading text-lg font-medium">Staff Documents</CardTitle>
-                    <p className="text-xs text-muted-foreground">Associated with final completion.</p>
-                  </CardHeader>
-                  <CardContent className="space-y-2.5 pt-4">
-                    <StaffFile label="Final approval letter" file={req.approvalLetter} onPreview={setPreview} />
-                  </CardContent>
-                </Card>
+              <ApprovalLetterCard request={req} isOwner={isOwner} onPreviewFile={setPreview} />
+
+              {req.status === "completed" && (
+                <EmailStatusCard request={req} isOwner={isOwner} />
               )}
+
               <Card className="rounded-xl border border-border/70 bg-transparent shadow-none ring-0">
                 <CardHeader className="border-b border-border/70 pb-3">
                   <div className="flex items-center justify-between gap-3">
@@ -1115,146 +1223,100 @@ export default function RequestDetailPage({ id }: { id: string }) {
                 );
               })()}
 
-              <Card className="rounded-xl border border-border/70 bg-transparent shadow-none ring-0">
-                <CardHeader className="border-b border-border/70 pb-3">
-                  <CardTitle className="font-heading text-lg font-medium">Approval Letter</CardTitle>
-                  <p className="text-xs text-muted-foreground">Final approval letter sent to the resident.</p>
-                </CardHeader>
-                <CardContent className="pt-5">
-                  {!req.approvalLetter ? (
-                    <p className="text-sm text-muted-foreground">No final approval letter has been uploaded yet.</p>
-                  ) : (
-                    <div className="grid gap-4 md:grid-cols-2">
-                      <div className="flex items-center gap-3 rounded-xl border border-border/80 bg-muted/30 px-3.5 py-3">
-                        <FileCheck2 className="size-5 text-teal-600 dark:text-teal-400" aria-hidden="true" />
-                        <div className="min-w-0 flex-1">
-                          <p className="truncate text-sm font-medium">{req.approvalLetter.name}</p>
-                          <p className="text-[11px] text-muted-foreground">{formatFileSize(req.approvalLetter.size)}</p>
-                        </div>
-                        <Button variant="outline" size="sm" onClick={() => setPreview(req.approvalLetter!)}>
-                          <Eye />
-                          View
-                        </Button>
-                      </div>
-                      <div className="flex items-center gap-3 rounded-xl border border-emerald-300/70 bg-emerald-50 px-3.5 py-3 text-sm dark:border-emerald-900/70 dark:bg-emerald-950/30">
-                        <Mail className="size-5 text-emerald-600 dark:text-emerald-400" aria-hidden="true" />
-                        <div>
-                          <p className="font-semibold">Emailed to resident</p>
-                          <p className="text-[11px] text-muted-foreground">
-                            {req.letterEmail ? formatDateTime(req.letterEmail.at) : "Sent on completion"}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
+              <DepositConfigCard request={req} isOwner={isOwner} onPreviewFile={setPreview} />
             </TabsContent>
 
             {/* Deposit */}
             <TabsContent value="deposit" className="space-y-5 pt-4">
-              {req.deposit.receipt && (
-                <Card className="rounded-xl border border-border/70 bg-transparent shadow-none ring-0">
-                  <CardHeader className="border-b border-border/70 pb-3">
-                    <CardTitle className="font-heading text-lg font-medium">Staff Documents</CardTitle>
-                    <p className="text-xs text-muted-foreground">Uploaded when the deposit was recorded.</p>
-                  </CardHeader>
-                  <CardContent className="space-y-2.5 pt-4">
-                    <StaffFile label="Deposit payment receipt" staffOnly file={req.deposit.receipt} onPreview={setPreview} />
-                  </CardContent>
-                </Card>
-              )}
-              <Card className="rounded-xl border border-border/70 bg-transparent shadow-none ring-0">
-                <CardHeader className="border-b border-border/70 pb-3">
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="font-heading text-lg font-medium">Deposit</CardTitle>
-                    <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-semibold tracking-wide text-amber-900 uppercase dark:bg-amber-950/40 dark:text-amber-300">
-                      <Lock className="size-2.5" /> Staff only
-                    </span>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-4 pt-5">
-                  {!req.deposit.required ? (
-                    <p className="text-sm text-muted-foreground">
-                      {req.decidedAt
-                        ? "This request does not require a deposit."
-                        : "Deposit requirement is recorded after approval."}
-                    </p>
-                  ) : (
-                    <dl className="space-y-3">
-                      <InfoRow label="Amount">
-                        <span className="font-mono text-lg font-bold">${req.deposit.amount?.toLocaleString()}</span>
-                      </InfoRow>
-                      <InfoRow label="Status">
-                        <DepositChip deposit={{ ...req.deposit, amount: undefined }} />
-                      </InfoRow>
-                      {req.deposit.receivedAt && (
-                        <InfoRow label="Received">{formatDateTime(req.deposit.receivedAt)}</InfoRow>
-                      )}
-                      {req.deposit.receipt && (
-                        <InfoRow label="Receipt">
-                          <button
-                            type="button"
-                            onClick={() => setPreview(req.deposit.receipt!)}
-                            className="inline-flex items-center gap-1.5 text-primary hover:underline dark:text-amber-300"
-                          >
-                            <ReceiptText className="size-3.5" />
-                            {req.deposit.receipt.name}
-                          </button>
-                        </InfoRow>
-                      )}
-                    </dl>
-                  )}
-                </CardContent>
-              </Card>
+              <DepositConfigCard request={req} isOwner={isOwner} onPreviewFile={setPreview} />
             </TabsContent>
 
             {/* Refund */}
             <TabsContent value="refund" className="space-y-5 pt-4">
               <Card className="rounded-xl border border-border/70 bg-transparent shadow-none ring-0">
                 <CardHeader className="border-b border-border/70 pb-3">
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="font-heading text-lg font-medium">Refund Outcome</CardTitle>
-                    <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-semibold tracking-wide text-amber-900 uppercase dark:bg-amber-950/40 dark:text-amber-300">
-                      <Lock className="size-2.5" /> Staff only
-                    </span>
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div>
+                      <CardTitle className="font-heading text-lg font-medium flex items-center gap-2">
+                        <ReceiptText className="size-5 text-amber-600 dark:text-amber-400" />
+                        Refund Outcome
+                      </CardTitle>
+                      <p className="text-xs text-muted-foreground">
+                        Staff disposition of security deposits for withdrawn applications.
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-semibold tracking-wide text-amber-900 uppercase dark:bg-amber-950/40 dark:text-amber-300">
+                        <Lock className="size-2.5" /> Staff only
+                      </span>
+                      {isOwner && req.status === "withdrawn" && req.deposit?.status === "received" && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setIsCorrectingRefund(!!req.refund?.outcome && req.refund.outcome !== "awaiting" && req.refund.outcome !== "awaiting_refund_action");
+                            setRefundDialogOpen(true);
+                          }}
+                          className="h-8 gap-1 text-xs"
+                        >
+                          <ReceiptText className="size-3.5" />
+                          {req.refund?.outcome && req.refund.outcome !== "awaiting" && req.refund.outcome !== "awaiting_refund_action"
+                            ? "Correct Outcome"
+                            : "Record Outcome"}
+                        </Button>
+                      )}
+                    </div>
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-4 pt-5">
-                  {!req.refund ? (
+                  {req.status !== "withdrawn" || req.deposit?.status !== "received" ? (
                     <p className="text-sm text-muted-foreground">
-                      {req.deposit.status === "received" && req.status !== "withdrawn"
-                        ? "A refund outcome is only recorded if the request is withdrawn after a deposit is received."
-                        : "No refund applies to this request."}
+                      {req.deposit.status === "received"
+                        ? "A refund outcome is only recorded if this application is withdrawn after a deposit is received."
+                        : "No deposit was collected for this request; refund outcome is not applicable."}
                     </p>
                   ) : (
-                    <dl className="space-y-3">
-                      <InfoRow label="Outcome">
-                        <RefundChip refund={req.refund} />
-                      </InfoRow>
-                      {req.refund.outcome === "no_refund" && (
-                        <p className="rounded-lg border border-border bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
-                          <span className="font-semibold text-foreground">&ldquo;-&rdquo; means No Refund.</span> A refund is not applicable or not agreed.
+                    <div className="space-y-4">
+                      <dl className="grid gap-3 sm:grid-cols-2 rounded-xl border border-border/80 bg-muted/20 p-4">
+                        <InfoRow label="Original Deposit">
+                          <span className="font-mono text-base font-bold text-foreground">
+                            ${Number(req.deposit.amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </span>
+                        </InfoRow>
+                        <InfoRow label="Refund Status">
+                          <RefundChip refund={req.refund} />
+                        </InfoRow>
+                        {req.refund?.outcome === "refunded" && (
+                          <InfoRow label="Disbursement Date">
+                            <span className="font-medium">
+                              {req.refund.refundDate || (req.refund.date ? formatDateTime(req.refund.date) : "—")}
+                            </span>
+                          </InfoRow>
+                        )}
+                        {req.refund?.recordedBy && (
+                          <InfoRow label="Recorded By">{req.refund.recordedBy}</InfoRow>
+                        )}
+                        {req.refund?.recordedAt && (
+                          <InfoRow label="Recorded On">{formatDateTime(req.refund.recordedAt)}</InfoRow>
+                        )}
+                      </dl>
+
+                      {req.refund?.outcome === "no_refund" && (
+                        <p className="rounded-xl border border-border bg-muted/40 p-3 text-xs text-muted-foreground">
+                          <span className="font-semibold text-foreground">&ldquo;-&rdquo; means No Refund.</span> The deposit was retained or non-refundable.
                         </p>
                       )}
-                      <InfoRow label="Recorded by">{req.refund.recordedBy}</InfoRow>
-                      {req.refund.proof && (
-                        <InfoRow label="Proof">
-                          <button
-                            type="button"
-                            onClick={() => setPreview(req.refund!.proof!)}
-                            className="inline-flex items-center gap-1.5 text-primary hover:underline dark:text-amber-300"
-                          >
-                            <ReceiptText className="size-3.5" />
-                            {req.refund.proof.name}
-                          </button>
-                        </InfoRow>
+
+                      {req.refund?.correctionReason && (
+                        <div className="rounded-xl border border-border/80 bg-muted/30 p-3 text-xs">
+                          <p className="font-semibold text-foreground">Correction Reason:</p>
+                          <p className="text-muted-foreground mt-0.5 break-words [overflow-wrap:anywhere]">
+                            {req.refund.correctionReason}
+                          </p>
+                        </div>
                       )}
-                      <InfoRow label={req.refund.outcome === "refunded" ? "Refund date" : "Recorded on"}>
-                        {formatDateTime(req.refund.date)}
-                      </InfoRow>
-                      <p className="text-[11px] text-muted-foreground">{REFUND_LABEL[req.refund.outcome]}</p>
-                    </dl>
+                    </div>
                   )}
                 </CardContent>
               </Card>
@@ -1305,6 +1367,18 @@ export default function RequestDetailPage({ id }: { id: string }) {
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-2">
+            {canWithdraw && (
+              <Button
+                type="button"
+                variant="outline"
+                className="text-rose-600 hover:bg-rose-50 hover:text-rose-700 dark:text-rose-400 dark:hover:bg-rose-950/40 text-xs"
+                onClick={() => setWithdrawOpen(true)}
+                disabled={isProcessingDecision}
+              >
+                <Ban className="size-4 mr-1.5" />
+                Withdraw
+              </Button>
+            )}
             <Button
               type="button"
               variant="outline"
@@ -1341,6 +1415,50 @@ export default function RequestDetailPage({ id }: { id: string }) {
         </div>
       )}
 
+      {/* Sticky Bottom Completion Action Bar for Approved State */}
+      {isApproved && isOwner && (
+        <div className="sticky bottom-4 z-20 mt-6 flex flex-col gap-3 rounded-2xl border border-emerald-300/80 bg-background/95 p-4 shadow-xl backdrop-blur-md sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-2.5">
+            <span className="flex size-8 items-center justify-center rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300">
+              <CheckCircle2 className="size-4" aria-hidden="true" />
+            </span>
+            <div>
+              <p className="text-sm font-semibold text-foreground">
+                {canComplete
+                  ? "Prerequisites Ready · Ready for Request Completion"
+                  : "Approved Application · Finalize letter & deposit"}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                {canComplete
+                  ? "Completion will release the approval letter and send the resident email."
+                  : `${!hasLetter ? "Final letter missing" : ""}${!hasLetter && !depositIsConfigured ? " · " : ""}${!depositIsConfigured ? "Deposit confirmation needed" : ""}`}
+              </p>
+            </div>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            {canWithdraw && (
+              <Button
+                type="button"
+                variant="outline"
+                className="text-rose-600 hover:bg-rose-50 hover:text-rose-700 dark:text-rose-400 dark:hover:bg-rose-950/40 text-xs"
+                onClick={() => setWithdrawOpen(true)}
+              >
+                <Ban className="size-4 mr-1.5" />
+                Withdraw Request
+              </Button>
+            )}
+            <Button
+              type="button"
+              className="bg-emerald-600 hover:bg-emerald-700 text-white dark:bg-emerald-600 dark:hover:bg-emerald-700"
+              onClick={() => setCompleteOpen(true)}
+            >
+              <CheckCircle2 className="size-4 mr-1.5" />
+              Complete Request
+            </Button>
+          </div>
+        </div>
+      )}
+
       {/* Dialogs */}
       <AssignReviewerDialog request={assigning} onOpenChange={(o) => !o && setAssigning(null)} />
       <FilePreviewDialog
@@ -1369,6 +1487,24 @@ export default function RequestDetailPage({ id }: { id: string }) {
         onOpenChange={setRejectOpen}
         onConfirm={handleReject}
         isPending={isProcessingDecision}
+      />
+      <CompleteRequestDialog
+        request={req}
+        open={completeOpen}
+        onOpenChange={setCompleteOpen}
+        onOpenDepositDialog={() => setActiveTab("deposit")}
+        onOpenLetterDialog={() => setActiveTab("decisions")}
+      />
+      <WithdrawRequestDialog
+        request={req}
+        open={withdrawOpen}
+        onOpenChange={setWithdrawOpen}
+      />
+      <RefundOutcomeDialog
+        request={req}
+        open={refundDialogOpen}
+        onOpenChange={setRefundDialogOpen}
+        isCorrecting={isCorrectingRefund}
       />
     </div>
   );

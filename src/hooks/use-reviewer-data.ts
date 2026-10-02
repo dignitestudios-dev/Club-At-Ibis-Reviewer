@@ -16,9 +16,16 @@ import {
   approveRequest,
   assessReviewItems,
   assignRequest,
+  completeProcessingFileUpload,
+  completeRequest,
+  createProcessingFileUploadIntent,
   rejectRequest,
   requestRevision,
+  retryCompletionEmail,
+  setDepositRequirement,
+  setRefundOutcome,
   startReview,
+  withdrawRequestAsReviewer,
 } from "@/features/requests/api/review.service";
 import {
   getNotifications,
@@ -140,6 +147,15 @@ export const useAssessReviewItems = () => useRequestMutation(assessReviewItems);
 export const useRequestRevision = () => useRequestMutation(requestRevision);
 export const useApproveRequest = () => useRequestMutation(approveRequest);
 export const useRejectRequest = () => useRequestMutation(rejectRequest);
+
+/* Sprint 3 Reviewer Mutations */
+export const useSetDepositRequirement = () => useRequestMutation(setDepositRequirement);
+export const useCreateUploadIntent = () => useRequestMutation(createProcessingFileUploadIntent);
+export const useCompleteUpload = () => useRequestMutation(completeProcessingFileUpload);
+export const useCompleteRequest = () => useRequestMutation(completeRequest);
+export const useRetryCompletionEmail = () => useRequestMutation(retryCompletionEmail);
+export const useWithdrawRequest = () => useRequestMutation(withdrawRequestAsReviewer);
+export const useSetRefundOutcome = () => useRequestMutation(setRefundOutcome);
 
 export function useMarkNotificationRead() {
   const qc = useQueryClient();
