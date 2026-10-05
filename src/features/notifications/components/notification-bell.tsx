@@ -7,19 +7,20 @@ import { Bell, BellOff } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import { NotificationIcon } from "@/features/notifications/components/notification-icon";
-import { useMarkAllNotificationsRead, useMarkNotificationRead, useNotifications } from "@/hooks/use-reviewer-data";
+import { useMarkAllNotificationsRead, useMarkNotificationRead, useNotifications, useUnreadNotificationCount } from "@/hooks/use-reviewer-data";
 import { formatRelative } from "@/utils/format";
 import { cn } from "@/utils/cn";
 
 export function NotificationBell() {
   const { data } = useNotifications();
+  const { data: unreadTotal } = useUnreadNotificationCount();
   const markRead = useMarkNotificationRead();
   const markAll = useMarkAllNotificationsRead();
   const router = useRouter();
   const [open, setOpen] = useState(false);
 
   const notifications = data ?? [];
-  const unread = notifications.filter((n) => !n.read).length;
+  const unread = unreadTotal ?? notifications.filter((n) => !n.read).length;
   const recent = notifications.slice(0, 6);
 
   return (

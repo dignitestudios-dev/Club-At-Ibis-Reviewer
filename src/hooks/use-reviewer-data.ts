@@ -22,6 +22,7 @@ import {
 } from "@/features/requests/api/review.service";
 import {
   getNotifications,
+  getUnreadNotificationCount,
   markAllNotificationsRead,
   markNotificationRead,
 } from "@/features/notifications/api/notifications.service";
@@ -110,6 +111,14 @@ export const useIncomingRequestsPage = (
     queryFn: () => getIncomingRequestsPage(params),
     enabled: options?.enabled ?? true,
     staleTime: 15 * 1000,
+  });
+export const useUnreadNotificationCount = (options?: { enabled?: boolean }) =>
+  useQuery({
+    queryKey: [...keys.notifications, "unread-count"] as const,
+    queryFn: getUnreadNotificationCount,
+    enabled: options?.enabled ?? true,
+    staleTime: 15 * 1000,
+    refetchInterval: 60 * 1000,
   });
 export const useNotifications = (options?: { enabled?: boolean }) =>
   useQuery({

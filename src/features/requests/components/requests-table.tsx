@@ -45,8 +45,8 @@ export function RequestsTable({
             <TableHead className="pl-4 w-[190px] min-w-[190px]">Request</TableHead>
             <TableHead className="max-w-[180px]">Resident</TableHead>
             <TableHead className="max-w-[190px]">Property</TableHead>
-            <TableHead className="max-w-[130px]">Status</TableHead>
-            <TableHead className="max-w-[150px]">Next step</TableHead>
+            <TableHead className="min-w-[160px]">Status</TableHead>
+            <TableHead className="min-w-[150px] max-w-[190px]">Next step</TableHead>
             {showReviewer && <TableHead className="max-w-[160px]">Reviewer</TableHead>}
             <TableHead className="max-w-[130px]">Submitted</TableHead>
             {renderActions && (
@@ -99,11 +99,11 @@ export function RequestsTable({
                 <TableCell className="max-w-[190px]">
                   <span className="block max-w-[190px] truncate text-sm text-muted-foreground" title={propAddress}>{propAddress}</span>
                 </TableCell>
-                <TableCell className="max-w-[130px]">
+                <TableCell className="min-w-[160px]">
                   <StatusBadge status={req.status} />
                 </TableCell>
-                <TableCell className="max-w-[150px]">
-                  <span className={cn("text-xs font-medium truncate block", TONE[step.tone])} title={step.label}>{step.label}</span>
+                <TableCell className="min-w-[150px] max-w-[190px]">
+                  <span className={cn("text-xs font-medium block line-clamp-2 break-words", TONE[step.tone])} title={step.label}>{step.label}</span>
                 </TableCell>
                 {showReviewer && (
                   <TableCell className="max-w-[160px]">

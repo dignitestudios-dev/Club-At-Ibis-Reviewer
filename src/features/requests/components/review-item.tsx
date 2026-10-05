@@ -1,9 +1,10 @@
 "use client";
 
+import { ExpandableText } from "@/components/shared/expandable-text";
 import { useState } from "react";
 import { Check, Edit2, Eye, FileImage, FileText, Flag, RefreshCw, Undo2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
 import type { PreviewableFile } from "@/components/shared/file-preview-dialog";
 import { formatDate, formatFileSize } from "@/utils/format";
@@ -78,7 +79,7 @@ function FileReviewRow({
     if (isSubmitting || !onSaveFlag) return;
     setIsSubmitting(true);
     try {
-      const finalReason = reason.trim() || "Please replace this document.";
+      const finalReason = reason.trimEnd() || "Please replace this document.";
       await onSaveFlag(file.id, finalReason);
       setIsEditing(false);
     } finally {
@@ -134,7 +135,7 @@ function FileReviewRow({
             <Flag className="size-3.5 text-amber-700 dark:text-amber-400 shrink-0" />
             Reviewer Correction Note:
           </p>
-          <p className="whitespace-pre-wrap break-words [overflow-wrap:anywhere] [word-break:break-word]">{review.reason}</p>
+          <p className="whitespace-pre-wrap break-words [overflow-wrap:anywhere] [word-break:break-word]"><ExpandableText text={review.reason} limit={140} /></p>
         </div>
       )}
 
@@ -148,12 +149,13 @@ function FileReviewRow({
               <span>Correction instructions (Optional)</span>
               <span className="text-[10px] font-normal text-muted-foreground">{reason.length}/1000</span>
             </label>
-            <Textarea
+            <Input
               id={`flag-reason-${file.id}`}
               value={reason}
               onChange={(e) => setReason(e.target.value)}
+              onBlur={() => setReason((prev) => prev.trimEnd())}
               onKeyDown={(e) => {
-                if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
+                if (e.key === "Enter") {
                   e.preventDefault();
                   handleSave();
                 } else if (e.key === "Escape") {
@@ -162,16 +164,15 @@ function FileReviewRow({
                 }
               }}
               placeholder="Optional: explain what's wrong with this document..."
-              rows={3}
               maxLength={1000}
               disabled={isSubmitting || isAssessing}
-              className="resize-none bg-background text-xs"
+              className="bg-background text-xs h-9"
               autoFocus
             />
           </div>
           <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
             <p className="text-[11px] text-muted-foreground">
-              Press <kbd className="rounded bg-muted px-1.5 py-0.5 font-mono text-[10px]">Ctrl+Enter</kbd> to save
+              Press <kbd className="rounded bg-muted px-1.5 py-0.5 font-mono text-[10px]">Enter</kbd> to save
             </p>
             <div className="flex items-center gap-2">
               <Button type="button" variant="outline" size="sm" className="h-7 text-xs" onClick={handleCancelEdit} disabled={isSubmitting || isAssessing}>
@@ -289,7 +290,7 @@ export function ReviewItem({
     if (isSubmitting || !onSaveFlag) return;
     setIsSubmitting(true);
     try {
-      const finalReason = reason.trim() || "Please review and update this field.";
+      const finalReason = reason.trimEnd() || "Please review and update this field.";
       await onSaveFlag(field.id, finalReason);
       setIsEditing(false);
     } finally {
@@ -382,7 +383,7 @@ export function ReviewItem({
             <Flag className="size-3.5 text-amber-700 dark:text-amber-400 shrink-0" />
             Reviewer Correction Note:
           </p>
-          <p className="whitespace-pre-wrap break-words [overflow-wrap:anywhere] [word-break:break-word]">{state.reason}</p>
+          <p className="whitespace-pre-wrap break-words [overflow-wrap:anywhere] [word-break:break-word]"><ExpandableText text={state.reason} limit={140} /></p>
         </div>
       )}
 
@@ -397,12 +398,13 @@ export function ReviewItem({
               <span>Correction instructions (Optional)</span>
               <span className="text-[10px] font-normal text-muted-foreground">{reason.length}/1000</span>
             </label>
-            <Textarea
+            <Input
               id={`flag-reason-${field.id}`}
               value={reason}
               onChange={(e) => setReason(e.target.value)}
+              onBlur={() => setReason((prev) => prev.trimEnd())}
               onKeyDown={(e) => {
-                if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
+                if (e.key === "Enter") {
                   e.preventDefault();
                   handleSave();
                 } else if (e.key === "Escape") {
@@ -411,16 +413,15 @@ export function ReviewItem({
                 }
               }}
               placeholder="Optional: explain what the resident needs to correct for this field..."
-              rows={3}
               maxLength={1000}
               disabled={isSubmitting || isAssessing}
-              className="resize-none bg-background text-xs"
+              className="bg-background text-xs h-9"
               autoFocus
             />
           </div>
           <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
             <p className="text-[11px] text-muted-foreground">
-              Press <kbd className="rounded bg-muted px-1.5 py-0.5 font-mono text-[10px]">Ctrl+Enter</kbd> to save
+              Press <kbd className="rounded bg-muted px-1.5 py-0.5 font-mono text-[10px]">Enter</kbd> to save
             </p>
             <div className="flex items-center gap-2">
               <Button
