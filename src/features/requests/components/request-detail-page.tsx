@@ -525,16 +525,6 @@ export default function RequestDetailPage({ id }: { id: string }) {
                   Submission #{currentSubmissionNumber(req)}
                 </span>
               )}
-              {earlierRounds.length > 0 && (
-                <button
-                  type="button"
-                  onClick={() => setActiveTab("submissionHistory")}
-                  className="inline-flex items-center gap-1 rounded-full border border-border/80 bg-card px-2.5 py-0.5 text-[11px] font-semibold text-muted-foreground transition-colors hover:border-primary/40 hover:text-primary dark:hover:text-amber-300"
-                >
-                  <History className="size-3" aria-hidden="true" />
-                  {earlierRounds.length} earlier round{earlierRounds.length === 1 ? "" : "s"}
-                </button>
-              )}
               {isOwner ? (
                 <span className="rounded-full bg-primary/10 px-2.5 py-0.5 text-[11px] font-bold tracking-wider text-primary uppercase dark:bg-primary/20 dark:text-amber-300">
                   Assigned to you
