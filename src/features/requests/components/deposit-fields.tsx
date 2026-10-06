@@ -28,11 +28,26 @@ export function isDepositSatisfied(deposit?: { required?: boolean | null; confir
   return deposit!.required === false || deposit!.status === "received";
 }
 
+/** "$250.00", or null when no amount was set (it is optional). */
+export function formatDepositAmount(amount?: number | string | null): string | null {
+  if (amount === null || amount === undefined || amount === "") return null;
+  const n = Number(amount);
+  if (Number.isNaN(n)) return null;
+  return `$${n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
+
+/** The PATCH /deposit body fields: `amount` is only sent when a deposit is required AND an amount was entered. */
+export function depositPayload(value: DepositValue): { depositRequired: boolean; amount?: string } {
+  const amount = value.amount.trim();
+  return value.required ? { depositRequired: true, ...(amount ? { amount } : {}) } : { depositRequired: false };
+}
+
 /** Returns an error message, or null when the value can be sent to the backend as-is. */
 export function validateDeposit(value: DepositValue): string | null {
   if (!value.required) return null;
   const trimmed = value.amount.trim();
-  if (!trimmed) return "Enter the deposit amount.";
+  // The amount is optional; only check it when one was entered.
+  if (!trimmed) return null;
   const num = Number(trimmed);
   if (Number.isNaN(num) || num <= 0) return "Enter a valid amount greater than $0.";
   if (!/^\d+(\.\d{1,2})?$/.test(trimmed)) return "Amount can have at most 2 decimal places.";
@@ -82,7 +97,7 @@ export function DepositFields({
       {value.required && (
         <div className="max-w-xs space-y-1.5">
           <Label htmlFor={amountId} className="text-sm font-medium">
-            Deposit amount (USD) <span className="text-destructive">*</span>
+            Deposit amount (USD) <span className="font-normal text-muted-foreground">(optional)</span>
           </Label>
           <div className="relative">
             <span className="absolute top-2.5 left-3 text-sm text-muted-foreground">$</span>

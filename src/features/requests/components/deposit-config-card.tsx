@@ -12,7 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
 import { useSetDepositRequirement, keys } from "@/hooks/use-reviewer-data";
 import { DepositChip } from "./request-chips";
-import { isDepositConfigured } from "./deposit-fields";
+import { formatDepositAmount, isDepositConfigured } from "./deposit-fields";
 
 import { formatDateTime } from "@/utils/format";
 import { UploadReceiptDialog } from "./upload-receipt-dialog";
@@ -60,8 +60,8 @@ export function DepositConfigCard({ request, isOwner, onPreviewFile, readOnly = 
     }
     const trimmed = val.trim();
     if (!trimmed) {
-      setAmountError("Deposit amount is required.");
-      return false;
+      setAmountError(null);
+      return true;
     }
     const num = Number(trimmed);
     if (isNaN(num) || num <= 0) {
@@ -85,7 +85,7 @@ export function DepositConfigCard({ request, isOwner, onPreviewFile, readOnly = 
         expectedAssignmentVersion: request.assignmentVersion ?? 0,
         expectedWorkflowVersion: request.workflowVersion ?? 1,
         depositRequired,
-        amount: depositRequired ? amount.trim() : undefined,
+        amount: depositRequired && amount.trim() ? amount.trim() : undefined,
       });
 
       toast.success(
@@ -261,7 +261,7 @@ export function DepositConfigCard({ request, isOwner, onPreviewFile, readOnly = 
                     <div>
                       <p className="text-xs text-muted-foreground">Required Amount</p>
                       <p className="font-mono text-xl font-bold text-foreground mt-0.5">
-                        ${Number(request.deposit.amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        {formatDepositAmount(request.deposit.amount) ?? "Not specified"}
                       </p>
                     </div>
                     <div>

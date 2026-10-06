@@ -25,9 +25,11 @@ interface UploadReceiptDialogProps {
   request: RequestRecord;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /** Replacing the receipt that is already attached (the previous file stays in the backend's history). */
+  isReplacing?: boolean;
 }
 
-export function UploadReceiptDialog({ request, open, onOpenChange }: UploadReceiptDialogProps) {
+export function UploadReceiptDialog({ request, open, onOpenChange, isReplacing = false }: UploadReceiptDialogProps) {
   const toast = useToast();
   const refreshRequest = useRefreshRequest();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -120,12 +122,12 @@ export function UploadReceiptDialog({ request, open, onOpenChange }: UploadRecei
       // already shows the new state the moment the dialog closes.
       setUploadProgress(100);
       await refreshRequest(request.id);
-      toast.success("Deposit receipt recorded", "Payment receipt was uploaded and verified successfully.");
+      toast.success(isReplacing ? "Deposit receipt replaced" : "Deposit receipt recorded", "Payment receipt was uploaded and verified successfully.");
       resetState();
       onOpenChange(false);
     } catch (err: any) {
       console.error("Receipt upload error:", err);
-      if (err?.code === "STALE_MEDIA_REVISION" || err?.code === "STALE_WORKFLOW_VERSION") {
+      if (err?.status === 409) {
         void refreshRequest(request.id, "none");
       }
       setErrorMessage(err?.message || "The upload failed. Please try again.");
@@ -141,10 +143,10 @@ export function UploadReceiptDialog({ request, open, onOpenChange }: UploadRecei
             <UploadCloud className="size-5" aria-hidden="true" />
           </div>
           <DialogTitle className="font-heading text-xl font-medium break-words [overflow-wrap:anywhere]">
-            Upload Deposit Receipt
+            {isReplacing ? "Edit Deposit Receipt" : "Upload Deposit Receipt"}
           </DialogTitle>
           <DialogDescription className="break-words [overflow-wrap:anywhere]">
-            Upload proof of deposit collection for request{" "}
+            {isReplacing ? "Upload a corrected receipt for request" : "Upload proof of deposit collection for request"}{" "}
             <span className="font-mono font-semibold text-foreground break-all">{request.code}</span>.
           </DialogDescription>
         </DialogHeader>
@@ -238,7 +240,7 @@ export function UploadReceiptDialog({ request, open, onOpenChange }: UploadRecei
             disabled={!selectedFile || isUploading}
           >
             {isUploading ? <Spinner className="size-4 mr-2" /> : <CheckCircle2 className="size-4 mr-2" />}
-            {isUploading ? "Uploading Receipt..." : "Upload Receipt"}
+            {isUploading ? "Uploading Receipt..." : isReplacing ? "Replace Receipt" : "Upload Receipt"}
           </Button>
         </DialogFooter>
       </DialogContent>

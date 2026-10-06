@@ -129,7 +129,7 @@ export function UploadLetterDialog({ request, open, onOpenChange, isReplacing = 
       onOpenChange(false);
     } catch (err: any) {
       console.error("Letter upload error:", err);
-      if (err?.code === "STALE_MEDIA_REVISION" || err?.code === "STALE_WORKFLOW_VERSION") {
+      if (err?.status === 409) {
         void refreshRequest(request.id, "none");
       }
       setErrorMessage(err?.message || "The upload failed. Please try again.");

@@ -1,5 +1,6 @@
 "use client";
 
+import { formatDepositAmount } from "./deposit-fields";
 import { useState, useEffect, useRef } from "react";
 import { DollarSign, CheckCircle2, AlertCircle, Minus, Calendar } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -131,7 +132,7 @@ export function RefundOutcomeDialog({
           <div className="rounded-xl border border-border/80 bg-muted/20 p-3 text-xs space-y-1">
             <p className="text-muted-foreground">Original Deposit Collected:</p>
             <p className="font-mono text-base font-bold text-foreground">
-              ${Number(request.deposit?.amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              {formatDepositAmount(request.deposit?.amount) ?? "Amount not specified"}
             </p>
           </div>
 

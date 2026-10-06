@@ -8,7 +8,7 @@ import { Spinner } from "@/components/ui/spinner";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
 import { useCompleteRequest, keys } from "@/hooks/use-reviewer-data";
-import { isDepositSatisfied } from "./deposit-fields";
+import { formatDepositAmount, isDepositSatisfied } from "./deposit-fields";
 
 interface CompleteRequestDialogProps {
   request: RequestRecord;
@@ -109,9 +109,9 @@ export function CompleteRequestDialog({
                     {request.deposit?.status === "not_required" || request.deposit?.required === false
                       ? "No deposit required for this request."
                       : request.deposit?.status === "received"
-                      ? `Deposit received ($${Number(request.deposit.amount || 0).toLocaleString()}) with verified receipt.`
+                      ? `Deposit received${formatDepositAmount(request.deposit.amount) ? ` (${formatDepositAmount(request.deposit.amount)})` : ""} with verified receipt.`
                       : depositNeedsReceipt
-                      ? `Deposit of $${Number(request.deposit?.amount || 0).toLocaleString()} requires payment receipt.`
+                      ? `Deposit${formatDepositAmount(request.deposit?.amount) ? ` of ${formatDepositAmount(request.deposit?.amount)}` : ""} requires a payment receipt.`
                       : "Deposit requirement must be configured."}
                   </p>
                 </div>

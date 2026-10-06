@@ -78,7 +78,7 @@ function currentMediaRevisionFrom(err: any): number | undefined {
 }
 
 export class ProcessingUploadError extends Error {
-  constructor(message: string, readonly code?: string) {
+  constructor(message: string, readonly code?: string, readonly status?: number) {
     super(message);
   }
 }
@@ -86,23 +86,29 @@ export class ProcessingUploadError extends Error {
 function friendly(err: any, stage: "intent" | "storage" | "complete"): ProcessingUploadError {
   const code = apiCode(err);
   const serverMessage = err?.response?.data?.message as string | undefined;
+  const status = err?.response?.status as number | undefined;
   if (code === "PROCESSING_FILE_UPLOAD_PENDING") {
     return new ProcessingUploadError(
       "An earlier upload of this document didn’t finish and is still on hold. Select the same file again to resume it — otherwise it clears itself within about an hour.",
-      code
+      code,
+      status
     );
   }
   if (code === "UPLOAD_ATTEMPT_EXPIRED") {
-    return new ProcessingUploadError("The earlier upload attempt expired. Please choose the file and upload again.", code);
+    return new ProcessingUploadError("The earlier upload attempt expired. Please choose the file and upload again.", code, status);
   }
   if (code === "UPLOAD_NOT_FOUND") {
-    return new ProcessingUploadError("The file didn’t reach storage. Please try the upload again.", code);
+    return new ProcessingUploadError("The file didn’t reach storage. Please try the upload again.", code, status);
   }
-  if (code === "STALE_MEDIA_REVISION" || code === "STALE_WORKFLOW_VERSION" || err?.response?.status === 409) {
-    return new ProcessingUploadError(serverMessage || "The request was updated in another session. Please refresh and try again.", code);
+  if (code === "FILE_REPLACEMENT_CONFLICT") {
+    return new ProcessingUploadError("This file was replaced in another session. The latest version has been loaded — please try again.", code, status);
   }
-  if (stage === "storage") return new ProcessingUploadError(err?.message || "Upload to storage failed.", code);
-  return new ProcessingUploadError(serverMessage || err?.message || "The upload failed. Please try again.", code);
+  // Any other 409 means our versions are stale: the dialogs reload the request, and the reviewer retries by hand.
+  if (status === 409) {
+    return new ProcessingUploadError("The request changed. The latest information has been loaded — please try again.", code, status);
+  }
+  if (stage === "storage") return new ProcessingUploadError(err?.message || "Upload to storage failed.", code, status);
+  return new ProcessingUploadError(serverMessage || err?.message || "The upload failed. Please try again.", code, status);
 }
 
 export async function uploadProcessingFile({

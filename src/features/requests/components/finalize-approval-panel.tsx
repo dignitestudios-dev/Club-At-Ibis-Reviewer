@@ -17,14 +17,10 @@ import { Button } from "@/components/ui/button";
 import { formatDate, formatDateTime, formatFileSize } from "@/utils/format";
 import { cn } from "@/utils/cn";
 import { DepositDialog } from "./deposit-dialog";
-import { isDepositConfigured } from "./deposit-fields";
+import { formatDepositAmount, isDepositConfigured } from "./deposit-fields";
 import { CreateLetterDialog } from "./create-letter-dialog";
 import { UploadLetterDialog } from "./upload-letter-dialog";
 import { UploadReceiptDialog } from "./upload-receipt-dialog";
-
-function money(v: number | string | null | undefined) {
-  return `$${Number(v || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-}
 
 function Step({
   done,
@@ -77,6 +73,7 @@ export function FinalizeApprovalPanel({
 }) {
   const [depositOpen, setDepositOpen] = useState(false);
   const [receiptOpen, setReceiptOpen] = useState(false);
+  const [replacingReceipt, setReplacingReceipt] = useState(false);
   const [letterOpen, setLetterOpen] = useState(false);
   const [composeOpen, setComposeOpen] = useState(false);
   const [replacingLetter, setReplacingLetter] = useState(false);
@@ -148,16 +145,38 @@ export function FinalizeApprovalPanel({
                 </Button>
               )}
               {depositRequired && !receiptReceived && (
-                <Button type="button" size="sm" onClick={() => setReceiptOpen(true)}>
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={() => {
+                    setReplacingReceipt(false);
+                    setReceiptOpen(true);
+                  }}
+                >
                   <UploadCloud className="size-3.5" />
                   Attach receipt
                 </Button>
               )}
               {receiptReceived && deposit?.receipt && (
-                <Button type="button" variant="outline" size="sm" className="text-xs" onClick={() => onPreviewFile(deposit.receipt!)}>
-                  <Eye className="size-3.5" />
-                  View receipt
-                </Button>
+                <>
+                  <Button type="button" variant="outline" size="sm" className="text-xs" onClick={() => onPreviewFile(deposit.receipt!)}>
+                    <Eye className="size-3.5" />
+                    View receipt
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="text-xs"
+                    onClick={() => {
+                      setReplacingReceipt(true);
+                      setReceiptOpen(true);
+                    }}
+                  >
+                    <Pencil className="size-3.5" />
+                    Edit receipt
+                  </Button>
+                </>
               )}
             </>
           }
@@ -168,12 +187,12 @@ export function FinalizeApprovalPanel({
             "No deposit required."
           ) : receiptReceived ? (
             <>
-              {money(deposit?.amount)} received
+              {formatDepositAmount(deposit?.amount) ? `${formatDepositAmount(deposit?.amount)} deposit` : "Deposit"} received
               {deposit?.receivedAt ? ` · ${formatDateTime(deposit.receivedAt)}` : ""}.
             </>
           ) : (
             <>
-              {money(deposit?.amount)} required — attach the payment receipt once it is received.
+              {formatDepositAmount(deposit?.amount) ? `${formatDepositAmount(deposit?.amount)} deposit required` : "Deposit required"} — attach the payment receipt once it is received.
             </>
           )}
         </Step>
@@ -291,7 +310,7 @@ export function FinalizeApprovalPanel({
       </footer>
 
       <DepositDialog request={request} open={depositOpen} onOpenChange={setDepositOpen} />
-      <UploadReceiptDialog request={request} open={receiptOpen} onOpenChange={setReceiptOpen} />
+      <UploadReceiptDialog request={request} open={receiptOpen} onOpenChange={setReceiptOpen} isReplacing={replacingReceipt} />
       <CreateLetterDialog request={request} open={composeOpen} onOpenChange={setComposeOpen} isReplacing={replacingLetter} />
       <UploadLetterDialog request={request} open={letterOpen} onOpenChange={setLetterOpen} isReplacing={replacingLetter} />
     </section>

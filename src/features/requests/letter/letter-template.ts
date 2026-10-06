@@ -48,7 +48,7 @@ export function buildDefaultLetter(request: RequestRecord, reviewerName: string)
   ];
   if (request.deposit?.required === true) {
     conditions.push(
-      `A security deposit of ${money(request.deposit.amount)} is required for this project. It is collected and refunded outside the portal; your reviewer will confirm receipt.`
+      `A security deposit${request.deposit.amount != null && request.deposit.amount !== "" ? ` of ${money(request.deposit.amount)}` : ""} is required for this project. It is collected and refunded outside the portal; your reviewer will confirm receipt.`
     );
   }
 

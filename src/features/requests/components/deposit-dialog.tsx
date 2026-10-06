@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { useToast } from "@/hooks/use-toast";
 import { useSetDepositRequirement, keys } from "@/hooks/use-reviewer-data";
-import { DepositFields, isDepositConfigured, validateDeposit, type DepositValue } from "./deposit-fields";
+import { DepositFields, depositPayload, formatDepositAmount, isDepositConfigured, validateDeposit, type DepositValue } from "./deposit-fields";
 
 /** Set or change the security-deposit requirement of an approved request. */
 export function DepositDialog({
@@ -50,12 +50,11 @@ export function DepositDialog({
         requestId: request.id,
         expectedAssignmentVersion: request.assignmentVersion ?? 0,
         expectedWorkflowVersion: request.workflowVersion ?? 1,
-        depositRequired: value.required === true,
-        amount: value.required ? value.amount.trim() : undefined,
+        ...depositPayload(value),
       });
       toast.success(
         "Deposit saved",
-        value.required ? `Deposit of $${Number(value.amount).toFixed(2)} recorded.` : "Marked as no deposit required."
+        value.required ? `Deposit${formatDepositAmount(value.amount) ? ` of ${formatDepositAmount(value.amount)}` : ""} recorded.` : "Marked as no deposit required."
       );
       onOpenChange(false);
     } catch (err: any) {

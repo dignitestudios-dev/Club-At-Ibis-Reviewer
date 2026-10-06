@@ -51,7 +51,7 @@ import {
 } from "@/features/requests/components/decision-dialogs";
 import { DepositConfigCard } from "@/features/requests/components/deposit-config-card";
 import { FinalizeApprovalPanel } from "@/features/requests/components/finalize-approval-panel";
-import { isDepositSatisfied, type DepositValue } from "@/features/requests/components/deposit-fields";
+import { depositPayload, formatDepositAmount, isDepositSatisfied, type DepositValue } from "@/features/requests/components/deposit-fields";
 import { UploadReceiptDialog } from "@/features/requests/components/upload-receipt-dialog";
 import { ApprovalLetterCard } from "@/features/requests/components/approval-letter-card";
 import { UploadLetterDialog } from "@/features/requests/components/upload-letter-dialog";
@@ -413,8 +413,7 @@ export default function RequestDetailPage({ id }: { id: string }) {
           requestId: req.id,
           expectedAssignmentVersion: approved.assignmentVersion ?? req.assignmentVersion ?? 0,
           expectedWorkflowVersion: approved.workflowVersion ?? (req.workflowVersion ?? 1) + 1,
-          depositRequired: deposit.required === true,
-          amount: deposit.required ? deposit.amount.trim() : undefined,
+          ...depositPayload(deposit),
         });
       } catch {
         toast.warning("Approved, but the deposit wasn't saved", "Set it in the “Finish up this approval” panel.");
@@ -1293,7 +1292,7 @@ export default function RequestDetailPage({ id }: { id: string }) {
                       <dl className="grid gap-3 sm:grid-cols-2 rounded-xl border border-border/80 bg-muted/20 p-4">
                         <InfoRow label="Original Deposit">
                           <span className="font-mono text-base font-bold text-foreground">
-                            ${Number(req.deposit.amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            {formatDepositAmount(req.deposit.amount) ?? "Not specified"}
                           </span>
                         </InfoRow>
                         <InfoRow label="Refund Status">

@@ -150,7 +150,7 @@ export function CreateLetterDialog({
       onOpenChange(false);
     } catch (err: any) {
       console.error("Letter creation error:", err);
-      if (err?.code === "STALE_MEDIA_REVISION" || err?.code === "STALE_WORKFLOW_VERSION") {
+      if (err?.status === 409) {
         void refreshRequest(request.id, "none");
       }
       setError(err?.message || "The letter couldn't be uploaded. Please try again.");
