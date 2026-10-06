@@ -11,7 +11,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Spinner } from "@/components/ui/spinner";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
-import { useSetRefundOutcome } from "@/hooks/use-reviewer-data";
+import { useSetRefundOutcome, keys } from "@/hooks/use-reviewer-data";
 
 interface RefundOutcomeDialogProps {
   request: RequestRecord;
@@ -97,14 +97,12 @@ export function RefundOutcomeDialog({
           ? `Refund recorded on ${refundDate}.`
           : "Recorded as No Refund applicable."
       );
-      qc.invalidateQueries({ queryKey: ["requests", request.id] });
-      qc.invalidateQueries({ queryKey: ["requests"] });
       onOpenChange(false);
     } catch (err: any) {
       console.error("Refund outcome error:", err);
       if (err?.response?.status === 409) {
         toast.error("Conflict", "The request was updated elsewhere. Refreshed to latest state.");
-        qc.invalidateQueries({ queryKey: ["requests", request.id] });
+        qc.invalidateQueries({ queryKey: keys.requestDetail(request.id) });
       } else {
         toast.error("Could not record refund outcome", err?.response?.data?.message || err?.message || "An unexpected error occurred.");
       }

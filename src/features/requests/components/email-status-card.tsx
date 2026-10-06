@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
-import { useRetryCompletionEmail } from "@/hooks/use-reviewer-data";
+import { useRetryCompletionEmail, keys } from "@/hooks/use-reviewer-data";
 import { formatDateTime } from "@/utils/format";
 
 interface EmailStatusCardProps {
@@ -35,12 +35,10 @@ export function EmailStatusCard({ request, isOwner }: EmailStatusCardProps) {
       });
 
       toast.success("Retry queued", "Completion email delivery has been re-queued.");
-      qc.invalidateQueries({ queryKey: ["requests", request.id] });
-      qc.invalidateQueries({ queryKey: ["requests"] });
     } catch (err: any) {
       if (err?.response?.status === 409) {
         toast.error("Conflict", "The request was updated elsewhere. Refreshed to latest state.");
-        qc.invalidateQueries({ queryKey: ["requests", request.id] });
+        qc.invalidateQueries({ queryKey: keys.requestDetail(request.id) });
       } else {
         toast.error("Failed to retry email delivery", err?.response?.data?.message || err?.message);
       }

@@ -1,5 +1,15 @@
 import axiosInstance from "@/lib/axios";
 
+/**
+ * The backend identifies who recorded a refund with an actor object ({ actorId, role, displayName }),
+ * but the UI shows a plain name — rendering the object crashes the page.
+ */
+function normalizeRefund(refund: any) {
+  if (!refund || typeof refund !== "object") return null;
+  const by = refund.recordedBy;
+  return { ...refund, recordedBy: typeof by === "string" ? by : (by?.displayName ?? by?.name ?? null) };
+}
+
 const knownResidents = new Map<string, Resident>();
 
 export function toReviewerRequestRecord(raw: any): RequestRecord {
@@ -226,7 +236,7 @@ export function toReviewerRequestRecord(raw: any): RequestRecord {
       withdrawnFrom: raw.withdrawnFrom || null,
       residentContactAcknowledged: true,
     } : null),
-    refund: raw.refund || (raw.refundStatus || raw.refundOutcome ? {
+    refund: normalizeRefund(raw.refund) || (raw.refundStatus || raw.refundOutcome ? {
       outcome: raw.refundOutcome || raw.refundStatus,
       refundDate: raw.refundDate || undefined,
       displayValue: raw.refundDisplayValue || (raw.refundOutcome === "no_refund" ? "-" : raw.refundDate),
@@ -253,13 +263,18 @@ export function toReviewerRequestRecord(raw: any): RequestRecord {
       type: (h.type?.replace(/^request\./, "").replace(/-/g, "_") || "submitted") as HistoryEventType,
       actor: typeof h.actor === "string" ? { name: h.actor, role: "reviewer" as const } : {
         name: h.actor?.displayName || h.actor?.name || "User",
-        role: (h.actor?.role === "super_admin" || h.actor?.role === "admin" ? "super_admin" : h.actor?.role === "reviewer" ? "reviewer" : h.actor?.role === "resident" ? "resident" : "system") as ActorRole,
+        role: ((): ActorRole => {
+          // The backend sends upper-case roles (REVIEWER, RESIDENT, SUPER_ADMIN).
+          const r = String(h.actor?.role || "").toLowerCase();
+          return r === "super_admin" || r === "admin" ? "super_admin" : r === "reviewer" ? "reviewer" : r === "resident" ? "resident" : "system";
+        })(),
       },
       message: h.message || "",
       createdAt: h.occurredAt || h.createdAt || new Date().toISOString(),
       assignment: h.details?.assignment || h.assignment,
       staffOnly: !!(h.details?.staffOnly || h.staffOnly),
       flaggedItems: Array.isArray(h.details?.flaggedItems) ? h.details.flaggedItems : undefined,
+      details: h.details && typeof h.details === "object" ? h.details : undefined,
       submissionNumber: typeof h.details?.submissionNumber === "number" ? h.details.submissionNumber : undefined,
     })) : (Array.isArray(raw.activity) ? raw.activity.map((a: any) => ({
       id: a.id || crypto.randomUUID(),

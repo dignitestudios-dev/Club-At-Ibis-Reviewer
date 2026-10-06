@@ -11,14 +11,16 @@ interface ApprovalLetterCardProps {
   request: RequestRecord;
   isOwner: boolean;
   onPreviewFile?: (file: AttachedFile) => void;
+  /** Actions live in the Finalize panel; this card only shows the record. */
+  readOnly?: boolean;
 }
 
-export function ApprovalLetterCard({ request, isOwner, onPreviewFile }: ApprovalLetterCardProps) {
+export function ApprovalLetterCard({ request, isOwner, onPreviewFile, readOnly = false }: ApprovalLetterCardProps) {
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
   const [isReplacing, setIsReplacing] = useState(false);
 
   const isApproved = request.status === "approved";
-  const canManage = isOwner && isApproved;
+  const canManage = isOwner && isApproved && !readOnly;
 
   const letterFile = request.approvalLetter || request.completion?.finalApprovalLetter;
 

@@ -10,8 +10,10 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Spinner } from "@/components/ui/spinner";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
-import { useSetDepositRequirement } from "@/hooks/use-reviewer-data";
+import { useSetDepositRequirement, keys } from "@/hooks/use-reviewer-data";
 import { DepositChip } from "./request-chips";
+import { isDepositConfigured } from "./deposit-fields";
+
 import { formatDateTime } from "@/utils/format";
 import { UploadReceiptDialog } from "./upload-receipt-dialog";
 
@@ -19,15 +21,17 @@ interface DepositConfigCardProps {
   request: RequestRecord;
   isOwner: boolean;
   onPreviewFile?: (file: AttachedFile) => void;
+  /** Actions live in the Finalize panel; this card only shows the record. */
+  readOnly?: boolean;
 }
 
-export function DepositConfigCard({ request, isOwner, onPreviewFile }: DepositConfigCardProps) {
+export function DepositConfigCard({ request, isOwner, onPreviewFile, readOnly = false }: DepositConfigCardProps) {
   const toast = useToast();
   const qc = useQueryClient();
   const setDepositMutation = useSetDepositRequirement();
 
   const isApproved = request.status === "approved";
-  const canEdit = isOwner && isApproved;
+  const canEdit = isOwner && isApproved && !readOnly;
 
   const [isEditing, setIsEditing] = useState(false);
   const [depositRequired, setDepositRequired] = useState<boolean>(
@@ -47,11 +51,7 @@ export function DepositConfigCard({ request, isOwner, onPreviewFile }: DepositCo
     }
   }, [request.deposit, isEditing]);
 
-  const hasConfiguredDeposit =
-    request.deposit?.confirmed ||
-    request.deposit?.status === "received" ||
-    request.deposit?.status === "pending" ||
-    (request.deposit?.status === "not_required" && request.decidedAt != null);
+  const hasConfiguredDeposit = isDepositConfigured(request.deposit);
 
   function validateAmount(val: string): boolean {
     if (!depositRequired) {
@@ -95,12 +95,10 @@ export function DepositConfigCard({ request, isOwner, onPreviewFile }: DepositCo
           : "Request marked as no deposit required."
       );
       setIsEditing(false);
-      qc.invalidateQueries({ queryKey: ["requests", request.id] });
-      qc.invalidateQueries({ queryKey: ["requests"] });
     } catch (err: any) {
       if (err?.response?.status === 409) {
         toast.error("Conflict", "The request was updated elsewhere. Refreshed to latest state.");
-        qc.invalidateQueries({ queryKey: ["requests", request.id] });
+        qc.invalidateQueries({ queryKey: keys.requestDetail(request.id) });
       } else {
         toast.error("Failed to save deposit requirement", err?.response?.data?.message || err?.message);
       }
@@ -243,7 +241,11 @@ export function DepositConfigCard({ request, isOwner, onPreviewFile }: DepositCo
           {/* Read-Only Summary / Details */}
           {(!canEdit || (hasConfiguredDeposit && !isEditing)) && (
             <div className="space-y-4">
-              {!request.deposit?.required ? (
+              {isApproved && !hasConfiguredDeposit ? (
+                <div className="rounded-xl border border-amber-300/70 bg-amber-50/50 p-3.5 text-xs text-amber-950 dark:border-amber-900/70 dark:bg-amber-950/20 dark:text-amber-200">
+                  Not set yet. Use the <span className="font-semibold">Finish up this approval</span> panel at the top of the page.
+                </div>
+              ) : !request.deposit?.required ? (
                 <div className="flex items-center justify-between rounded-xl border border-border/80 bg-muted/20 p-3.5">
                   <div>
                     <p className="text-sm font-medium text-foreground">No Deposit Required</p>

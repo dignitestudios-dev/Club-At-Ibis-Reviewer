@@ -1,5 +1,6 @@
 "use client";
 
+import { useRefreshRequest } from "@/hooks/use-reviewer-data";
 import { useState, useRef } from "react";
 import { UploadCloud, FileCheck2, CheckCircle2, AlertCircle, X } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -7,9 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Spinner } from "@/components/ui/spinner";
 import { useToast } from "@/hooks/use-toast";
-import { useQueryClient } from "@tanstack/react-query";
-import { createProcessingFileUploadIntent, completeProcessingFileUpload } from "../api/review.service";
-import { putFileToBlob } from "../api/blob-upload";
+import { getUnfinishedUpload, uploadProcessingFile } from "../api/processing-upload";
 import { formatFileSize } from "@/utils/format";
 
 const MAX_FILE_SIZE = 52428800; // 50 MiB
@@ -22,13 +21,6 @@ function isFileTypeAllowed(file: File): boolean {
   return ALLOWED_EXTS.some((ext) => name.endsWith(ext));
 }
 
-function generateClientUploadId(): string {
-  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
-    return crypto.randomUUID();
-  }
-  return "upl-" + Math.random().toString(36).substring(2, 11) + "-" + Date.now();
-}
-
 interface UploadLetterDialogProps {
   request: RequestRecord;
   open: boolean;
@@ -38,8 +30,9 @@ interface UploadLetterDialogProps {
 
 export function UploadLetterDialog({ request, open, onOpenChange, isReplacing = false }: UploadLetterDialogProps) {
   const toast = useToast();
-  const qc = useQueryClient();
+  const refreshRequest = useRefreshRequest();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const unfinished = open ? getUnfinishedUpload(request.id, "final_approval_letter") : null;
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [dragActive, setDragActive] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
@@ -117,51 +110,29 @@ export function UploadLetterDialog({ request, open, onOpenChange, isReplacing = 
     setUploadProgress(0);
 
     try {
-      // 1. Create upload intent
-      const intent = await createProcessingFileUploadIntent({
-        requestId: request.id,
-        expectedAssignmentVersion: request.assignmentVersion ?? 0,
-        expectedWorkflowVersion: request.workflowVersion ?? 1,
-        expectedMediaRevision: request.mediaRevision ?? 0,
+      await uploadProcessingFile({
+        request,
         purpose: "final_approval_letter",
-        clientUploadId: generateClientUploadId(),
-        originalName: selectedFile.name,
-        size: selectedFile.size,
-        declaredMimeType: selectedFile.type || "application/pdf",
+        file: selectedFile,
+        onProgress: (progress) => setUploadProgress(progress),
       });
 
-      // 2. Direct binary upload to Azure Blob Storage
-      await putFileToBlob(
-        intent.upload.url,
-        selectedFile,
-        intent.upload.headers || {},
-        (progress) => setUploadProgress(progress)
-      );
-
-      // 3. Mark processing file complete
-      await completeProcessingFileUpload({
-        requestId: request.id,
-        fileId: intent.file.id,
-        expectedAssignmentVersion: request.assignmentVersion ?? 0,
-        expectedWorkflowVersion: request.workflowVersion ?? 1,
-        expectedMediaRevision: intent.mediaRevision ?? 0,
-      });
-
+      // Stay in the loading state until the refreshed request is back, so the page behind the dialog
+      // already shows the new state the moment the dialog closes.
+      setUploadProgress(100);
+      await refreshRequest(request.id);
       toast.success(
         isReplacing ? "Approval letter replaced" : "Approval letter uploaded",
         "Final approval letter is verified and ready for request completion."
       );
-      qc.invalidateQueries({ queryKey: ["requests", request.id] });
-      qc.invalidateQueries({ queryKey: ["requests"] });
-      handleDialogClose(false);
+      resetState();
+      onOpenChange(false);
     } catch (err: any) {
       console.error("Letter upload error:", err);
-      if (err?.response?.status === 409) {
-        setErrorMessage("The request was updated in another session. Please refresh and try again.");
-        qc.invalidateQueries({ queryKey: ["requests", request.id] });
-      } else {
-        setErrorMessage(err?.response?.data?.message || err?.message || "Failed to upload final approval letter.");
+      if (err?.code === "STALE_MEDIA_REVISION" || err?.code === "STALE_WORKFLOW_VERSION") {
+        void refreshRequest(request.id, "none");
       }
+      setErrorMessage(err?.message || "The upload failed. Please try again.");
       setIsUploading(false);
     }
   }
@@ -185,6 +156,11 @@ export function UploadLetterDialog({ request, open, onOpenChange, isReplacing = 
         </DialogHeader>
 
         <div className="space-y-4">
+          {unfinished && !selectedFile && !isUploading && (
+            <p className="rounded-lg border border-amber-300/70 bg-amber-50 px-3 py-2 text-xs text-amber-950 dark:border-amber-800/70 dark:bg-amber-950/30 dark:text-amber-200">
+              An earlier upload didn’t finish. Choose <span className="font-semibold">{unfinished.name}</span> ({formatFileSize(unfinished.size)}) again to resume it.
+            </p>
+          )}
           <input
             ref={fileInputRef}
             type="file"

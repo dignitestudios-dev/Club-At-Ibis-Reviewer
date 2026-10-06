@@ -6,6 +6,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Spinner } from "@/components/ui/spinner";
+import { DepositFields, validateDeposit, type DepositValue } from "./deposit-fields";
 
 /* ------------------------------------------------------------------ */
 /* Approve Dialog                                                     */
@@ -21,10 +22,20 @@ export function ApproveRequestDialog({
   request: RequestRecord;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onConfirm: () => Promise<void> | void;
+  /** Receives the deposit decision made in this dialog; the caller approves, then saves the deposit. */
+  onConfirm: (deposit: DepositValue) => Promise<void> | void;
   isPending?: boolean;
 }) {
   const isSubmittingRef = useRef(false);
+  const [deposit, setDeposit] = useState<DepositValue>({ required: false, amount: "" });
+  const [depositError, setDepositError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (open) {
+      setDeposit({ required: false, amount: "" });
+      setDepositError(null);
+    }
+  }, [open]);
 
   const flaggedFieldCount = Object.values(request.itemReviews || {}).filter((r) => r.state === "flagged").length;
   const flaggedFileCount = Object.values(request.fileItemReviews || {}).filter((r) => r.state === "flagged").length;
@@ -34,9 +45,14 @@ export function ApproveRequestDialog({
 
   async function handleConfirm() {
     if (isSubmittingRef.current || isPending || flaggedCount > 0) return;
+    const problem = validateDeposit(deposit);
+    if (problem) {
+      setDepositError(problem);
+      return;
+    }
     isSubmittingRef.current = true;
     try {
-      await onConfirm();
+      await onConfirm(deposit);
       onOpenChange(false);
     } finally {
       isSubmittingRef.current = false;
@@ -45,7 +61,7 @@ export function ApproveRequestDialog({
 
   return (
     <Dialog open={open} onOpenChange={(o) => !isPending && onOpenChange(o)}>
-      <DialogContent className="sm:max-w-md w-full max-w-[calc(100vw-2rem)] overflow-hidden">
+      <DialogContent className="sm:max-w-lg w-full max-w-[calc(100vw-2rem)] max-h-[92svh] overflow-y-auto">
         <DialogHeader className="min-w-0">
           <div className="mb-1 flex size-10 items-center justify-center rounded-xl border border-emerald-300/80 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-300">
             <CheckCircle2 className="size-5" aria-hidden="true" />
@@ -64,9 +80,28 @@ export function ApproveRequestDialog({
             </p>
           </div>
         ) : (
-          <div className="rounded-xl border border-emerald-200/80 bg-emerald-50/40 p-3.5 text-xs text-emerald-900 dark:border-emerald-900/60 dark:bg-emerald-950/20 dark:text-emerald-300 min-w-0 break-words [overflow-wrap:anywhere]">
-            <p className="font-medium">All form fields and submitted materials will be marked as accepted.</p>
-            <p className="mt-1 text-muted-foreground">The resident will be notified that their request has been approved.</p>
+          <div className="space-y-4">
+            <div className="rounded-xl border border-emerald-200/80 bg-emerald-50/40 p-3.5 text-xs text-emerald-900 dark:border-emerald-900/60 dark:bg-emerald-950/20 dark:text-emerald-300 min-w-0 break-words [overflow-wrap:anywhere]">
+              <p className="font-medium">All form fields and submitted materials will be marked as accepted.</p>
+              <p className="mt-1 text-muted-foreground">The resident will be notified that their request has been approved.</p>
+            </div>
+
+            <div className="space-y-2">
+              <p className="text-sm font-semibold text-foreground">Security deposit</p>
+              <DepositFields
+                value={deposit}
+                onChange={(v) => {
+                  setDeposit(v);
+                  setDepositError(null);
+                }}
+                error={depositError}
+                disabled={isPending}
+              />
+            </div>
+
+            <p className="text-xs text-muted-foreground">
+              After approving you&apos;ll finish up in one place: attach the deposit receipt (if required), upload the final approval letter, then complete the request.
+            </p>
           </div>
         )}
 

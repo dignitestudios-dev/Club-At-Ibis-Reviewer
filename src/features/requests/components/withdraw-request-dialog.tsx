@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Spinner } from "@/components/ui/spinner";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
-import { useWithdrawRequest } from "@/hooks/use-reviewer-data";
+import { useWithdrawRequest, keys } from "@/hooks/use-reviewer-data";
 
 interface WithdrawRequestDialogProps {
   request: RequestRecord;
@@ -48,14 +48,12 @@ export function WithdrawRequestDialog({ request, open, onOpenChange }: WithdrawR
         "Request withdrawn",
         `Request ${request.code} has been marked as withdrawn per resident communication.`
       );
-      qc.invalidateQueries({ queryKey: ["requests", request.id] });
-      qc.invalidateQueries({ queryKey: ["requests"] });
       handleOpenChange(false);
     } catch (err: any) {
       console.error("Withdraw request error:", err);
       if (err?.response?.status === 409) {
         toast.error("Conflict", "The request was updated elsewhere. Refreshed to latest state.");
-        qc.invalidateQueries({ queryKey: ["requests", request.id] });
+        qc.invalidateQueries({ queryKey: keys.requestDetail(request.id) });
       } else {
         toast.error("Could not withdraw request", err?.response?.data?.message || err?.message || "An unexpected error occurred.");
       }

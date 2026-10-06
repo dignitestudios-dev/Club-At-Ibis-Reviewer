@@ -7,7 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
-import { useCompleteRequest } from "@/hooks/use-reviewer-data";
+import { useCompleteRequest, keys } from "@/hooks/use-reviewer-data";
+import { isDepositSatisfied } from "./deposit-fields";
 
 interface CompleteRequestDialogProps {
   request: RequestRecord;
@@ -31,10 +32,7 @@ export function CompleteRequestDialog({
 
   // Prerequisites
   const hasLetter = !!(request.approvalLetter || request.completion?.finalApprovalLetter);
-  const depositIsConfigured =
-    request.deposit?.status === "not_required" ||
-    (request.deposit?.required === false) ||
-    (request.deposit?.required === true && request.deposit?.status === "received");
+  const depositIsConfigured = isDepositSatisfied(request.deposit);
 
   const depositNeedsReceipt =
     request.deposit?.required === true && request.deposit?.status === "pending";
@@ -60,14 +58,12 @@ export function CompleteRequestDialog({
         "Request completed",
         `Request ${request.code} is marked as completed and final letter has been released to the resident.`
       );
-      qc.invalidateQueries({ queryKey: ["requests", request.id] });
-      qc.invalidateQueries({ queryKey: ["requests"] });
       onOpenChange(false);
     } catch (err: any) {
       console.error("Complete request error:", err);
       if (err?.response?.status === 409) {
         toast.error("Conflict", "The request was updated in another session. Refreshed to latest state.");
-        qc.invalidateQueries({ queryKey: ["requests", request.id] });
+        qc.invalidateQueries({ queryKey: keys.requestDetail(request.id) });
       } else {
         toast.error("Could not complete request", err?.response?.data?.message || err?.message || "An unexpected error occurred.");
       }

@@ -204,8 +204,12 @@ export interface UploadIntentResponse {
   upload: {
     url: string;
     method: string;
-    headers: Record<string, string>;
-  };
+    /** Headers Azure requires on the PUT (`x-ms-blob-type`, `Content-Type`). */
+    requiredHeaders?: Record<string, string>;
+    /** @deprecated the backend does not send this; kept so older mocks still type-check. */
+    headers?: Record<string, string>;
+    expiresAt?: string;
+  } | null;
   mediaRevision: number;
 }
 

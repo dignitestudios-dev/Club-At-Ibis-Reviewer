@@ -24,27 +24,24 @@ export function AppSidebar({ onNavigate }: { onNavigate?: () => void }) {
   const allItems = navGroups.flatMap((g) => g.items);
   const activeHref = findActiveHref(pathname, allItems);
 
-  // Each bucket's count comes straight from its own filtered query's
-  // `pagination.total` — not `.length` of one capped, unfiltered
-  // `useRequests()` fetch — so the sidebar badge always matches what that
-  // bucket's own list page actually shows. `limit: 1` keeps these
-  // background requests cheap.
-  const { data: toStartPage } = useRequestsPage({ status: "submitted", assignedReviewerId: me?.id, limit: 1 }, { enabled: !!me });
-  const { data: resubmittedPage } = useRequestsPage({ status: "resubmitted", assignedReviewerId: me?.id, limit: 1 }, { enabled: !!me });
-  const { data: toCompletePage } = useRequestsPage({ status: "approved", assignedReviewerId: me?.id, limit: 1 }, { enabled: !!me });
-  // The backend's refundOutcome filter uses "awaiting_refund_action", not
-  // the shorter "awaiting" the UI uses internally for RefundOutcome.
-  const { data: refundsPage } = useRequestsPage({ refundOutcome: "awaiting_refund_action", assignedReviewerId: me?.id, limit: 1 }, { enabled: !!me });
+  // The badge counts come straight from `pagination.total` of filtered queries (not `.length` of a capped,
+  // unfiltered fetch), so they always match the list pages. `limit: 1` keeps them cheap, and the three
+  // statuses that need this reviewer's action share ONE comma-separated query instead of three.
+  const { data: actionPage } = useRequestsPage(
+    { status: "submitted,resubmitted,approved", assignedReviewerId: me?.id, limit: 1 },
+    { enabled: !!me }
+  );
+  // The backend's refundOutcome filter uses "awaiting_refund_action", not the shorter "awaiting" the UI uses internally.
+  const { data: refundsPage } = useRequestsPage(
+    { refundOutcome: "awaiting_refund_action", assignedReviewerId: me?.id, limit: 1 },
+    { enabled: !!me }
+  );
   // /reviewer/requests/incoming is the shared Default Reviewer intake queue —
   // a general (non-default) reviewer has no permission for it and the
   // backend returns 403, so this must stay gated behind `isDefault`.
   const { data: incomingPage } = useIncomingRequestsPage({ limit: 1 }, { enabled: isDefault });
   const { data: notifications } = useNotifications();
-  const mineCount =
-    (toStartPage?.pagination?.total ?? 0) +
-    (resubmittedPage?.pagination?.total ?? 0) +
-    (toCompletePage?.pagination?.total ?? 0) +
-    (refundsPage?.pagination?.total ?? 0);
+  const mineCount = (actionPage?.pagination?.total ?? 0) + (refundsPage?.pagination?.total ?? 0);
   const counts = {
     // Work that needs this reviewer to act right now.
     mine: mineCount,

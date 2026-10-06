@@ -2,7 +2,7 @@ import axios from "axios";
 
 const axiosInstance = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_URL ?? "https://api.clubatibis.dignitestudios.com/api/v1",
-  timeout: 10000,
+  timeout: 5 * 60 * 1000, // 5 minutes
   headers: { "Content-Type": "application/json" },
 });
 

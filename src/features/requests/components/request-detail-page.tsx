@@ -1,5 +1,6 @@
 "use client";
 
+import { WithdrawnNotice } from "@/components/shared/withdrawn-notice";
 import { useState } from "react";
 import Link from "next/link";
 import { format } from "date-fns";
@@ -47,6 +48,8 @@ import {
   RequestRevisionDialog,
 } from "@/features/requests/components/decision-dialogs";
 import { DepositConfigCard } from "@/features/requests/components/deposit-config-card";
+import { FinalizeApprovalPanel } from "@/features/requests/components/finalize-approval-panel";
+import { isDepositSatisfied, type DepositValue } from "@/features/requests/components/deposit-fields";
 import { UploadReceiptDialog } from "@/features/requests/components/upload-receipt-dialog";
 import { ApprovalLetterCard } from "@/features/requests/components/approval-letter-card";
 import { UploadLetterDialog } from "@/features/requests/components/upload-letter-dialog";
@@ -54,18 +57,7 @@ import { CompleteRequestDialog } from "@/features/requests/components/complete-r
 import { EmailStatusCard } from "@/features/requests/components/email-status-card";
 import { WithdrawRequestDialog } from "@/features/requests/components/withdraw-request-dialog";
 import { RefundOutcomeDialog } from "@/features/requests/components/refund-outcome-dialog";
-import {
-  useApproveRequest,
-  useAssessReviewItems,
-  useAssignRequest,
-  useCategories,
-  useRejectRequest,
-  useRequest,
-  useRequestRevision,
-  useResidents,
-  useReviewers,
-  useStartReview,
-} from "@/hooks/use-reviewer-data";
+import { useApproveRequest, useSetDepositRequirement, useAssessReviewItems, useAssignRequest, useCategories, useRejectRequest, useRequest, useRequestRevision, useResidents, useReviewers, useStartReview, keys } from "@/hooks/use-reviewer-data";
 import { useMe } from "@/hooks/use-current-user";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -148,6 +140,7 @@ export default function RequestDetailPage({ id }: { id: string }) {
   const assessItemsMutation = useAssessReviewItems();
   const requestRevisionMutation = useRequestRevision();
   const approveMutation = useApproveRequest();
+  const setDepositMutation = useSetDepositRequirement();
   const rejectMutation = useRejectRequest();
 
   const [activeTab, setActiveTab] = useState("overview");
@@ -247,16 +240,13 @@ export default function RequestDetailPage({ id }: { id: string }) {
     "changes_required",
     "resubmitted",
     "approved",
-    "completed",
+    // A completed request is final: the letter has been released to the resident, so no withdrawal.
   ];
   const canWithdraw = isOwner && WITHDRAWABLE_STATUSES.includes(req.status);
 
   const isApproved = req.status === "approved";
   const hasLetter = !!(req.approvalLetter || req.completion?.finalApprovalLetter);
-  const depositIsConfigured =
-    req.deposit?.status === "not_required" ||
-    req.deposit?.required === false ||
-    (req.deposit?.required === true && req.deposit?.status === "received");
+  const depositIsConfigured = isDepositSatisfied(req.deposit);
 
   const canComplete = isOwner && isApproved && hasLetter && depositIsConfigured;
   const needsRefundAction =
@@ -278,7 +268,7 @@ export default function RequestDetailPage({ id }: { id: string }) {
     } catch (err: any) {
       if (err?.response?.status === 409) {
         toast.error("Conflict", "The request was updated in another session. Refreshed to latest state.");
-        qc.invalidateQueries({ queryKey: ["requests", req.id] });
+        qc.invalidateQueries({ queryKey: keys.requestDetail(req.id) });
       } else {
         toast.error("Could not start review", err.message || "An unexpected error occurred.");
       }
@@ -300,7 +290,7 @@ export default function RequestDetailPage({ id }: { id: string }) {
     } catch (err: any) {
       if (err?.response?.status === 409) {
         toast.error("Conflict", "The review was updated in another session. Refreshed.");
-        qc.invalidateQueries({ queryKey: ["requests", req.id] });
+        qc.invalidateQueries({ queryKey: keys.requestDetail(req.id) });
       } else {
         toast.error("Could not flag field", err.message || "An unexpected error occurred.");
       }
@@ -325,7 +315,7 @@ export default function RequestDetailPage({ id }: { id: string }) {
     } catch (err: any) {
       if (err?.response?.status === 409) {
         toast.error("Conflict", "The review was updated in another session. Refreshed.");
-        qc.invalidateQueries({ queryKey: ["requests", req.id] });
+        qc.invalidateQueries({ queryKey: keys.requestDetail(req.id) });
       } else {
         toast.error("Could not update field", err.message || "An unexpected error occurred.");
       }
@@ -350,7 +340,7 @@ export default function RequestDetailPage({ id }: { id: string }) {
     } catch (err: any) {
       if (err?.response?.status === 409) {
         toast.error("Conflict", "The review was updated in another session. Refreshed.");
-        qc.invalidateQueries({ queryKey: ["requests", req.id] });
+        qc.invalidateQueries({ queryKey: keys.requestDetail(req.id) });
       } else {
         toast.error("Could not flag document", err.message || "An unexpected error occurred.");
       }
@@ -375,7 +365,7 @@ export default function RequestDetailPage({ id }: { id: string }) {
     } catch (err: any) {
       if (err?.response?.status === 409) {
         toast.error("Conflict", "The review was updated in another session. Refreshed.");
-        qc.invalidateQueries({ queryKey: ["requests", req.id] });
+        qc.invalidateQueries({ queryKey: keys.requestDetail(req.id) });
       } else {
         toast.error("Could not update document", err.message || "An unexpected error occurred.");
       }
@@ -385,7 +375,7 @@ export default function RequestDetailPage({ id }: { id: string }) {
     }
   }
 
-  async function handleApprove() {
+  async function handleApprove(deposit: DepositValue) {
     if (!req) return;
     setIsProcessingDecision(true);
     try {
@@ -407,18 +397,32 @@ export default function RequestDetailPage({ id }: { id: string }) {
         currentReviewVersion = updated.review?.reviewVersion ?? currentReviewVersion + 1;
       }
 
-      await approveMutation.mutateAsync({
+      const approved = await approveMutation.mutateAsync({
         requestId: req.id,
         expectedAssignmentVersion: req.assignmentVersion ?? 0,
         expectedWorkflowVersion: req.workflowVersion ?? 1,
         expectedReviewVersion: currentReviewVersion,
       });
+
+      // The deposit answer was collected in the approve dialog; the backend only accepts it on an
+      // already-approved request, so it is saved right after approval using the fresh versions.
+      try {
+        await setDepositMutation.mutateAsync({
+          requestId: req.id,
+          expectedAssignmentVersion: approved.assignmentVersion ?? req.assignmentVersion ?? 0,
+          expectedWorkflowVersion: approved.workflowVersion ?? (req.workflowVersion ?? 1) + 1,
+          depositRequired: deposit.required === true,
+          amount: deposit.required ? deposit.amount.trim() : undefined,
+        });
+      } catch {
+        toast.warning("Approved, but the deposit wasn't saved", "Set it in the “Finish up this approval” panel.");
+      }
       toast.success("Request approved", `${req.code} has been approved successfully.`);
-      setApproveOpen(false);
+      window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (err: any) {
       if (err?.response?.status === 409) {
         toast.error("Conflict", "The request was updated in another session. Refreshed.");
-        qc.invalidateQueries({ queryKey: ["requests", req.id] });
+        qc.invalidateQueries({ queryKey: keys.requestDetail(req.id) });
       } else {
         toast.error("Could not approve request", err.message || "An unexpected error occurred.");
       }
@@ -462,7 +466,7 @@ export default function RequestDetailPage({ id }: { id: string }) {
     } catch (err: any) {
       if (err?.response?.status === 409) {
         toast.error("Conflict", "The request was updated in another session. Refreshed.");
-        qc.invalidateQueries({ queryKey: ["requests", req.id] });
+        qc.invalidateQueries({ queryKey: keys.requestDetail(req.id) });
       } else {
         toast.error("Could not request revision", err.message || "An unexpected error occurred.");
       }
@@ -487,7 +491,7 @@ export default function RequestDetailPage({ id }: { id: string }) {
     } catch (err: any) {
       if (err?.response?.status === 409) {
         toast.error("Conflict", "The request was updated in another session. Refreshed.");
-        qc.invalidateQueries({ queryKey: ["requests", req.id] });
+        qc.invalidateQueries({ queryKey: keys.requestDetail(req.id) });
       } else {
         toast.error("Could not reject request", err.message || "An unexpected error occurred.");
       }
@@ -710,46 +714,15 @@ export default function RequestDetailPage({ id }: { id: string }) {
           </div>
         </div>
       )}
-      {/* Approved Action Banner */}
+      {/* Everything left to do after approval, in one place */}
       {isApproved && isOwner && (
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-2xl border border-emerald-300/80 bg-emerald-50/50 p-4 dark:border-emerald-900/80 dark:bg-emerald-950/20">
-          <div className="flex items-start gap-3 text-sm">
-            <CheckCircle2 className="mt-0.5 size-5 shrink-0 text-emerald-600 dark:text-emerald-400" aria-hidden="true" />
-            <div className="min-w-0 flex-1">
-              <p className="font-semibold text-emerald-950 dark:text-emerald-200">
-                Approved Project · Finalization in Progress
-              </p>
-              <p className="text-xs text-emerald-900/80 dark:text-emerald-300/80 mt-0.5">
-                {canComplete
-                  ? "All completion prerequisites are fulfilled. You can now complete the request."
-                  : "Final approval letter and deposit requirements must be configured to complete this request."}
-              </p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2 shrink-0">
-            {canWithdraw && (
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="text-rose-600 hover:bg-rose-50 hover:text-rose-700 dark:text-rose-400 dark:hover:bg-rose-950/40 text-xs"
-                onClick={() => setWithdrawOpen(true)}
-              >
-                <Ban className="size-3.5 mr-1.5" />
-                Withdraw
-              </Button>
-            )}
-            <Button
-              type="button"
-              size="sm"
-              className="bg-emerald-600 hover:bg-emerald-700 text-white dark:bg-emerald-600 dark:hover:bg-emerald-700 text-xs"
-              onClick={() => setCompleteOpen(true)}
-            >
-              <CheckCircle2 className="size-3.5 mr-1.5" />
-              Complete Request
-            </Button>
-          </div>
-        </div>
+        <FinalizeApprovalPanel
+          request={req}
+          canWithdraw={canWithdraw}
+          onWithdraw={() => setWithdrawOpen(true)}
+          onComplete={() => setCompleteOpen(true)}
+          onPreviewFile={setPreview}
+        />
       )}
 
       {/* Refund Outcome Needed Banner */}
@@ -784,18 +757,27 @@ export default function RequestDetailPage({ id }: { id: string }) {
       )}
 
       {req.status === "withdrawn" && !needsRefundAction && (
-        <div className="flex items-start gap-3 rounded-2xl border border-slate-300/80 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-900/50">
-          <Ban className="mt-0.5 size-5 shrink-0 text-slate-600 dark:text-slate-300" aria-hidden="true" />
-          <div className="text-sm">
-            <p className="font-semibold text-foreground">
-              Withdrawn by resident {req.withdrawnAt && `on ${formatDate(req.withdrawnAt)}`}
-            </p>
-            <p className="text-muted-foreground">
-              Review processing stopped
-              {req.withdrawnFrom && ` (withdrawn while ${req.withdrawnFrom.replace("_", " ")})`}. Documents, earlier decisions and history are preserved.
-            </p>
-          </div>
-        </div>
+        <WithdrawnNotice
+          audience="staff"
+          withdrawnAt={req.withdrawnAt ? formatDate(req.withdrawnAt) : undefined}
+          withdrawnFrom={req.withdrawnFrom ?? req.withdrawal?.withdrawnFrom ?? null}
+          by={req.withdrawal?.withdrawnBy?.displayName || req.withdrawal?.withdrawnBy?.name || "Resident"}
+          refund={
+            req.refund?.outcome === "refunded"
+              ? {
+                  state: "refunded",
+                  date: req.refund.refundDate ? formatDate(req.refund.refundDate) : undefined,
+                  amount:
+                    req.deposit?.amount != null
+                      ? `$${Number(req.deposit.amount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                      : undefined,
+                  by: req.refund.recordedBy,
+                }
+              : req.refund?.outcome === "no_refund"
+                ? { state: "no_refund", explanation: req.refund.explanation, by: req.refund.recordedBy }
+                : undefined
+          }
+        />
       )}
 
       <RequestJourney request={req} />
@@ -1120,7 +1102,7 @@ export default function RequestDetailPage({ id }: { id: string }) {
 
             {/* Decisions & deposit */}
             <TabsContent value="decisions" className="space-y-5 pt-4">
-              <ApprovalLetterCard request={req} isOwner={isOwner} onPreviewFile={setPreview} />
+              <ApprovalLetterCard request={req} isOwner={isOwner} onPreviewFile={setPreview} readOnly />
 
               {req.status === "completed" && (
                 <EmailStatusCard request={req} isOwner={isOwner} />
@@ -1223,12 +1205,11 @@ export default function RequestDetailPage({ id }: { id: string }) {
                 );
               })()}
 
-              <DepositConfigCard request={req} isOwner={isOwner} onPreviewFile={setPreview} />
             </TabsContent>
 
             {/* Deposit */}
             <TabsContent value="deposit" className="space-y-5 pt-4">
-              <DepositConfigCard request={req} isOwner={isOwner} onPreviewFile={setPreview} />
+              <DepositConfigCard request={req} isOwner={isOwner} onPreviewFile={setPreview} readOnly />
             </TabsContent>
 
             {/* Refund */}
@@ -1415,50 +1396,6 @@ export default function RequestDetailPage({ id }: { id: string }) {
         </div>
       )}
 
-      {/* Sticky Bottom Completion Action Bar for Approved State */}
-      {isApproved && isOwner && (
-        <div className="sticky bottom-4 z-20 mt-6 flex flex-col gap-3 rounded-2xl border border-emerald-300/80 bg-background/95 p-4 shadow-xl backdrop-blur-md sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-2.5">
-            <span className="flex size-8 items-center justify-center rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300">
-              <CheckCircle2 className="size-4" aria-hidden="true" />
-            </span>
-            <div>
-              <p className="text-sm font-semibold text-foreground">
-                {canComplete
-                  ? "Prerequisites Ready · Ready for Request Completion"
-                  : "Approved Application · Finalize letter & deposit"}
-              </p>
-              <p className="text-xs text-muted-foreground">
-                {canComplete
-                  ? "Completion will release the approval letter and send the resident email."
-                  : `${!hasLetter ? "Final letter missing" : ""}${!hasLetter && !depositIsConfigured ? " · " : ""}${!depositIsConfigured ? "Deposit confirmation needed" : ""}`}
-              </p>
-            </div>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            {canWithdraw && (
-              <Button
-                type="button"
-                variant="outline"
-                className="text-rose-600 hover:bg-rose-50 hover:text-rose-700 dark:text-rose-400 dark:hover:bg-rose-950/40 text-xs"
-                onClick={() => setWithdrawOpen(true)}
-              >
-                <Ban className="size-4 mr-1.5" />
-                Withdraw Request
-              </Button>
-            )}
-            <Button
-              type="button"
-              className="bg-emerald-600 hover:bg-emerald-700 text-white dark:bg-emerald-600 dark:hover:bg-emerald-700"
-              onClick={() => setCompleteOpen(true)}
-            >
-              <CheckCircle2 className="size-4 mr-1.5" />
-              Complete Request
-            </Button>
-          </div>
-        </div>
-      )}
-
       {/* Dialogs */}
       <AssignReviewerDialog request={assigning} onOpenChange={(o) => !o && setAssigning(null)} />
       <FilePreviewDialog
@@ -1492,8 +1429,8 @@ export default function RequestDetailPage({ id }: { id: string }) {
         request={req}
         open={completeOpen}
         onOpenChange={setCompleteOpen}
-        onOpenDepositDialog={() => setActiveTab("deposit")}
-        onOpenLetterDialog={() => setActiveTab("decisions")}
+        onOpenDepositDialog={() => document.getElementById("finalize-panel")?.scrollIntoView({ behavior: "smooth", block: "start" })}
+        onOpenLetterDialog={() => document.getElementById("finalize-panel")?.scrollIntoView({ behavior: "smooth", block: "start" })}
       />
       <WithdrawRequestDialog
         request={req}
