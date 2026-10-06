@@ -25,6 +25,7 @@ import {
   PenLine,
   RefreshCw,
 } from "lucide-react";
+import { ExpandableText } from "@/components/shared/expandable-text";
 import { cn } from "@/utils/cn";
 import { formatDateTime, formatRelative } from "@/utils/format";
 import { describeEvent, titleCase } from "@/lib/history-event-info";
@@ -146,7 +147,7 @@ export function HistoryTimeline({ events }: { events: HistoryEvent[] }) {
               )}
               {event.detail && (
                 <p className="rounded-lg border border-border/70 bg-muted/40 px-3 py-2 text-xs leading-relaxed text-muted-foreground break-words [overflow-wrap:anywhere]">
-                  {event.detail}
+                  <ExpandableText text={event.detail} limit={160} />
                 </p>
               )}
 

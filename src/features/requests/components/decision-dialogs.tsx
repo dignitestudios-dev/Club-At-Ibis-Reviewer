@@ -1,5 +1,6 @@
 "use client";
 
+import { ExpandableText } from "@/components/shared/expandable-text";
 import { useEffect, useState, useRef, useMemo } from "react";
 import { AlertTriangle, CheckCircle2, FileEdit, XCircle } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -283,7 +284,7 @@ export function RequestRevisionDialog({
               >
                 <p className="font-semibold text-foreground break-words [overflow-wrap:anywhere]">{item.label}</p>
                 <p className="mt-1 text-muted-foreground whitespace-pre-wrap break-words [overflow-wrap:anywhere] [word-break:break-word]">
-                  {item.reason || "Please review and update this item."}
+                  <ExpandableText text={item.reason || "Please review and update this item."} limit={140} />
                 </p>
               </div>
             ))}

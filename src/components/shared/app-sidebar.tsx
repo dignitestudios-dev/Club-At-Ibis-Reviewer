@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { ClipboardCheck, Crown } from "lucide-react";
 import { Logo } from "@/components/shared/logo";
 import { navGroupsFor, type NavItem } from "@/components/shared/nav-items";
-import { useIncomingRequestsPage, useNotifications, useRequestsPage } from "@/hooks/use-reviewer-data";
+import { useIncomingRequestsPage, useRequestsPage, useUnreadNotificationCount } from "@/hooks/use-reviewer-data";
 import { useMe } from "@/hooks/use-current-user";
 import { cn } from "@/utils/cn";
 
@@ -40,13 +40,13 @@ export function AppSidebar({ onNavigate }: { onNavigate?: () => void }) {
   // a general (non-default) reviewer has no permission for it and the
   // backend returns 403, so this must stay gated behind `isDefault`.
   const { data: incomingPage } = useIncomingRequestsPage({ limit: 1 }, { enabled: isDefault });
-  const { data: notifications } = useNotifications();
+  const { data: unreadNotifications } = useUnreadNotificationCount();
   const mineCount = (actionPage?.pagination?.total ?? 0) + (refundsPage?.pagination?.total ?? 0);
   const counts = {
     // Work that needs this reviewer to act right now.
     mine: mineCount,
     incoming: incomingPage?.pagination?.total ?? 0,
-    notifications: notifications?.filter((n) => !n.read).length ?? 0,
+    notifications: unreadNotifications ?? 0,
   };
 
   return (
@@ -105,9 +105,9 @@ export function AppSidebar({ onNavigate }: { onNavigate?: () => void }) {
                           "min-w-5 rounded-full px-1.5 py-px text-center text-[10px] font-bold tabular-nums",
                           item.badge === "notifications" ? "bg-rose-500 text-white" : "bg-brand-gold text-[#0d1522]"
                         )}
-                        aria-label={`${count} pending`}
+                        aria-label={item.badge === "notifications" ? `${count} unread` : `${count} pending`}
                       >
-                        {count}
+                        {count > 99 ? "99+" : count}
                       </span>
                     )}
                   </Link>
