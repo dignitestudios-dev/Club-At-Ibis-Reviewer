@@ -1,6 +1,6 @@
 "use client";
 
-import { ProcessingChip, isRefundPending } from "@/components/shared/processing-chip";
+import { ProcessingChip, hasProcessingState, isRefundPending } from "@/components/shared/processing-chip";
 import { useMemo } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -21,7 +21,7 @@ const TONE = {
   done: "text-muted-foreground",
 } as const;
 
-/** Shared table for the reviewer's request lists. Rows open the request. */
+/** Shared table for the reviewer's request lists. Rows open the request. Render it inside <TableFrame>. */
 export function RequestsTable({
   rows,
   showReviewer = false,
@@ -39,8 +39,7 @@ export function RequestsTable({
   const reviewerById = useMemo(() => new Map((reviewers ?? []).map((r) => [r.id, r])), [reviewers]);
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-border/80 bg-card shadow-2xs">
-      <Table>
+    <Table>
         <TableHeader>
           <TableRow className="bg-muted/40 hover:bg-muted/40">
             <TableHead className="pl-4 w-[190px] min-w-[190px]">Request</TableHead>
@@ -48,6 +47,7 @@ export function RequestsTable({
             <TableHead className="max-w-[190px]">Property</TableHead>
             <TableHead className="min-w-[160px]">Status</TableHead>
             <TableHead className="min-w-[150px] max-w-[190px]">Next step</TableHead>
+            <TableHead className="min-w-[150px]">Deposit / refund</TableHead>
             {showReviewer && <TableHead className="max-w-[160px]">Reviewer</TableHead>}
             <TableHead className="max-w-[130px]">Submitted</TableHead>
             {renderActions && (
@@ -101,13 +101,13 @@ export function RequestsTable({
                   <span className="block max-w-[190px] truncate text-sm text-muted-foreground" title={propAddress}>{propAddress}</span>
                 </TableCell>
                 <TableCell className="min-w-[160px]">
-                  <div className="flex flex-col items-start gap-1">
-                    <StatusBadge status={req.status} />
-                    <ProcessingChip request={req} />
-                  </div>
+                  <StatusBadge status={req.status} />
                 </TableCell>
                 <TableCell className="min-w-[150px] max-w-[190px]">
                   <span className={cn("text-xs font-medium block line-clamp-2 break-words", TONE[step.tone])} title={step.label}>{step.label}</span>
+                </TableCell>
+                <TableCell className="min-w-[150px]">
+                  {hasProcessingState(req) ? <ProcessingChip request={req} /> : <span className="text-xs text-muted-foreground">—</span>}
                 </TableCell>
                 {showReviewer && (
                   <TableCell className="max-w-[160px]">
@@ -137,7 +137,6 @@ export function RequestsTable({
             );
           })}
         </TableBody>
-      </Table>
-    </div>
+    </Table>
   );
 }

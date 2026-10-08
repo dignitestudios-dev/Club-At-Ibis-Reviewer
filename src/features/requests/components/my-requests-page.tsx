@@ -11,6 +11,7 @@ import { SegmentedTabs } from "@/components/shared/pill-tabs";
 import { SearchInput } from "@/components/shared/search-input";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { TableFrame } from "@/components/shared/table-frame";
 import { RequestsTable } from "@/features/requests/components/requests-table";
 import { useCategories, useRequestsPage } from "@/hooks/use-reviewer-data";
 import { useMe } from "@/hooks/use-current-user";
@@ -164,19 +165,22 @@ export default function MyRequestsPage() {
           }
         />
       ) : (
-        <div className="space-y-4">
+        <TableFrame
+          footer={
+            <Pagination
+              page={page}
+              pageSize={pageSize}
+              total={total}
+              onPageChange={(p) => set({ page: String(p) })}
+              onPageSizeChange={(n) => {
+                setPageSize(n);
+                set({ page: "1" });
+              }}
+            />
+          }
+        >
           <RequestsTable rows={rows} />
-          <Pagination
-            page={page}
-            pageSize={pageSize}
-            total={total}
-            onPageChange={(p) => set({ page: String(p) })}
-            onPageSizeChange={(n) => {
-              setPageSize(n);
-              set({ page: "1" });
-            }}
-          />
-        </div>
+        </TableFrame>
       )}
     </div>
   );

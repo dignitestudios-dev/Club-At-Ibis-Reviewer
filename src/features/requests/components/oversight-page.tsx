@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DefaultReviewersOnly } from "@/features/requests/components/incoming-page";
 import { AssignReviewerDialog } from "@/features/requests/components/assign-reviewer-dialog";
+import { TableFrame } from "@/components/shared/table-frame";
 import { RequestsTable } from "@/features/requests/components/requests-table";
 import { useRequestsPage, useReviewers } from "@/hooks/use-reviewer-data";
 import { useMe } from "@/hooks/use-current-user";
@@ -165,30 +166,33 @@ export default function OversightPage() {
           }
         />
       ) : (
-        <div className="space-y-4">
+        <TableFrame
+          footer={
+            <Pagination
+              page={page}
+              pageSize={pageSize}
+              total={total}
+              onPageChange={(p) => set({ page: String(p) })}
+              onPageSizeChange={(n) => {
+                setPageSize(n);
+                set({ page: "1" });
+              }}
+            />
+          }
+        >
           <RequestsTable
             rows={rows}
             showReviewer
             renderActions={(req) =>
-              IN_FLIGHT.includes(req.status) ? (
-                <Button size="sm" variant="outline" onClick={() => setTarget(req)}>
-                  <UserRoundPlus />
-                  {req.assignedReviewerId ? "Reassign" : "Assign"}
-                </Button>
+            IN_FLIGHT.includes(req.status) ? (
+              <Button size="sm" variant="outline" onClick={() => setTarget(req)}>
+                <UserRoundPlus />
+                {req.assignedReviewerId ? "Reassign" : "Assign"}
+              </Button>
               ) : null
             }
           />
-          <Pagination
-            page={page}
-            pageSize={pageSize}
-            total={total}
-            onPageChange={(p) => set({ page: String(p) })}
-            onPageSizeChange={(n) => {
-              setPageSize(n);
-              set({ page: "1" });
-            }}
-          />
-        </div>
+        </TableFrame>
       )}
 
       <AssignReviewerDialog request={target} onOpenChange={(o) => !o && setTarget(null)} />

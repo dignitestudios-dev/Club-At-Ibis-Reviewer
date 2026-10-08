@@ -8,7 +8,7 @@ const KEY = "carv.page-size";
 function read(): number {
   try {
     const n = Number(window.localStorage.getItem(KEY));
-    return PAGE_SIZE_OPTIONS.includes(n) ? n : 10;
+    return PAGE_SIZE_OPTIONS.includes(n) ? n : 50;
   } catch {
     return 10;
   }
