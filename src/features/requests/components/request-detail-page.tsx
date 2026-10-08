@@ -1299,11 +1299,6 @@ export default function RequestDetailPage({ id }: { id: string }) {
                           )}
                         </dl>
   
-                        {req.refund?.outcome === "no_refund" && (
-                          <p className="rounded-xl border border-border bg-muted/40 p-3 text-xs text-muted-foreground">
-                            <span className="font-semibold text-foreground">&ldquo;-&rdquo; means No Refund.</span> The deposit was retained or non-refundable.
-                          </p>
-                        )}
   
                         {req.refund?.correctionReason && (
                           <div className="rounded-xl border border-border/80 bg-muted/30 p-3 text-xs">

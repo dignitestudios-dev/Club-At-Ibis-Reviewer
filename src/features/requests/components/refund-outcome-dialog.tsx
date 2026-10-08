@@ -163,9 +163,9 @@ export function RefundOutcomeDialog({
               <div className="flex items-start space-x-3 rounded-xl border border-border/80 p-3 hover:bg-muted/20 cursor-pointer">
                 <RadioGroupItem value="no_refund" id="ref-no-refund" className="mt-0.5" />
                 <Label htmlFor="ref-no-refund" className="cursor-pointer flex-1 font-normal">
-                  <span className="font-medium text-foreground block">No Refund (—)</span>
+                  <span className="font-medium text-foreground block">No Refund</span>
                   <span className="text-xs text-muted-foreground block mt-0.5">
-                    No refund is due or deposit was retained (displayed as &ldquo;-&rdquo; with label).
+                    No refund is due, or the deposit was retained.
                   </span>
                 </Label>
               </div>
