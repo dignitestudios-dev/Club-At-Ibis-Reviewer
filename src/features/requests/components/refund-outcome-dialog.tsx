@@ -115,7 +115,7 @@ export function RefundOutcomeDialog({
   }
 
   return (
-    <Dialog open={open} onOpenChange={(o) => !setRefundMutation.isPending && onOpenChange(o)}>
+    <Dialog disablePointerDismissal open={open} onOpenChange={(o) => !setRefundMutation.isPending && onOpenChange(o)}>
       <DialogContent className="sm:max-w-md w-full max-w-[calc(100vw-2rem)]">
         <DialogHeader className="min-w-0">
           <div className="mb-1 flex size-10 items-center justify-center rounded-xl border border-amber-300/80 bg-amber-50 text-amber-800 dark:border-amber-800 dark:bg-amber-950/50 dark:text-amber-300">

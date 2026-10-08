@@ -165,7 +165,7 @@ export function CreateLetterDialog({
   }
 
   return (
-    <Dialog open={open} onOpenChange={(o) => !isUploading && onOpenChange(o)}>
+    <Dialog disablePointerDismissal open={open} onOpenChange={(o) => !isUploading && onOpenChange(o)}>
       <DialogContent className="flex h-[94svh] w-[calc(100vw-1rem)] max-w-none flex-col gap-0 overflow-hidden p-0 sm:max-w-6xl">
         <DialogHeader className="shrink-0 border-b border-border px-5 py-4 pr-12">
           <DialogTitle className="flex items-center gap-2 font-heading text-xl font-medium">

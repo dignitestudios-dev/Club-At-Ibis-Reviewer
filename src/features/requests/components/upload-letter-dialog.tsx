@@ -142,7 +142,7 @@ export function UploadLetterDialog({ request, open, onOpenChange, isReplacing = 
   }
 
   return (
-    <Dialog open={open} onOpenChange={handleDialogClose}>
+    <Dialog disablePointerDismissal open={open} onOpenChange={handleDialogClose}>
       <DialogContent className="sm:max-w-md w-full max-w-[calc(100vw-2rem)]">
         <DialogHeader className="min-w-0">
           <div className="mb-1 flex size-10 items-center justify-center rounded-xl border border-teal-300/80 bg-teal-50 text-teal-800 dark:border-teal-800 dark:bg-teal-950/50 dark:text-teal-300">
