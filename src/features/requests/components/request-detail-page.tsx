@@ -59,7 +59,7 @@ import { CompleteRequestDialog } from "@/features/requests/components/complete-r
 import { EmailStatusCard } from "@/features/requests/components/email-status-card";
 import { WithdrawRequestDialog } from "@/features/requests/components/withdraw-request-dialog";
 import { RefundOutcomeDialog } from "@/features/requests/components/refund-outcome-dialog";
-import { useApproveRequest, useSetDepositRequirement, useAssessReviewItems, useAssignRequest, useCategories, useRejectRequest, useRequest, useRequestRevision, useResidents, useReviewers, useStartReview, keys } from "@/hooks/use-reviewer-data";
+import { isConflictError, useApproveRequest, useSetDepositRequirement, useAssessReviewItems, useAssignRequest, useCategories, useRejectRequest, useRequest, useRequestRevision, useResidents, useReviewers, useStartReview, keys } from "@/hooks/use-reviewer-data";
 import { useMe } from "@/hooks/use-current-user";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -242,9 +242,18 @@ export default function RequestDetailPage({ id }: { id: string }) {
     "changes_required",
     "resubmitted",
     "approved",
-    // A completed request is final: the letter has been released to the resident, so no withdrawal.
+    // A withdrawal is allowed at any point, even after completion. Only requests that already ended
+    // (rejected / withdrawn) can't be withdrawn.
+    "completed",
   ];
   const canWithdraw = isOwner && WITHDRAWABLE_STATUSES.includes(req.status);
+
+  // Deposit / Refund only exist for some requests: the Deposit tab when a deposit is required, the Refund
+  // tab once a request with a received deposit has been withdrawn.
+  const showDepositTab = req.deposit?.required === true;
+  const showRefundTab = req.status === "withdrawn" && req.deposit?.status === "received";
+  const visibleTab =
+    (activeTab === "deposit" && !showDepositTab) || (activeTab === "refund" && !showRefundTab) ? "overview" : activeTab;
 
   const isApproved = req.status === "approved";
   const hasLetter = !!(req.approvalLetter || req.completion?.finalApprovalLetter);
@@ -268,9 +277,8 @@ export default function RequestDetailPage({ id }: { id: string }) {
       });
       toast.success("Review started", `Review round for ${req.code} is now active.`);
     } catch (err: any) {
-      if (err?.response?.status === 409) {
-        toast.error("Conflict", "The request was updated in another session. Refreshed to latest state.");
-        qc.invalidateQueries({ queryKey: keys.requestDetail(req.id) });
+      if ((err?.statusCode ?? err?.response?.status) === 409) {
+        // Reloaded + toast shown by useRequestMutation.
       } else {
         toast.error("Could not start review", err.message || "An unexpected error occurred.");
       }
@@ -290,9 +298,8 @@ export default function RequestDetailPage({ id }: { id: string }) {
       });
       toast.success("Field flagged", "The correction note has been recorded.");
     } catch (err: any) {
-      if (err?.response?.status === 409) {
-        toast.error("Conflict", "The review was updated in another session. Refreshed.");
-        qc.invalidateQueries({ queryKey: keys.requestDetail(req.id) });
+      if ((err?.statusCode ?? err?.response?.status) === 409) {
+        // Reloaded + toast shown by useRequestMutation.
       } else {
         toast.error("Could not flag field", err.message || "An unexpected error occurred.");
       }
@@ -315,9 +322,8 @@ export default function RequestDetailPage({ id }: { id: string }) {
       });
       toast.success("Flag cleared", `${field.label} is marked as accepted.`);
     } catch (err: any) {
-      if (err?.response?.status === 409) {
-        toast.error("Conflict", "The review was updated in another session. Refreshed.");
-        qc.invalidateQueries({ queryKey: keys.requestDetail(req.id) });
+      if ((err?.statusCode ?? err?.response?.status) === 409) {
+        // Reloaded + toast shown by useRequestMutation.
       } else {
         toast.error("Could not update field", err.message || "An unexpected error occurred.");
       }
@@ -340,9 +346,8 @@ export default function RequestDetailPage({ id }: { id: string }) {
       });
       toast.success("Document flagged", "The correction note has been recorded.");
     } catch (err: any) {
-      if (err?.response?.status === 409) {
-        toast.error("Conflict", "The review was updated in another session. Refreshed.");
-        qc.invalidateQueries({ queryKey: keys.requestDetail(req.id) });
+      if ((err?.statusCode ?? err?.response?.status) === 409) {
+        // Reloaded + toast shown by useRequestMutation.
       } else {
         toast.error("Could not flag document", err.message || "An unexpected error occurred.");
       }
@@ -365,9 +370,8 @@ export default function RequestDetailPage({ id }: { id: string }) {
       });
       toast.success("Flag cleared", "The document is marked as accepted.");
     } catch (err: any) {
-      if (err?.response?.status === 409) {
-        toast.error("Conflict", "The review was updated in another session. Refreshed.");
-        qc.invalidateQueries({ queryKey: keys.requestDetail(req.id) });
+      if ((err?.statusCode ?? err?.response?.status) === 409) {
+        // Reloaded + toast shown by useRequestMutation.
       } else {
         toast.error("Could not update document", err.message || "An unexpected error occurred.");
       }
@@ -421,9 +425,8 @@ export default function RequestDetailPage({ id }: { id: string }) {
       toast.success("Request approved", `${req.code} has been approved successfully.`);
       window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (err: any) {
-      if (err?.response?.status === 409) {
-        toast.error("Conflict", "The request was updated in another session. Refreshed.");
-        qc.invalidateQueries({ queryKey: keys.requestDetail(req.id) });
+      if ((err?.statusCode ?? err?.response?.status) === 409) {
+        // Reloaded + toast shown by useRequestMutation.
       } else {
         toast.error("Could not approve request", err.message || "An unexpected error occurred.");
       }
@@ -465,9 +468,8 @@ export default function RequestDetailPage({ id }: { id: string }) {
       toast.success("Revision requested", `Resident notified to submit corrections for ${req.code}.`);
       setRevisionOpen(false);
     } catch (err: any) {
-      if (err?.response?.status === 409) {
-        toast.error("Conflict", "The request was updated in another session. Refreshed.");
-        qc.invalidateQueries({ queryKey: keys.requestDetail(req.id) });
+      if ((err?.statusCode ?? err?.response?.status) === 409) {
+        // Reloaded + toast shown by useRequestMutation.
       } else {
         toast.error("Could not request revision", err.message || "An unexpected error occurred.");
       }
@@ -490,9 +492,8 @@ export default function RequestDetailPage({ id }: { id: string }) {
       toast.success("Request rejected", `${req.code} has been rejected.`);
       setRejectOpen(false);
     } catch (err: any) {
-      if (err?.response?.status === 409) {
-        toast.error("Conflict", "The request was updated in another session. Refreshed.");
-        qc.invalidateQueries({ queryKey: keys.requestDetail(req.id) });
+      if ((err?.statusCode ?? err?.response?.status) === 409) {
+        // Reloaded + toast shown by useRequestMutation.
       } else {
         toast.error("Could not reject request", err.message || "An unexpected error occurred.");
       }
@@ -554,9 +555,9 @@ export default function RequestDetailPage({ id }: { id: string }) {
             <div className="shrink-0 pt-1">
               <Button
                 type="button"
-                variant="outline"
+                variant="destructive"
                 size="sm"
-                className="text-rose-600 hover:bg-rose-50 hover:text-rose-700 dark:text-rose-400 dark:hover:bg-rose-950/40 text-xs"
+                className="text-xs"
                 onClick={() => setWithdrawOpen(true)}
               >
                 <Ban className="size-3.5 mr-1.5" />
@@ -659,7 +660,7 @@ export default function RequestDetailPage({ id }: { id: string }) {
                     { requestId: req.id, reviewerId: me.id },
                     {
                       onSuccess: () => toast.success("Ownership taken", `${req.code} is now yours.`),
-                      onError: (e: Error) => toast.error("Could not take ownership", e.message),
+                      onError: (e: Error) => !isConflictError(e) && toast.error("Could not take ownership", e.message),
                     }
                   )
                 }
@@ -895,12 +896,12 @@ export default function RequestDetailPage({ id }: { id: string }) {
       {/* Tabs */}
       <Card className="shadow-2xs">
         <CardContent className="pt-1">
-          <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as string)}>
+          <Tabs value={visibleTab} onValueChange={(v) => setActiveTab(v as string)}>
             <TabsList aria-label="Request sections">
               <TabsTrigger value="overview">Latest Submission</TabsTrigger>
               <TabsTrigger value="decisions">Decision</TabsTrigger>
-              <TabsTrigger value="deposit">Deposit</TabsTrigger>
-              <TabsTrigger value="refund">Refund</TabsTrigger>
+              {showDepositTab && <TabsTrigger value="deposit">Deposit</TabsTrigger>}
+              {showRefundTab && <TabsTrigger value="refund">Refund</TabsTrigger>}
               <TabsTrigger value="history">
                 Activity timeline{req.history.length > 0 ? ` (${req.history.length})` : ""}
               </TabsTrigger>
@@ -1238,100 +1239,104 @@ export default function RequestDetailPage({ id }: { id: string }) {
             </TabsContent>
 
             {/* Deposit */}
-            <TabsContent value="deposit" className="space-y-5 pt-4">
-              <DepositConfigCard request={req} isOwner={isOwner} onPreviewFile={setPreview} readOnly />
-            </TabsContent>
+            {showDepositTab && (
+              <TabsContent value="deposit" className="space-y-5 pt-4">
+                <DepositConfigCard request={req} isOwner={isOwner} onPreviewFile={setPreview} readOnly />
+              </TabsContent>
+            )}
 
             {/* Refund */}
-            <TabsContent value="refund" className="space-y-5 pt-4">
-              <Card className="rounded-xl border border-border/70 bg-transparent shadow-none ring-0">
-                <CardHeader className="border-b border-border/70 pb-3">
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <div>
-                      <CardTitle className="font-heading text-lg font-medium flex items-center gap-2">
-                        <ReceiptText className="size-5 text-amber-600 dark:text-amber-400" />
-                        Refund Outcome
-                      </CardTitle>
-                      <p className="text-xs text-muted-foreground">
-                        Staff disposition of security deposits for withdrawn applications.
+            {showRefundTab && (
+              <TabsContent value="refund" className="space-y-5 pt-4">
+                <Card className="rounded-xl border border-border/70 bg-transparent shadow-none ring-0">
+                  <CardHeader className="border-b border-border/70 pb-3">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <div>
+                        <CardTitle className="font-heading text-lg font-medium flex items-center gap-2">
+                          <ReceiptText className="size-5 text-amber-600 dark:text-amber-400" />
+                          Refund Outcome
+                        </CardTitle>
+                        <p className="text-xs text-muted-foreground">
+                          Staff disposition of security deposits for withdrawn applications.
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-semibold tracking-wide text-amber-900 uppercase dark:bg-amber-950/40 dark:text-amber-300">
+                          <Lock className="size-2.5" /> Staff only
+                        </span>
+                        {isOwner && req.status === "withdrawn" && req.deposit?.status === "received" && (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setIsCorrectingRefund(!!req.refund?.outcome && req.refund.outcome !== "awaiting" && req.refund.outcome !== "awaiting_refund_action");
+                              setRefundDialogOpen(true);
+                            }}
+                            className="h-8 gap-1 text-xs"
+                          >
+                            <ReceiptText className="size-3.5" />
+                            {req.refund?.outcome && req.refund.outcome !== "awaiting" && req.refund.outcome !== "awaiting_refund_action"
+                              ? "Correct Outcome"
+                              : "Record Outcome"}
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="space-y-4 pt-5">
+                    {req.status !== "withdrawn" || req.deposit?.status !== "received" ? (
+                      <p className="text-sm text-muted-foreground">
+                        {req.deposit.status === "received"
+                          ? "A refund outcome is only recorded if this application is withdrawn after a deposit is received."
+                          : "No deposit was collected for this request; refund outcome is not applicable."}
                       </p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-semibold tracking-wide text-amber-900 uppercase dark:bg-amber-950/40 dark:text-amber-300">
-                        <Lock className="size-2.5" /> Staff only
-                      </span>
-                      {isOwner && req.status === "withdrawn" && req.deposit?.status === "received" && (
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={() => {
-                            setIsCorrectingRefund(!!req.refund?.outcome && req.refund.outcome !== "awaiting" && req.refund.outcome !== "awaiting_refund_action");
-                            setRefundDialogOpen(true);
-                          }}
-                          className="h-8 gap-1 text-xs"
-                        >
-                          <ReceiptText className="size-3.5" />
-                          {req.refund?.outcome && req.refund.outcome !== "awaiting" && req.refund.outcome !== "awaiting_refund_action"
-                            ? "Correct Outcome"
-                            : "Record Outcome"}
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-4 pt-5">
-                  {req.status !== "withdrawn" || req.deposit?.status !== "received" ? (
-                    <p className="text-sm text-muted-foreground">
-                      {req.deposit.status === "received"
-                        ? "A refund outcome is only recorded if this application is withdrawn after a deposit is received."
-                        : "No deposit was collected for this request; refund outcome is not applicable."}
-                    </p>
-                  ) : (
-                    <div className="space-y-4">
-                      <dl className="grid gap-3 sm:grid-cols-2 rounded-xl border border-border/80 bg-muted/20 p-4">
-                        <InfoRow label="Original Deposit">
-                          <span className="font-mono text-base font-bold text-foreground">
-                            {formatDepositAmount(req.deposit.amount) ?? "Not specified"}
-                          </span>
-                        </InfoRow>
-                        <InfoRow label="Refund Status">
-                          <RefundChip refund={req.refund} />
-                        </InfoRow>
-                        {req.refund?.outcome === "refunded" && (
-                          <InfoRow label="Disbursement Date">
-                            <span className="font-medium">
-                              {req.refund.refundDate || (req.refund.date ? formatDateTime(req.refund.date) : "—")}
+                    ) : (
+                      <div className="space-y-4">
+                        <dl className="grid gap-3 sm:grid-cols-2 rounded-xl border border-border/80 bg-muted/20 p-4">
+                          <InfoRow label="Original Deposit">
+                            <span className="font-mono text-base font-bold text-foreground">
+                              {formatDepositAmount(req.deposit.amount) ?? "Not specified"}
                             </span>
                           </InfoRow>
-                        )}
-                        {req.refund?.recordedBy && (
-                          <InfoRow label="Recorded By">{req.refund.recordedBy}</InfoRow>
-                        )}
-                        {req.refund?.recordedAt && (
-                          <InfoRow label="Recorded On">{formatDateTime(req.refund.recordedAt)}</InfoRow>
-                        )}
-                      </dl>
-
-                      {req.refund?.outcome === "no_refund" && (
-                        <p className="rounded-xl border border-border bg-muted/40 p-3 text-xs text-muted-foreground">
-                          <span className="font-semibold text-foreground">&ldquo;-&rdquo; means No Refund.</span> The deposit was retained or non-refundable.
-                        </p>
-                      )}
-
-                      {req.refund?.correctionReason && (
-                        <div className="rounded-xl border border-border/80 bg-muted/30 p-3 text-xs">
-                          <p className="font-semibold text-foreground">Correction Reason:</p>
-                          <p className="text-muted-foreground mt-0.5 break-words [overflow-wrap:anywhere]">
-                            {req.refund.correctionReason}
+                          <InfoRow label="Refund Status">
+                            <RefundChip refund={req.refund} />
+                          </InfoRow>
+                          {req.refund?.outcome === "refunded" && (
+                            <InfoRow label="Disbursement Date">
+                              <span className="font-medium">
+                                {req.refund.refundDate || (req.refund.date ? formatDateTime(req.refund.date) : "—")}
+                              </span>
+                            </InfoRow>
+                          )}
+                          {req.refund?.recordedBy && (
+                            <InfoRow label="Recorded By">{req.refund.recordedBy}</InfoRow>
+                          )}
+                          {req.refund?.recordedAt && (
+                            <InfoRow label="Recorded On">{formatDateTime(req.refund.recordedAt)}</InfoRow>
+                          )}
+                        </dl>
+  
+                        {req.refund?.outcome === "no_refund" && (
+                          <p className="rounded-xl border border-border bg-muted/40 p-3 text-xs text-muted-foreground">
+                            <span className="font-semibold text-foreground">&ldquo;-&rdquo; means No Refund.</span> The deposit was retained or non-refundable.
                           </p>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </TabsContent>
+                        )}
+  
+                        {req.refund?.correctionReason && (
+                          <div className="rounded-xl border border-border/80 bg-muted/30 p-3 text-xs">
+                            <p className="font-semibold text-foreground">Correction Reason:</p>
+                            <p className="text-muted-foreground mt-0.5 break-words [overflow-wrap:anywhere]">
+                              {req.refund.correctionReason}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </TabsContent>
+            )}
 
             {/* History */}
             <TabsContent value="history" className="pt-4">
@@ -1343,7 +1348,14 @@ export default function RequestDetailPage({ id }: { id: string }) {
                   </p>
                 </CardHeader>
                 <CardContent className="pt-5">
-                  <HistoryTimeline events={req.history} />
+                  <HistoryTimeline
+                    events={req.history}
+                    onViewFile={(f) => {
+                      // Older versions aren't on the request any more, so size is only known for the current files.
+                      const known = [req.deposit?.receipt, req.approvalLetter, req.completion?.finalApprovalLetter].find((k) => k?.id === f.id);
+                      setPreview({ id: f.id, name: f.name, size: known?.size ?? 0, uploadedAt: known?.uploadedAt });
+                    }}
+                  />
                 </CardContent>
               </Card>
             </TabsContent>
@@ -1381,8 +1393,8 @@ export default function RequestDetailPage({ id }: { id: string }) {
             {canWithdraw && (
               <Button
                 type="button"
-                variant="outline"
-                className="text-rose-600 hover:bg-rose-50 hover:text-rose-700 dark:text-rose-400 dark:hover:bg-rose-950/40 text-xs"
+                variant="destructive"
+                className="text-xs"
                 onClick={() => setWithdrawOpen(true)}
                 disabled={isProcessingDecision}
               >

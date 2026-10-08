@@ -1,5 +1,6 @@
 "use client";
 
+import { ProcessingChip, isRefundPending } from "@/components/shared/processing-chip";
 import { useMemo } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -81,7 +82,7 @@ export function RequestsTable({
             const resName = residentFullName(resident);
             const propAddress = req.property?.address || req.fieldValues?.propertyAddress || "—";
             return (
-              <TableRow key={req.id} className="group cursor-pointer" onClick={() => router.push(`/requests/${req.id}`)}>
+              <TableRow key={req.id} className={cn("group cursor-pointer", isRefundPending(req) && "bg-amber-50/60 hover:bg-amber-50 dark:bg-amber-950/15 dark:hover:bg-amber-950/25")} onClick={() => router.push(`/requests/${req.id}`)}>
                 <TableCell className="pl-4 w-[190px] min-w-[190px]">
                   <Link
                     href={`/requests/${req.id}`}
@@ -100,7 +101,10 @@ export function RequestsTable({
                   <span className="block max-w-[190px] truncate text-sm text-muted-foreground" title={propAddress}>{propAddress}</span>
                 </TableCell>
                 <TableCell className="min-w-[160px]">
-                  <StatusBadge status={req.status} />
+                  <div className="flex flex-col items-start gap-1">
+                    <StatusBadge status={req.status} />
+                    <ProcessingChip request={req} />
+                  </div>
                 </TableCell>
                 <TableCell className="min-w-[150px] max-w-[190px]">
                   <span className={cn("text-xs font-medium block line-clamp-2 break-words", TONE[step.tone])} title={step.label}>{step.label}</span>

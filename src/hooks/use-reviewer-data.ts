@@ -1,6 +1,8 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useToast } from "@/hooks/use-toast";
+import { announceRequestConflict } from "@/hooks/use-close-on-conflict";
 import {
   getCategories,
   getIncomingRequests,
@@ -147,6 +149,13 @@ export const useNotifications = (options?: { enabled?: boolean }) =>
  */
 type ListImpact = "refetch" | "stale" | "none";
 
+/** HTTP 409: the request moved on (another tab / session / reviewer) since this screen loaded it. */
+export function isConflictError(err: unknown): boolean {
+  // `lib/axios.ts` rejects with a plain Error carrying `statusCode`; keep `response.status` as a fallback.
+  const e = err as { statusCode?: number; response?: { status?: number } } | null;
+  return (e?.statusCode ?? e?.response?.status) === 409;
+}
+
 /**
  * Every request mutation returns the updated request, so the detail cache is written straight from the
  * response (no extra GET). Lists are only touched as far as the mutation actually affects them, and the
@@ -157,8 +166,21 @@ function useRequestMutation<TVars extends { requestId: string }>(
   { lists, incoming = false }: { lists: ListImpact; incoming?: boolean }
 ) {
   const qc = useQueryClient();
+  const toast = useToast();
   return useMutation({
     mutationFn: fn,
+    // A stale-version 409 means the request changed elsewhere. Reload it (and the lists) right away so the
+    // screen shows the real state, and tell the reviewer once — callers don't need their own 409 handling.
+    onError: (error, vars) => {
+      if (!isConflictError(error)) return;
+      announceRequestConflict();
+      void qc.invalidateQueries({ queryKey: keys.requestDetail(vars.requestId) });
+      void qc.invalidateQueries({ queryKey: keys.requestLists, refetchType: "active" });
+      toast.warning(
+        "Request updated",
+        "This request was changed elsewhere (for example in another tab), so it has been refreshed. Review the latest details and try again."
+      );
+    },
     onSuccess: (updated, vars) => {
       qc.setQueryData(keys.requestDetail(vars.requestId), updated);
       const tasks: Promise<unknown>[] = [];

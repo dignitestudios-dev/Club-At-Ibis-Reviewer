@@ -8,7 +8,6 @@ import {
   Circle,
   Eye,
   FileCheck2,
-  FilePenLine,
   Pencil,
   RefreshCw,
   UploadCloud,
@@ -18,7 +17,7 @@ import { formatDate, formatDateTime, formatFileSize } from "@/utils/format";
 import { cn } from "@/utils/cn";
 import { DepositDialog } from "./deposit-dialog";
 import { formatDepositAmount, isDepositConfigured } from "./deposit-fields";
-import { CreateLetterDialog } from "./create-letter-dialog";
+// import { CreateLetterDialog } from "./create-letter-dialog"; // letter creation is off for now
 import { UploadLetterDialog } from "./upload-letter-dialog";
 import { UploadReceiptDialog } from "./upload-receipt-dialog";
 
@@ -75,7 +74,7 @@ export function FinalizeApprovalPanel({
   const [receiptOpen, setReceiptOpen] = useState(false);
   const [replacingReceipt, setReplacingReceipt] = useState(false);
   const [letterOpen, setLetterOpen] = useState(false);
-  const [composeOpen, setComposeOpen] = useState(false);
+  // const [composeOpen, setComposeOpen] = useState(false); // letter creation is off for now
   const [replacingLetter, setReplacingLetter] = useState(false);
 
   const deposit = request.deposit;
@@ -207,6 +206,7 @@ export function FinalizeApprovalPanel({
                   <Eye className="size-3.5" />
                   Preview
                 </Button>
+                {/* Letter creation is switched off for now (letters are upload-only). Code kept for later: re-enable by restoring the buttons, the dialog below, the import and the state.
                 <Button
                   type="button"
                   variant="ghost"
@@ -220,6 +220,7 @@ export function FinalizeApprovalPanel({
                   <FilePenLine className="size-3.5" />
                   New letter
                 </Button>
+                */}
                 <Button
                   type="button"
                   variant="ghost"
@@ -236,6 +237,7 @@ export function FinalizeApprovalPanel({
               </>
             ) : (
               <>
+                {/*
                 <Button
                   type="button"
                   size="sm"
@@ -247,6 +249,7 @@ export function FinalizeApprovalPanel({
                   <FilePenLine className="size-3.5" />
                   Create letter
                 </Button>
+                */}
                 <Button
                   type="button"
                   variant="outline"
@@ -272,7 +275,7 @@ export function FinalizeApprovalPanel({
               <span>· {formatFileSize(letter.size)}</span>
             </span>
           ) : (
-            "Create the letter here (pre-filled from the request) or upload your own file. The resident sees it once the request is completed."
+            "Upload the signed final letter (PDF or image). The resident sees it once the request is completed."
           )}
         </Step>
       </ol>
@@ -287,9 +290,9 @@ export function FinalizeApprovalPanel({
           {canWithdraw && (
             <Button
               type="button"
-              variant="outline"
+              variant="destructive"
               size="sm"
-              className="text-xs text-rose-600 hover:bg-rose-50 hover:text-rose-700 dark:text-rose-400 dark:hover:bg-rose-950/40"
+              className="text-xs"
               onClick={onWithdraw}
             >
               <Ban className="size-3.5" />
@@ -311,7 +314,7 @@ export function FinalizeApprovalPanel({
 
       <DepositDialog request={request} open={depositOpen} onOpenChange={setDepositOpen} />
       <UploadReceiptDialog request={request} open={receiptOpen} onOpenChange={setReceiptOpen} isReplacing={replacingReceipt} />
-      <CreateLetterDialog request={request} open={composeOpen} onOpenChange={setComposeOpen} isReplacing={replacingLetter} />
+      {/* <CreateLetterDialog request={request} open={composeOpen} onOpenChange={setComposeOpen} isReplacing={replacingLetter} /> */}
       <UploadLetterDialog request={request} open={letterOpen} onOpenChange={setLetterOpen} isReplacing={replacingLetter} />
     </section>
   );

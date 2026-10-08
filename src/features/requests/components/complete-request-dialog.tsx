@@ -1,5 +1,6 @@
 "use client";
 
+import { useCloseOnConflict } from "@/hooks/use-close-on-conflict";
 import { useState, useRef } from "react";
 import { CheckCircle2, AlertTriangle, FileCheck2, DollarSign, XCircle, Send } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -25,6 +26,7 @@ export function CompleteRequestDialog({
   onOpenDepositDialog,
   onOpenLetterDialog,
 }: CompleteRequestDialogProps) {
+  useCloseOnConflict(open, () => onOpenChange(false));
   const toast = useToast();
   const qc = useQueryClient();
   const completeMutation = useCompleteRequest();
@@ -61,9 +63,9 @@ export function CompleteRequestDialog({
       onOpenChange(false);
     } catch (err: any) {
       console.error("Complete request error:", err);
-      if (err?.response?.status === 409) {
-        toast.error("Conflict", "The request was updated in another session. Refreshed to latest state.");
-        qc.invalidateQueries({ queryKey: keys.requestDetail(request.id) });
+      if ((err?.statusCode ?? err?.response?.status) === 409) {
+        // Reloaded + toast shown by useRequestMutation; the dialog closes so the fresh data is what's on screen.
+        onOpenChange(false);
       } else {
         toast.error("Could not complete request", err?.response?.data?.message || err?.message || "An unexpected error occurred.");
       }
@@ -74,7 +76,7 @@ export function CompleteRequestDialog({
 
   return (
     <Dialog open={open} onOpenChange={(o) => !completeMutation.isPending && onOpenChange(o)}>
-      <DialogContent className="sm:max-w-lg w-full max-w-[calc(100vw-2rem)] overflow-hidden">
+      <DialogContent className="sm:max-w-lg w-full max-w-[calc(100vw-2rem)]">
         <DialogHeader className="min-w-0">
           <div className="mb-1 flex size-10 items-center justify-center rounded-xl border border-emerald-300/80 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-300">
             <CheckCircle2 className="size-5" aria-hidden="true" />

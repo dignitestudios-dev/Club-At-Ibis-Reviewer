@@ -224,9 +224,9 @@ export function toReviewerRequestRecord(raw: any): RequestRecord {
     rejectionReason: decision?.rejectionReason || raw.rejectionReason,
     deposit: raw.deposit || {
       required: !!raw.depositRequired,
-      amount: raw.depositAmount != null ? String(raw.depositAmount) : null,
+      amount: raw.depositAmount != null ? String(raw.depositAmount) : raw.depositAmountMinor != null ? (raw.depositAmountMinor / 100).toFixed(2) : null,
       amountMinor: raw.depositAmountMinor,
-      status: raw.depositReceived ? "received" : raw.depositRequired ? "pending" : "not_required",
+      status: raw.depositStatus || (raw.depositReceived ? "received" : raw.depositRequired ? "pending" : "not_required"),
       confirmed: raw.depositRequired !== undefined,
       receipt: raw.depositReceipt,
       receivedAt: raw.depositReceivedAt,

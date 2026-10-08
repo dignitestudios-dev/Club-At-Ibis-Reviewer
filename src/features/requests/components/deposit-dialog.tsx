@@ -1,5 +1,6 @@
 "use client";
 
+import { useCloseOnConflict } from "@/hooks/use-close-on-conflict";
 import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { CheckCircle2, Banknote } from "lucide-react";
@@ -20,6 +21,7 @@ export function DepositDialog({
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
+  useCloseOnConflict(open, () => onOpenChange(false));
   const toast = useToast();
   const qc = useQueryClient();
   const mutation = useSetDepositRequirement();
@@ -58,9 +60,9 @@ export function DepositDialog({
       );
       onOpenChange(false);
     } catch (err: any) {
-      if (err?.response?.status === 409) {
-        toast.error("Conflict", "The request was updated elsewhere. Refreshed to the latest state.");
-        qc.invalidateQueries({ queryKey: keys.requestDetail(request.id) });
+      if ((err?.statusCode ?? err?.response?.status) === 409) {
+        // Reloaded + toast shown by useRequestMutation; the dialog closes so the fresh data is what's on screen.
+        onOpenChange(false);
       } else {
         toast.error("Could not save deposit", err?.response?.data?.message || err?.message);
       }

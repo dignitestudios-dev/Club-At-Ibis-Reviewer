@@ -1,5 +1,6 @@
 "use client";
 
+import { announceRequestConflict, useCloseOnConflict } from "@/hooks/use-close-on-conflict";
 import { useRefreshRequest } from "@/hooks/use-reviewer-data";
 import { useState, useRef } from "react";
 import { UploadCloud, FileCheck2, CheckCircle2, AlertCircle, X } from "lucide-react";
@@ -29,6 +30,7 @@ interface UploadLetterDialogProps {
 }
 
 export function UploadLetterDialog({ request, open, onOpenChange, isReplacing = false }: UploadLetterDialogProps) {
+  useCloseOnConflict(open, () => { resetState(); onOpenChange(false); });
   const toast = useToast();
   const refreshRequest = useRefreshRequest();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -131,6 +133,8 @@ export function UploadLetterDialog({ request, open, onOpenChange, isReplacing = 
       console.error("Letter upload error:", err);
       if (err?.status === 409) {
         void refreshRequest(request.id, "none");
+        toast.warning("Request updated", "This request was changed elsewhere (for example in another tab), so it has been refreshed. Review the latest details and try again.");
+        announceRequestConflict();
       }
       setErrorMessage(err?.message || "The upload failed. Please try again.");
       setIsUploading(false);
@@ -139,7 +143,7 @@ export function UploadLetterDialog({ request, open, onOpenChange, isReplacing = 
 
   return (
     <Dialog open={open} onOpenChange={handleDialogClose}>
-      <DialogContent className="sm:max-w-md w-full max-w-[calc(100vw-2rem)] overflow-hidden">
+      <DialogContent className="sm:max-w-md w-full max-w-[calc(100vw-2rem)]">
         <DialogHeader className="min-w-0">
           <div className="mb-1 flex size-10 items-center justify-center rounded-xl border border-teal-300/80 bg-teal-50 text-teal-800 dark:border-teal-800 dark:bg-teal-950/50 dark:text-teal-300">
             <FileCheck2 className="size-5" aria-hidden="true" />

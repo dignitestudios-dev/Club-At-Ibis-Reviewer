@@ -1,5 +1,6 @@
 "use client";
 
+import { useCloseOnConflict } from "@/hooks/use-close-on-conflict";
 import { useRefreshRequest } from "@/hooks/use-reviewer-data";
 import { useEffect, useRef, useState } from "react";
 import { Download, Eye, FilePenLine, FileText, RotateCcw, Send } from "lucide-react";
@@ -11,6 +12,7 @@ import { Progress } from "@/components/ui/progress";
 import { Spinner } from "@/components/ui/spinner";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
+import { announceRequestConflict } from "@/hooks/use-close-on-conflict";
 import { useMe } from "@/hooks/use-current-user";
 import { cn } from "@/utils/cn";
 import { uploadProcessingFile } from "../api/processing-upload";
@@ -44,6 +46,7 @@ export function CreateLetterDialog({
   onOpenChange: (open: boolean) => void;
   isReplacing?: boolean;
 }) {
+  useCloseOnConflict(open, () => onOpenChange(false));
   const toast = useToast();
   const refreshRequest = useRefreshRequest();
   const { me } = useMe();
@@ -152,6 +155,8 @@ export function CreateLetterDialog({
       console.error("Letter creation error:", err);
       if (err?.status === 409) {
         void refreshRequest(request.id, "none");
+        toast.warning("Request updated", "This request was changed elsewhere (for example in another tab), so it has been refreshed. Review the latest details and try again.");
+        announceRequestConflict();
       }
       setError(err?.message || "The letter couldn't be uploaded. Please try again.");
     } finally {

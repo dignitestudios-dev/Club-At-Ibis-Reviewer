@@ -1,5 +1,6 @@
 "use client";
 
+import { useCloseOnConflict } from "@/hooks/use-close-on-conflict";
 import { useEffect, useMemo, useState, useRef } from "react";
 import { UserRoundCheck } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -8,7 +9,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Spinner } from "@/components/ui/spinner";
 import { PersonAvatar } from "@/components/shared/person-avatar";
 import { SearchInput } from "@/components/shared/search-input";
-import { useAssignRequest, useReviewers } from "@/hooks/use-reviewer-data";
+import { isConflictError, useAssignRequest, useReviewers } from "@/hooks/use-reviewer-data";
 import { useDebounce } from "@/hooks/use-debounce";
 import { useMe } from "@/hooks/use-current-user";
 import { useToast } from "@/hooks/use-toast";
@@ -22,6 +23,7 @@ export function AssignReviewerDialog({
   request: RequestRecord | null;
   onOpenChange: (open: boolean) => void;
 }) {
+  useCloseOnConflict(!!request, () => onOpenChange(false));
   const toast = useToast();
   const { isDefault } = useMe();
   const assign = useAssignRequest();
@@ -71,7 +73,8 @@ export function AssignReviewerDialog({
         },
         onError: (e: Error) => {
           isSubmittingRef.current = false;
-          toast.error("Could not assign", e.message);
+          if (!isConflictError(e)) toast.error("Could not assign", e.message);
+          else onOpenChange(false);
         },
         onSettled: () => {
           isSubmittingRef.current = false;
@@ -82,7 +85,7 @@ export function AssignReviewerDialog({
 
   return (
     <Dialog open={!!request} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg w-full max-w-[calc(100vw-2rem)] overflow-hidden">
+      <DialogContent className="sm:max-w-lg w-full max-w-[calc(100vw-2rem)]">
         <DialogHeader>
           <div className="mb-1 flex size-11 items-center justify-center rounded-xl border border-primary/20 bg-primary/10 text-primary dark:text-amber-300">
             <UserRoundCheck className="size-5" aria-hidden="true" />

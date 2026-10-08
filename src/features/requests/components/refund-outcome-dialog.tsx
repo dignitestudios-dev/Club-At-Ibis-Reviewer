@@ -1,5 +1,6 @@
 "use client";
 
+import { useCloseOnConflict } from "@/hooks/use-close-on-conflict";
 import { formatDepositAmount } from "./deposit-fields";
 import { useState, useEffect, useRef } from "react";
 import { DollarSign, CheckCircle2, AlertCircle, Minus, Calendar } from "lucide-react";
@@ -27,6 +28,7 @@ export function RefundOutcomeDialog({
   onOpenChange,
   isCorrecting = false,
 }: RefundOutcomeDialogProps) {
+  useCloseOnConflict(open, () => onOpenChange(false));
   const toast = useToast();
   const qc = useQueryClient();
   const setRefundMutation = useSetRefundOutcome();
@@ -101,9 +103,9 @@ export function RefundOutcomeDialog({
       onOpenChange(false);
     } catch (err: any) {
       console.error("Refund outcome error:", err);
-      if (err?.response?.status === 409) {
-        toast.error("Conflict", "The request was updated elsewhere. Refreshed to latest state.");
-        qc.invalidateQueries({ queryKey: keys.requestDetail(request.id) });
+      if ((err?.statusCode ?? err?.response?.status) === 409) {
+        // Reloaded + toast shown by useRequestMutation; the dialog closes so the fresh data is what's on screen.
+        onOpenChange(false);
       } else {
         toast.error("Could not record refund outcome", err?.response?.data?.message || err?.message || "An unexpected error occurred.");
       }
@@ -114,7 +116,7 @@ export function RefundOutcomeDialog({
 
   return (
     <Dialog open={open} onOpenChange={(o) => !setRefundMutation.isPending && onOpenChange(o)}>
-      <DialogContent className="sm:max-w-md w-full max-w-[calc(100vw-2rem)] overflow-hidden">
+      <DialogContent className="sm:max-w-md w-full max-w-[calc(100vw-2rem)]">
         <DialogHeader className="min-w-0">
           <div className="mb-1 flex size-10 items-center justify-center rounded-xl border border-amber-300/80 bg-amber-50 text-amber-800 dark:border-amber-800 dark:bg-amber-950/50 dark:text-amber-300">
             <DollarSign className="size-5" aria-hidden="true" />
@@ -128,7 +130,7 @@ export function RefundOutcomeDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4">
+        <div className="min-w-0 space-y-4">
           <div className="rounded-xl border border-border/80 bg-muted/20 p-3 text-xs space-y-1">
             <p className="text-muted-foreground">Original Deposit Collected:</p>
             <p className="font-mono text-base font-bold text-foreground">
@@ -198,7 +200,7 @@ export function RefundOutcomeDialog({
           )}
 
           {isCorrecting && (
-            <div className="space-y-1.5">
+            <div className="min-w-0 space-y-1.5">
               <Label htmlFor="correction-reason" className="text-sm font-medium">
                 Reason for Correction <span className="text-xs text-muted-foreground font-normal">(optional)</span>
               </Label>

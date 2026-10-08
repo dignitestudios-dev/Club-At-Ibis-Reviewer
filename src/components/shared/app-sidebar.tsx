@@ -25,10 +25,11 @@ export function AppSidebar({ onNavigate }: { onNavigate?: () => void }) {
   const activeHref = findActiveHref(pathname, allItems);
 
   // The badge counts come straight from `pagination.total` of filtered queries (not `.length` of a capped,
-  // unfiltered fetch), so they always match the list pages. `limit: 1` keeps them cheap, and the three
-  // statuses that need this reviewer's action share ONE comma-separated query instead of three.
+  // unfiltered fetch), so they always match the list pages. `limit: 1` keeps them cheap, and every status
+  // that needs this reviewer to act shares ONE comma-separated query. `assigned` (just taken / assigned,
+  // review not started) and `under_review` must be in there; `changes_required` is waiting on the resident.
   const { data: actionPage } = useRequestsPage(
-    { status: "submitted,resubmitted,approved", assignedReviewerId: me?.id, limit: 1 },
+    { status: "submitted,assigned,under_review,resubmitted,approved", assignedReviewerId: me?.id, limit: 1 },
     { enabled: !!me }
   );
   // The backend's refundOutcome filter uses "awaiting_refund_action", not the shorter "awaiting" the UI uses internally.

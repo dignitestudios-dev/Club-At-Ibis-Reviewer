@@ -11,7 +11,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Spinner } from "@/components/ui/spinner";
 import { AssignReviewerDialog } from "@/features/requests/components/assign-reviewer-dialog";
 import { RequestsTable } from "@/features/requests/components/requests-table";
-import { useAssignRequest, useIncomingRequestsPage, useResidents } from "@/hooks/use-reviewer-data";
+import { isConflictError, useAssignRequest, useIncomingRequestsPage, useResidents } from "@/hooks/use-reviewer-data";
 import { useMe } from "@/hooks/use-current-user";
 import { usePageSize } from "@/hooks/use-page-size";
 import { useToast } from "@/hooks/use-toast";
@@ -65,7 +65,7 @@ export default function IncomingPage() {
       },
       {
         onSuccess: () => toast.success("Ownership taken", `${req.code} is now in My Assigned Requests.`),
-        onError: (e: Error) => toast.error("Could not take ownership", e.message),
+        onError: (e: Error) => !isConflictError(e) && toast.error("Could not take ownership", e.message),
         onSettled: () => setTaking(null),
       }
     );

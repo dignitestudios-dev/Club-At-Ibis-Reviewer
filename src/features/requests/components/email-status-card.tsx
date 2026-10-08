@@ -36,9 +36,8 @@ export function EmailStatusCard({ request, isOwner }: EmailStatusCardProps) {
 
       toast.success("Retry queued", "Completion email delivery has been re-queued.");
     } catch (err: any) {
-      if (err?.response?.status === 409) {
-        toast.error("Conflict", "The request was updated elsewhere. Refreshed to latest state.");
-        qc.invalidateQueries({ queryKey: keys.requestDetail(request.id) });
+      if ((err?.statusCode ?? err?.response?.status) === 409) {
+        // Reloaded + toast shown by useRequestMutation.
       } else {
         toast.error("Failed to retry email delivery", err?.response?.data?.message || err?.message);
       }

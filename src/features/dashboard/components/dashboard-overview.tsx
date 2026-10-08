@@ -1,5 +1,6 @@
 "use client";
 
+import { ProcessingChip } from "@/components/shared/processing-chip";
 import Link from "next/link";
 import { format } from "date-fns";
 import {
@@ -248,6 +249,7 @@ export default function DashboardOverview() {
                         <span className="flex items-center gap-2">
                           <span className="font-mono text-xs font-semibold text-primary dark:text-amber-300">{req.reference}</span>
                           <StatusBadge status={req.status} />
+                          <ProcessingChip request={req} />
                         </span>
                         <span className="block truncate text-sm text-foreground">
                           {req.categoryName} · {req.residentName}

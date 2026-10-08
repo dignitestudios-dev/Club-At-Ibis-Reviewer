@@ -1,5 +1,6 @@
 "use client";
 
+import { useCloseOnConflict } from "@/hooks/use-close-on-conflict";
 import { useState, useRef } from "react";
 import { Ban, AlertTriangle, CheckCircle2 } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -18,6 +19,7 @@ interface WithdrawRequestDialogProps {
 }
 
 export function WithdrawRequestDialog({ request, open, onOpenChange }: WithdrawRequestDialogProps) {
+  useCloseOnConflict(open, () => handleOpenChange(false));
   const toast = useToast();
   const qc = useQueryClient();
   const withdrawMutation = useWithdrawRequest();
@@ -51,9 +53,9 @@ export function WithdrawRequestDialog({ request, open, onOpenChange }: WithdrawR
       handleOpenChange(false);
     } catch (err: any) {
       console.error("Withdraw request error:", err);
-      if (err?.response?.status === 409) {
-        toast.error("Conflict", "The request was updated elsewhere. Refreshed to latest state.");
-        qc.invalidateQueries({ queryKey: keys.requestDetail(request.id) });
+      if ((err?.statusCode ?? err?.response?.status) === 409) {
+        // Reloaded + toast shown by useRequestMutation; the dialog closes so the fresh data is what's on screen.
+        handleOpenChange(false);
       } else {
         toast.error("Could not withdraw request", err?.response?.data?.message || err?.message || "An unexpected error occurred.");
       }
@@ -67,7 +69,7 @@ export function WithdrawRequestDialog({ request, open, onOpenChange }: WithdrawR
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="sm:max-w-md w-full max-w-[calc(100vw-2rem)] overflow-hidden">
+      <DialogContent className="sm:max-w-md w-full max-w-[calc(100vw-2rem)]">
         <DialogHeader className="min-w-0">
           <div className="mb-1 flex size-10 items-center justify-center rounded-xl border border-rose-300/80 bg-rose-50 text-rose-700 dark:border-rose-800 dark:bg-rose-950/50 dark:text-rose-300">
             <Ban className="size-5" aria-hidden="true" />

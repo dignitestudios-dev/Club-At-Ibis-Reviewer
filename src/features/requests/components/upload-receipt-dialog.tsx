@@ -1,5 +1,6 @@
 "use client";
 
+import { announceRequestConflict, useCloseOnConflict } from "@/hooks/use-close-on-conflict";
 import { useRefreshRequest } from "@/hooks/use-reviewer-data";
 import { useState, useRef } from "react";
 import { UploadCloud, FileText, CheckCircle2, AlertCircle, X } from "lucide-react";
@@ -30,6 +31,7 @@ interface UploadReceiptDialogProps {
 }
 
 export function UploadReceiptDialog({ request, open, onOpenChange, isReplacing = false }: UploadReceiptDialogProps) {
+  useCloseOnConflict(open, () => { resetState(); onOpenChange(false); });
   const toast = useToast();
   const refreshRequest = useRefreshRequest();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -129,6 +131,8 @@ export function UploadReceiptDialog({ request, open, onOpenChange, isReplacing =
       console.error("Receipt upload error:", err);
       if (err?.status === 409) {
         void refreshRequest(request.id, "none");
+        toast.warning("Request updated", "This request was changed elsewhere (for example in another tab), so it has been refreshed. Review the latest details and try again.");
+        announceRequestConflict();
       }
       setErrorMessage(err?.message || "The upload failed. Please try again.");
       setIsUploading(false);
@@ -137,7 +141,7 @@ export function UploadReceiptDialog({ request, open, onOpenChange, isReplacing =
 
   return (
     <Dialog open={open} onOpenChange={handleDialogClose}>
-      <DialogContent className="sm:max-w-md w-full max-w-[calc(100vw-2rem)] overflow-hidden">
+      <DialogContent className="sm:max-w-md w-full max-w-[calc(100vw-2rem)]">
         <DialogHeader className="min-w-0">
           <div className="mb-1 flex size-10 items-center justify-center rounded-xl border border-amber-300/80 bg-amber-50 text-amber-800 dark:border-amber-800 dark:bg-amber-950/50 dark:text-amber-300">
             <UploadCloud className="size-5" aria-hidden="true" />

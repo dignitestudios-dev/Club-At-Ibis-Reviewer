@@ -1,5 +1,6 @@
 "use client";
 
+import { useCloseOnConflict } from "@/hooks/use-close-on-conflict";
 import { ExpandableText } from "@/components/shared/expandable-text";
 import { useEffect, useState, useRef, useMemo } from "react";
 import { AlertTriangle, CheckCircle2, FileEdit, XCircle } from "lucide-react";
@@ -27,6 +28,7 @@ export function ApproveRequestDialog({
   onConfirm: (deposit: DepositValue) => Promise<void> | void;
   isPending?: boolean;
 }) {
+  useCloseOnConflict(open, () => onOpenChange(false));
   const isSubmittingRef = useRef(false);
   const [deposit, setDeposit] = useState<DepositValue>({ required: false, amount: "" });
   const [depositError, setDepositError] = useState<string | null>(null);
@@ -147,6 +149,7 @@ export function RequestRevisionDialog({
   onConfirm: (feedback: string) => Promise<void> | void;
   isPending?: boolean;
 }) {
+  useCloseOnConflict(open, () => onOpenChange(false));
   const [feedback, setFeedback] = useState("");
   const [error, setError] = useState<string | null>(null);
   const isSubmittingRef = useRef(false);
@@ -230,7 +233,7 @@ export function RequestRevisionDialog({
 
   return (
     <Dialog open={open} onOpenChange={(o) => !isPending && onOpenChange(o)}>
-      <DialogContent className="sm:max-w-lg w-full max-w-[calc(100vw-2rem)] overflow-hidden">
+      <DialogContent className="sm:max-w-lg w-full max-w-[calc(100vw-2rem)]">
         <form onSubmit={handleSubmit} className="space-y-4 min-w-0">
           <DialogHeader className="min-w-0">
             <div className="mb-1 flex size-10 items-center justify-center rounded-xl border border-amber-300/80 bg-amber-50 text-amber-700 dark:border-amber-800 dark:bg-amber-950/50 dark:text-amber-300">
@@ -331,6 +334,7 @@ export function RejectRequestDialog({
   onConfirm: (reason: string) => Promise<void> | void;
   isPending?: boolean;
 }) {
+  useCloseOnConflict(open, () => onOpenChange(false));
   const [reason, setReason] = useState("");
   const [error, setError] = useState<string | null>(null);
   const isSubmittingRef = useRef(false);
@@ -364,7 +368,7 @@ export function RejectRequestDialog({
 
   return (
     <Dialog open={open} onOpenChange={(o) => !isPending && onOpenChange(o)}>
-      <DialogContent className="sm:max-w-md w-full max-w-[calc(100vw-2rem)] overflow-hidden">
+      <DialogContent className="sm:max-w-md w-full max-w-[calc(100vw-2rem)]">
         <form onSubmit={handleSubmit} className="space-y-4 min-w-0">
           <DialogHeader className="min-w-0">
             <div className="mb-1 flex size-10 items-center justify-center rounded-xl border border-rose-300/80 bg-rose-50 text-rose-700 dark:border-rose-800 dark:bg-rose-950/50 dark:text-rose-300">

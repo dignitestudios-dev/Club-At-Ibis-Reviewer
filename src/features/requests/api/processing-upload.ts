@@ -68,12 +68,12 @@ export function getUnfinishedUpload(requestId: string, purpose: ProcessingFilePu
 }
 
 function apiCode(err: any): string | undefined {
-  return err?.response?.data?.code || err?.code;
+  return err?.code || err?.response?.data?.code;
 }
 
 function currentMediaRevisionFrom(err: any): number | undefined {
-  const d = err?.response?.data?.details;
-  const v = d?.currentMediaRevision ?? err?.response?.data?.currentMediaRevision;
+  const body = err?.responseData ?? err?.response?.data;
+  const v = body?.details?.currentMediaRevision ?? body?.currentMediaRevision;
   return typeof v === "number" ? v : undefined;
 }
 
@@ -85,8 +85,8 @@ export class ProcessingUploadError extends Error {
 
 function friendly(err: any, stage: "intent" | "storage" | "complete"): ProcessingUploadError {
   const code = apiCode(err);
-  const serverMessage = err?.response?.data?.message as string | undefined;
-  const status = err?.response?.status as number | undefined;
+  const serverMessage = (err?.responseData?.message ?? err?.response?.data?.message) as string | undefined;
+  const status = (err?.statusCode ?? err?.response?.status) as number | undefined;
   if (code === "PROCESSING_FILE_UPLOAD_PENDING") {
     return new ProcessingUploadError(
       "An earlier upload of this document didn’t finish and is still on hold. Select the same file again to resume it — otherwise it clears itself within about an hour.",
