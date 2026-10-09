@@ -85,9 +85,10 @@ export async function inspectInvitation(token: string): Promise<TokenInspectionR
 }
 
 /** Accept a reviewer invitation and create first-time credentials. */
-export async function acceptInvitation(payload: { token: string; password: string }): Promise<{ user: PublicReviewer }> {
+export async function acceptInvitation(payload: { token: string; password: string }): Promise<{ token?: string; user: PublicReviewer }> {
   const { data } = await axiosInstance.post("/auth/reviewer-invitations/accept", payload);
-  return { user: toPublicReviewer(data.data.user) };
+  // The backend logs the reviewer straight in on acceptance, so a session token comes back with the user.
+  return { token: data.data.token, user: toPublicReviewer(data.data.user) };
 }
 
 /**
@@ -99,12 +100,11 @@ export async function acceptInvitation(payload: { token: string; password: strin
  * caller's `invite` flag picks between them rather than guessing from the
  * token shape.
  */
-export async function resetPassword({ token, password, invite }: ResetPasswordPayload & { invite?: boolean }): Promise<void> {
+export async function resetPassword({ token, password, invite }: ResetPasswordPayload & { invite?: boolean }): Promise<{ token?: string; user: PublicReviewer } | void> {
   if (invite) {
-    await acceptInvitation({ token, password });
-  } else {
-    await axiosInstance.post("/auth/password-resets", { token, newPassword: password });
+    return acceptInvitation({ token, password });
   }
+  await axiosInstance.post("/auth/password-resets", { token, newPassword: password });
 }
 
 /**

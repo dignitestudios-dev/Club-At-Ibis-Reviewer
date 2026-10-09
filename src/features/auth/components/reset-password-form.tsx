@@ -16,11 +16,15 @@ import { resetPasswordSchema, forgotPasswordSchema } from "@/features/auth/schem
 import { useResetPasswordMutation, useForgotPasswordMutation } from "@/features/auth/api/auth.mutations";
 import { useInspectInvitationQuery } from "@/features/auth/api/auth.queries";
 import { useToast } from "@/hooks/use-toast";
+import { useAppDispatch } from "@/store";
+import { setUser } from "@/store/slices/auth.slice";
+import { DEFAULT_REDIRECT } from "@/config/routes";
 
 export default function ResetPasswordForm({ token, mode = "reset" }: { token: string; mode?: "reset" | "invite" }) {
   const invite = mode === "invite";
   const router = useRouter();
   const toast = useToast();
+  const dispatch = useAppDispatch();
 
   // For invite mode: verify the invitation token
   const {
@@ -37,6 +41,7 @@ export default function ResetPasswordForm({ token, mode = "reset" }: { token: st
   const [resendSubmitted, setResendSubmitted] = useState(false);
   const [isResetTokenExpired, setIsResetTokenExpired] = useState(!token);
   const [inviteAccepted, setInviteAccepted] = useState(false);
+  const [signingIn, setSigningIn] = useState(false);
 
   // Form for setting password
   const {
@@ -62,6 +67,15 @@ export default function ResetPasswordForm({ token, mode = "reset" }: { token: st
   /* INVITE MODE                                                        */
   /* ------------------------------------------------------------------ */
   if (invite) {
+    if (signingIn) {
+      return (
+        <div className="flex-1 flex flex-col items-center justify-center px-6 py-12 space-y-3 text-center animate-in fade-in duration-300">
+          <Spinner className="size-8 text-primary" />
+          <p className="text-sm text-muted-foreground">Account activated. Please wait, you are being redirected…</p>
+        </div>
+      );
+    }
+
     if (inviteAccepted) {
       return (
         <div className="flex-1 overflow-y-auto custom-scrollbar px-6 py-8 sm:px-8 space-y-6 text-center animate-in fade-in duration-300">
@@ -160,7 +174,19 @@ export default function ResetPasswordForm({ token, mode = "reset" }: { token: st
             mutateResetPassword(
               { token, ...data, invite: true },
               {
-                onSuccess: () => {
+                onSuccess: (result) => {
+                  if (result && result.token) {
+                    // Signed in by the backend: carry the session forward exactly like a normal login.
+                    setSigningIn(true);
+                    localStorage.removeItem("carv.logged-out");
+                    localStorage.setItem("rv-auth-token", result.token);
+                    localStorage.setItem("rv-auth-user", JSON.stringify(result.user));
+                    document.cookie = `rv-auth-token=${result.token}; path=/; max-age=1209600; SameSite=Lax`;
+                    dispatch(setUser(result.user));
+                    toast.success("Account activated", `Welcome, ${result.user.name.split(" ")[0]}.`);
+                    window.location.href = DEFAULT_REDIRECT;
+                    return;
+                  }
                   setInviteAccepted(true);
                   toast.success("Invite accepted", "Your password has been set successfully.");
                 },
