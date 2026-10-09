@@ -260,8 +260,12 @@ export function RequestRevisionDialog({
               id="revision-feedback-input"
               value={feedback}
               onChange={(e) => {
-                setFeedback(e.target.value);
+                // Single paragraph only: pasted line breaks become spaces.
+                setFeedback(e.target.value.replace(/\s*[\r\n]+\s*/g, " "));
                 if (error) setError(null);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") e.preventDefault();
               }}
               placeholder="Your request needs changes. See each flagged item for details."
               rows={3}
