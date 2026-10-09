@@ -9,6 +9,7 @@ import {
   FileEdit,
   Flag,
   Mail,
+  MailWarning,
   Minus,
   PlayCircle,
   ReceiptText,
@@ -22,7 +23,6 @@ import {
   type LucideIcon,
   HandCoins,
   MailCheck,
-  MailWarning,
   PenLine,
   RefreshCw,
 } from "lucide-react";
@@ -84,7 +84,8 @@ export function HistoryTimeline({
     <ol className="space-y-0">
       {list.map((event, index) => {
         const cfg = EVENT_CONFIG[event.type] || { icon: Send, label: event.type?.replace(/_/g, " ") || "Update", node: "bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200" };
-        const Icon = cfg.icon;
+        const failed = event.type === "letter_email" && event.message.toLowerCase().includes("failed");
+        const Icon = failed ? MailWarning : cfg.icon;
         const info = describeEvent(event.type, event.details, "staff");
         const isLatest = index === 0;
         const isLast = index === list.length - 1;
@@ -98,7 +99,7 @@ export function HistoryTimeline({
                 aria-hidden="true"
                 className={cn(
                   "flex size-8 shrink-0 items-center justify-center rounded-full border-2 border-card shadow-2xs transition-transform duration-200 group-hover:scale-110",
-                  cfg.node,
+                  failed ? "bg-rose-600 text-white" : cfg.node,
                   isLatest && "ring-4 ring-primary/20"
                 )}
               >
@@ -110,7 +111,7 @@ export function HistoryTimeline({
             <div className={cn("min-w-0 flex-1 space-y-1.5", isLast ? "pb-1" : "pb-6")}>
               <div className="flex flex-wrap items-center justify-between gap-2 pt-0.5">
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-sm font-semibold text-foreground">{titleCase(info.title ?? cfg.label)}</span>
+                  <span className="text-sm font-semibold text-foreground">{titleCase(failed ? "Letter email failed" : (info.title ?? cfg.label))}</span>
                   {event.staffOnly && (
                     <span
                       className="inline-flex items-center gap-1 rounded-full border border-amber-300/70 bg-amber-50 px-2 py-px text-[10px] font-semibold tracking-wide text-amber-900 uppercase dark:border-amber-800/70 dark:bg-amber-950/40 dark:text-amber-300"
@@ -136,7 +137,7 @@ export function HistoryTimeline({
                 </time>
               </div>
 
-              <p className="text-sm leading-relaxed text-foreground/85 break-words [overflow-wrap:anywhere]">{event.message}</p>
+              <p className="text-sm leading-relaxed text-foreground/85 break-words">{event.message}</p>
               {info.lines.length > 0 && (
                 <ul className="space-y-1 rounded-lg border border-border/70 bg-muted/40 px-3 py-2 text-xs leading-relaxed">
                   {info.lines.map((line, i) => (
@@ -169,9 +170,27 @@ export function HistoryTimeline({
                 </Button>
               )}
               {event.detail && (
-                <p className="rounded-lg border border-border/70 bg-muted/40 px-3 py-2 text-xs leading-relaxed text-muted-foreground break-words [overflow-wrap:anywhere]">
-                  <ExpandableText text={event.detail} limit={160} />
-                </p>
+                <div
+                  className={cn(
+                    "rounded-lg border px-3 py-2 text-xs leading-relaxed break-words [overflow-wrap:anywhere]",
+                    event.type === "item_flagged"
+                      ? "border-amber-300/80 bg-amber-50/90 text-amber-950 dark:border-amber-800/80 dark:bg-amber-950/40 dark:text-amber-200"
+                      : event.type === "rejected"
+                        ? "border-rose-300/70 bg-rose-50 text-rose-900/90 dark:border-rose-900/70 dark:bg-rose-950/30 dark:text-rose-300/90"
+                        : "border-border/70 bg-muted/40 text-muted-foreground"
+                  )}
+                >
+                  {event.type === "item_flagged" && (
+                    <span className="font-semibold block mb-0.5 text-amber-800 dark:text-amber-300">Correction Note:</span>
+                  )}
+                  {event.type === "rejected" && (
+                    <span className="mb-0.5 flex items-center gap-1.5 font-semibold text-rose-950 dark:text-rose-200">
+                      <XCircle className="size-3.5 shrink-0" aria-hidden="true" />
+                      Rejection reason
+                    </span>
+                  )}
+                  <p className="whitespace-pre-wrap break-words [overflow-wrap:anywhere] [word-break:break-word]"><ExpandableText text={event.detail} limit={160} /></p>
+                </div>
               )}
 
               <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border/60 pt-1.5 text-xs text-muted-foreground">
