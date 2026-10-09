@@ -68,7 +68,7 @@ export function WithdrawRequestDialog({ request, open, onOpenChange }: WithdrawR
   const isCompleted = request.status === "completed";
 
   return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
+    <Dialog disablePointerDismissal open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-md w-full max-w-[calc(100vw-2rem)]">
         <DialogHeader className="min-w-0">
           <div className="mb-1 flex size-10 items-center justify-center rounded-xl border border-rose-300/80 bg-rose-50 text-rose-700 dark:border-rose-800 dark:bg-rose-950/50 dark:text-rose-300">

@@ -75,7 +75,7 @@ export function CompleteRequestDialog({
   }
 
   return (
-    <Dialog open={open} onOpenChange={(o) => !completeMutation.isPending && onOpenChange(o)}>
+    <Dialog disablePointerDismissal open={open} onOpenChange={(o) => !completeMutation.isPending && onOpenChange(o)}>
       <DialogContent className="sm:max-w-lg w-full max-w-[calc(100vw-2rem)]">
         <DialogHeader className="min-w-0">
           <div className="mb-1 flex size-10 items-center justify-center rounded-xl border border-emerald-300/80 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-300">
