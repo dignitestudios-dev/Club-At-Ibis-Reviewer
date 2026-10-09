@@ -3,7 +3,7 @@
 import { useCloseOnConflict } from "@/hooks/use-close-on-conflict";
 import { formatDepositAmount } from "./deposit-fields";
 import { useState, useEffect, useRef } from "react";
-import { DollarSign, CheckCircle2, AlertCircle, Minus, Calendar } from "lucide-react";
+import { DollarSign, CheckCircle2, AlertCircle, FileText, UploadCloud, X } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,8 +12,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Spinner } from "@/components/ui/spinner";
 import { useToast } from "@/hooks/use-toast";
-import { useQueryClient } from "@tanstack/react-query";
-import { useSetRefundOutcome, keys } from "@/hooks/use-reviewer-data";
+import { useSetRefundOutcome, useRefreshRequest } from "@/hooks/use-reviewer-data";
+import { uploadProcessingFile } from "../api/processing-upload";
+import { formatFileSize } from "@/utils/format";
+
+const MAX_RECEIPT_SIZE = 52428800; // 50 MiB
+const RECEIPT_EXTS = [".pdf", ".png", ".jpg", ".jpeg"];
 
 interface RefundOutcomeDialogProps {
   request: RequestRecord;
@@ -30,7 +34,11 @@ export function RefundOutcomeDialog({
 }: RefundOutcomeDialogProps) {
   useCloseOnConflict(open, () => onOpenChange(false));
   const toast = useToast();
-  const qc = useQueryClient();
+  const refreshRequest = useRefreshRequest();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [receipt, setReceipt] = useState<File | null>(null);
+  const [receiptError, setReceiptError] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
   const setRefundMutation = useSetRefundOutcome();
   const isSubmittingRef = useRef(false);
 
@@ -61,8 +69,28 @@ export function RefundOutcomeDialog({
       setRefundDate(defaultDate);
       setCorrectionReason(request.refund?.correctionReason || "");
       setDateError(null);
+      setReceipt(null);
+      setReceiptError(null);
+      setUploading(false);
     }
   }, [open, request.refund]);
+
+  const busy = setRefundMutation.isPending || uploading;
+
+  function pickReceipt(file: File | undefined) {
+    if (!file) return;
+    const name = file.name.toLowerCase();
+    if (!RECEIPT_EXTS.some((ext) => name.endsWith(ext))) {
+      setReceiptError("Invalid file type. Please choose a PDF or image (PNG, JPG, JPEG).");
+      return;
+    }
+    if (file.size > MAX_RECEIPT_SIZE) {
+      setReceiptError(`File exceeds maximum size of 50 MB (selected: ${formatFileSize(file.size)}).`);
+      return;
+    }
+    setReceiptError(null);
+    setReceipt(file);
+  }
 
   function validate(): boolean {
     if (outcome === "refunded") {
@@ -85,7 +113,7 @@ export function RefundOutcomeDialog({
     isSubmittingRef.current = true;
 
     try {
-      await setRefundMutation.mutateAsync({
+      const updated = await setRefundMutation.mutateAsync({
         requestId: request.id,
         expectedAssignmentVersion: request.assignmentVersion ?? 0,
         expectedWorkflowVersion: request.workflowVersion ?? 1,
@@ -100,6 +128,20 @@ export function RefundOutcomeDialog({
           ? `Refund recorded on ${refundDate}.`
           : "Recorded as No Refund applicable."
       );
+      // The refund receipt is optional and is uploaded after the outcome is saved (the backend only accepts it
+      // for an actionable / refunded request), using the versions the save just returned.
+      if (outcome === "refunded" && receipt) {
+        setUploading(true);
+        try {
+          await uploadProcessingFile({ request: updated, purpose: "refund_receipt", file: receipt });
+          await refreshRequest(request.id);
+          toast.success("Refund receipt attached");
+        } catch (uploadErr: any) {
+          toast.warning("Outcome saved, receipt not uploaded", uploadErr?.message || "Attach the receipt from the Refund tab.");
+        } finally {
+          setUploading(false);
+        }
+      }
       onOpenChange(false);
     } catch (err: any) {
       console.error("Refund outcome error:", err);
@@ -115,7 +157,7 @@ export function RefundOutcomeDialog({
   }
 
   return (
-    <Dialog disablePointerDismissal open={open} onOpenChange={(o) => !setRefundMutation.isPending && onOpenChange(o)}>
+    <Dialog disablePointerDismissal open={open} onOpenChange={(o) => !busy && onOpenChange(o)}>
       <DialogContent className="sm:max-w-md w-full max-w-[calc(100vw-2rem)]">
         <DialogHeader className="min-w-0">
           <div className="mb-1 flex size-10 items-center justify-center rounded-xl border border-amber-300/80 bg-amber-50 text-amber-800 dark:border-amber-800 dark:bg-amber-950/50 dark:text-amber-300">
@@ -199,6 +241,47 @@ export function RefundOutcomeDialog({
             </div>
           )}
 
+          {outcome === "refunded" && (
+            <div className="min-w-0 space-y-1.5">
+              <Label className="text-sm font-medium">
+                Refund receipt <span className="text-xs text-muted-foreground font-normal">(optional)</span>
+              </Label>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".pdf,.png,.jpg,.jpeg,application/pdf,image/png,image/jpeg"
+                className="sr-only"
+                onChange={(e) => {
+                  pickReceipt(e.target.files?.[0]);
+                  e.target.value = "";
+                }}
+              />
+              {receipt ? (
+                <div className="flex min-w-0 items-center gap-2.5 rounded-xl border border-border/80 bg-muted/20 p-2.5">
+                  <FileText className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-xs font-medium text-foreground" title={receipt.name}>{receipt.name}</p>
+                    <p className="text-[11px] text-muted-foreground">{formatFileSize(receipt.size)}</p>
+                  </div>
+                  <Button type="button" variant="ghost" size="icon-xs" onClick={() => setReceipt(null)} disabled={busy} aria-label="Remove receipt">
+                    <X />
+                  </Button>
+                </div>
+              ) : (
+                <Button type="button" variant="outline" size="sm" className="w-full" onClick={() => fileInputRef.current?.click()} disabled={busy}>
+                  <UploadCloud className="size-4" />
+                  Choose receipt (PDF, PNG, JPG)
+                </Button>
+              )}
+              {receiptError && (
+                <p className="flex items-center gap-1 text-xs text-destructive">
+                  <AlertCircle className="size-3.5 shrink-0" />
+                  {receiptError}
+                </p>
+              )}
+            </div>
+          )}
+
           {isCorrecting && (
             <div className="min-w-0 space-y-1.5">
               <Label htmlFor="correction-reason" className="text-sm font-medium">
@@ -222,7 +305,7 @@ export function RefundOutcomeDialog({
             type="button"
             variant="outline"
             onClick={() => onOpenChange(false)}
-            disabled={setRefundMutation.isPending}
+            disabled={busy}
           >
             Cancel
           </Button>
@@ -230,9 +313,9 @@ export function RefundOutcomeDialog({
             type="button"
             className="bg-amber-600 hover:bg-amber-700 text-white dark:bg-amber-600 dark:hover:bg-amber-700"
             onClick={handleSubmit}
-            disabled={setRefundMutation.isPending}
+            disabled={busy}
           >
-            {setRefundMutation.isPending ? <Spinner className="size-4 mr-2" /> : <CheckCircle2 className="size-4 mr-2" />}
+            {busy ? <Spinner className="size-4 mr-2" /> : <CheckCircle2 className="size-4 mr-2" />}
             {isCorrecting ? "Save Correction" : "Save Outcome"}
           </Button>
         </DialogFooter>

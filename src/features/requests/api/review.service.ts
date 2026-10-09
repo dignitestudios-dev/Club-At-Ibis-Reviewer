@@ -196,7 +196,7 @@ export async function recordDepositReceived({
 /* Sprint 3: Processing Files (Deposit Receipt & Final Approval Letter) */
 /* ------------------------------------------------------------------ */
 
-export type ProcessingFilePurpose = "deposit_receipt" | "final_approval_letter";
+export type ProcessingFilePurpose = "deposit_receipt" | "final_approval_letter" | "refund_receipt";
 
 export interface CreateUploadIntentPayload {
   requestId: string;

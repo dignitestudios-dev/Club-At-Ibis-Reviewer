@@ -156,6 +156,7 @@ export default function RequestDetailPage({ id }: { id: string }) {
   const [refundDialogOpen, setRefundDialogOpen] = useState(false);
   const [isCorrectingRefund, setIsCorrectingRefund] = useState(false);
   const [uploadReceiptOpen, setUploadReceiptOpen] = useState(false);
+  const [refundReceiptOpen, setRefundReceiptOpen] = useState(false);
   const [uploadLetterOpen, setUploadLetterOpen] = useState(false);
   const [isProcessingDecision, setIsProcessingDecision] = useState(false);
   const [isAssessingField, setIsAssessingField] = useState(false);
@@ -781,6 +782,29 @@ export default function RequestDetailPage({ id }: { id: string }) {
         />
       )}
 
+      {/* Refund receipt: add or replace it from here once the refund is recorded, no trip to the Refund tab */}
+      {isOwner && req.status === "withdrawn" && req.refund?.outcome === "refunded" && (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border/80 bg-card px-4 py-3">
+          <div className="flex min-w-0 items-center gap-2.5 text-sm">
+            <ReceiptText className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+            <span className="min-w-0">
+              <span className="font-medium text-foreground">Refund receipt</span>
+              <span className="ml-2 truncate text-xs text-muted-foreground">{req.refund.receipt ? req.refund.receipt.name : "Not uploaded"}</span>
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            {req.refund.receipt && (
+              <Button type="button" variant="ghost" size="sm" className="text-xs" onClick={() => setPreview(req.refund!.receipt!)}>
+                View
+              </Button>
+            )}
+            <Button type="button" variant="outline" size="sm" className="text-xs" onClick={() => setRefundReceiptOpen(true)}>
+              {req.refund.receipt ? "Replace receipt" : "Upload refund receipt"}
+            </Button>
+          </div>
+        </div>
+      )}
+
       <RequestJourney request={req} />
 
       {/* Summary cards */}
@@ -1314,8 +1338,7 @@ export default function RequestDetailPage({ id }: { id: string }) {
                             <InfoRow label="Recorded On">{formatDateTime(req.refund.recordedAt)}</InfoRow>
                           )}
                         </dl>
-  
-  
+
                         {req.refund?.correctionReason && (
                           <div className="rounded-xl border border-border/80 bg-muted/30 p-3 text-xs">
                             <p className="font-semibold text-foreground">Correction Reason:</p>
@@ -1478,6 +1501,7 @@ export default function RequestDetailPage({ id }: { id: string }) {
         onOpenChange={setRefundDialogOpen}
         isCorrecting={isCorrectingRefund}
       />
+      <UploadReceiptDialog request={req} open={refundReceiptOpen} onOpenChange={setRefundReceiptOpen} purpose="refund_receipt" isReplacing={!!req.refund?.receipt} />
     </div>
   );
 }

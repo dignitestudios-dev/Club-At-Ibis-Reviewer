@@ -28,14 +28,17 @@ interface UploadReceiptDialogProps {
   onOpenChange: (open: boolean) => void;
   /** Replacing the receipt that is already attached (the previous file stays in the backend's history). */
   isReplacing?: boolean;
+  /** Which receipt this uploads. Defaults to the deposit receipt. */
+  purpose?: "deposit_receipt" | "refund_receipt";
 }
 
-export function UploadReceiptDialog({ request, open, onOpenChange, isReplacing = false }: UploadReceiptDialogProps) {
+export function UploadReceiptDialog({ request, open, onOpenChange, isReplacing = false, purpose = "deposit_receipt" }: UploadReceiptDialogProps) {
+  const noun = purpose === "refund_receipt" ? "Refund" : "Deposit";
   useCloseOnConflict(open, () => { resetState(); onOpenChange(false); });
   const toast = useToast();
   const refreshRequest = useRefreshRequest();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const unfinished = open ? getUnfinishedUpload(request.id, "deposit_receipt") : null;
+  const unfinished = open ? getUnfinishedUpload(request.id, purpose) : null;
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [dragActive, setDragActive] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
@@ -115,7 +118,7 @@ export function UploadReceiptDialog({ request, open, onOpenChange, isReplacing =
     try {
       await uploadProcessingFile({
         request,
-        purpose: "deposit_receipt",
+        purpose,
         file: selectedFile,
         onProgress: (progress) => setUploadProgress(progress),
       });
@@ -124,7 +127,7 @@ export function UploadReceiptDialog({ request, open, onOpenChange, isReplacing =
       // already shows the new state the moment the dialog closes.
       setUploadProgress(100);
       await refreshRequest(request.id);
-      toast.success(isReplacing ? "Deposit receipt replaced" : "Deposit receipt recorded", "Payment receipt was uploaded and verified successfully.");
+      toast.success(isReplacing ? `${noun} receipt replaced` : `${noun} receipt recorded`, "Payment receipt was uploaded and verified successfully.");
       resetState();
       onOpenChange(false);
     } catch (err: any) {
@@ -147,10 +150,10 @@ export function UploadReceiptDialog({ request, open, onOpenChange, isReplacing =
             <UploadCloud className="size-5" aria-hidden="true" />
           </div>
           <DialogTitle className="font-heading text-xl font-medium break-words [overflow-wrap:anywhere]">
-            {isReplacing ? "Edit Deposit Receipt" : "Upload Deposit Receipt"}
+            {isReplacing ? `Edit ${noun} Receipt` : `Upload ${noun} Receipt`}
           </DialogTitle>
           <DialogDescription className="break-words [overflow-wrap:anywhere]">
-            {isReplacing ? "Upload a corrected receipt for request" : "Upload proof of deposit collection for request"}{" "}
+            {isReplacing ? "Upload a corrected receipt for request" : purpose === "refund_receipt" ? "Upload proof of the refund (optional) for request" : "Upload proof of deposit collection for request"}{" "}
             <span className="font-mono font-semibold text-foreground break-all">{request.code}</span>.
           </DialogDescription>
         </DialogHeader>
