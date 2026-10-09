@@ -111,9 +111,9 @@ export function CompleteRequestDialog({
                     {request.deposit?.status === "not_required" || request.deposit?.required === false
                       ? "No deposit required for this request."
                       : request.deposit?.status === "received"
-                      ? `Deposit received${formatDepositAmount(request.deposit.amount) ? ` (${formatDepositAmount(request.deposit.amount)})` : ""} with verified receipt.`
+                      ? `Deposit received${formatDepositAmount(request.deposit.amount) ? ` (${formatDepositAmount(request.deposit.amount)})` : ""} .`
                       : depositNeedsReceipt
-                      ? `Deposit${formatDepositAmount(request.deposit?.amount) ? ` of ${formatDepositAmount(request.deposit?.amount)}` : ""} requires a payment receipt.`
+                      ? `Deposit${formatDepositAmount(request.deposit?.amount) ? ` of ${formatDepositAmount(request.deposit?.amount)}` : ""} must be marked as received.`
                       : "Deposit requirement must be configured."}
                   </p>
                 </div>

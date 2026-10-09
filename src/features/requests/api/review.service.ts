@@ -174,6 +174,24 @@ export async function setDepositRequirement({
   return toReviewerRequestRecord(req);
 }
 
+/** Marks a required deposit as received. The receipt file is optional and can be attached before or after. */
+export async function recordDepositReceived({
+  requestId,
+  expectedAssignmentVersion,
+  expectedWorkflowVersion,
+}: {
+  requestId: string;
+  expectedAssignmentVersion: number;
+  expectedWorkflowVersion: number;
+}): Promise<RequestRecord> {
+  const { data } = await axiosInstance.post(`/reviewer/requests/${requestId}/deposit/receive`, {
+    expectedAssignmentVersion,
+    expectedWorkflowVersion,
+  });
+  const req = data?.data?.request ?? data?.request ?? data?.data;
+  return toReviewerRequestRecord(req);
+}
+
 /* ------------------------------------------------------------------ */
 /* Sprint 3: Processing Files (Deposit Receipt & Final Approval Letter) */
 /* ------------------------------------------------------------------ */

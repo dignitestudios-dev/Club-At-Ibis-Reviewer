@@ -727,7 +727,7 @@ export default function RequestDetailPage({ id }: { id: string }) {
                 Refund Action Required
               </p>
               <p className="text-xs text-amber-900/80 dark:text-amber-300/80 mt-0.5">
-                The resident withdrew this application after a security deposit was collected. Please record the final refund outcome.
+                The resident withdrew this application after a deposit was collected. Please record the final refund outcome.
               </p>
             </div>
           </div>
@@ -1239,7 +1239,7 @@ export default function RequestDetailPage({ id }: { id: string }) {
                           Refund Outcome
                         </CardTitle>
                         <p className="text-xs text-muted-foreground">
-                          Staff disposition of security deposits for withdrawn applications.
+                          Staff disposition of deposits for withdrawn applications.
                         </p>
                       </div>
                       <div className="flex items-center gap-2">

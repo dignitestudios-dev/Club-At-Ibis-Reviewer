@@ -22,7 +22,7 @@ export function isDepositConfigured(deposit?: { required?: boolean | null; confi
   return deposit.required === false && deposit.confirmed !== false;
 }
 
-/** Configured, and (when required) the payment receipt is in — i.e. nothing left to do for the deposit. */
+/** Configured, and (when required) it is marked as received — i.e. nothing left to do for the deposit. */
 export function isDepositSatisfied(deposit?: { required?: boolean | null; confirmed?: boolean; status?: string } | null): boolean {
   if (!isDepositConfigured(deposit)) return false;
   return deposit!.required === false || deposit!.status === "received";
@@ -86,7 +86,7 @@ export function DepositFields({
           onCheckedChange={(checked) => onChange({ required: checked === true, amount: checked === true ? value.amount : "" })}
         />
         <span className="min-w-0">
-          <span className="block text-sm font-semibold text-foreground">Yes, a security deposit is required</span>
+          <span className="block text-sm font-semibold text-foreground">Yes, a deposit is required</span>
           <span className="mt-0.5 block text-xs text-muted-foreground">
             Leave this unchecked if no deposit is needed — the project will be recorded as{" "}
             <span className="font-semibold text-foreground">No deposit required</span>.
@@ -95,7 +95,7 @@ export function DepositFields({
       </label>
 
       {value.required && (
-        <div className="max-w-xs space-y-1.5">
+        <div className="w-full space-y-1.5">
           <Label htmlFor={amountId} className="text-sm font-medium">
             Deposit amount (USD) <span className="font-normal text-muted-foreground">(optional)</span>
           </Label>

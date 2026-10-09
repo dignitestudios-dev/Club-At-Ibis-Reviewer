@@ -269,7 +269,7 @@ export function nextStep(req: RequestRecord): { label: string; tone: NextTone } 
       return { label: "Review resubmitted items", tone: "action" };
     case "approved": {
       if (!depositDecided(req.deposit)) return { label: "Set deposit requirement", tone: "action" };
-      if (req.deposit.required && req.deposit.status !== "received") return { label: "Awaiting deposit receipt", tone: "action" };
+      if (req.deposit.required && req.deposit.status !== "received") return { label: "Mark deposit as received", tone: "action" };
       if (!req.approvalLetter) return { label: "Upload final letter", tone: "action" };
       return { label: "Ready to mark Completed", tone: "action" };
     }

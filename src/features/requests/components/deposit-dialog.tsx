@@ -11,7 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useSetDepositRequirement, keys } from "@/hooks/use-reviewer-data";
 import { DepositFields, depositPayload, formatDepositAmount, isDepositConfigured, validateDeposit, type DepositValue } from "./deposit-fields";
 
-/** Set or change the security-deposit requirement of an approved request. */
+/** Set or change the deposit requirement of an approved request. */
 export function DepositDialog({
   request,
   open,
@@ -76,8 +76,8 @@ export function DepositDialog({
           <div className="mb-1 flex size-10 items-center justify-center rounded-xl border border-amber-300/80 bg-amber-50 text-amber-700 dark:border-amber-800 dark:bg-amber-950/50 dark:text-amber-300">
             <Banknote className="size-5" aria-hidden="true" />
           </div>
-          <DialogTitle className="font-heading text-xl font-medium">Security deposit</DialogTitle>
-          <DialogDescription>Tick the box only if this project needs a security deposit. Otherwise it stays as no deposit.</DialogDescription>
+          <DialogTitle className="font-heading text-xl font-medium">Deposit</DialogTitle>
+          <DialogDescription>Tick the box only if this project needs a deposit. Otherwise it stays as no deposit.</DialogDescription>
         </DialogHeader>
 
         <DepositFields value={value} onChange={(v) => { setValue(v); setError(null); }} error={error} disabled={mutation.isPending} />

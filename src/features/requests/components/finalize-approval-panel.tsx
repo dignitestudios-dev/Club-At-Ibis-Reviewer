@@ -20,6 +20,7 @@ import { formatDepositAmount, isDepositConfigured } from "./deposit-fields";
 // import { CreateLetterDialog } from "./create-letter-dialog"; // letter creation is off for now
 import { UploadLetterDialog } from "./upload-letter-dialog";
 import { UploadReceiptDialog } from "./upload-receipt-dialog";
+import { MarkReceivedButton } from "./mark-received-button";
 
 function Step({
   done,
@@ -92,7 +93,7 @@ export function FinalizeApprovalPanel({
   const canComplete = depositDone && letterDone;
 
   const missing = [
-    !depositConfigured ? "set the deposit" : depositRequired && !receiptReceived ? "attach the deposit receipt" : null,
+    !depositConfigured ? "set the deposit" : depositRequired && !receiptReceived ? "mark the deposit as received" : null,
     !letterDone ? "upload the final approval letter" : null,
   ].filter(Boolean) as string[];
 
@@ -128,7 +129,7 @@ export function FinalizeApprovalPanel({
 
         <Step
           done={depositDone}
-          title="Security deposit"
+          title="Deposit"
           action={
             <>
               {!depositConfigured && (
@@ -143,17 +144,20 @@ export function FinalizeApprovalPanel({
                   Edit
                 </Button>
               )}
-              {depositRequired && !receiptReceived && (
+              {depositRequired && !receiptReceived && <MarkReceivedButton request={request} />}
+              {depositRequired && !deposit?.receipt && (
                 <Button
                   type="button"
+                  variant="outline"
                   size="sm"
+                  className="text-xs"
                   onClick={() => {
                     setReplacingReceipt(false);
                     setReceiptOpen(true);
                   }}
                 >
                   <UploadCloud className="size-3.5" />
-                  Attach receipt
+                  Attach receipt (optional)
                 </Button>
               )}
               {receiptReceived && deposit?.receipt && (
@@ -187,11 +191,11 @@ export function FinalizeApprovalPanel({
           ) : receiptReceived ? (
             <>
               {formatDepositAmount(deposit?.amount) ? `${formatDepositAmount(deposit?.amount)} deposit` : "Deposit"} received
-              {deposit?.receivedAt ? ` · ${formatDateTime(deposit.receivedAt)}` : ""}.
+              {deposit?.receivedAt ? ` · ${formatDateTime(deposit.receivedAt)}` : ""}.{!deposit?.receipt && " No receipt attached."}
             </>
           ) : (
             <>
-              {formatDepositAmount(deposit?.amount) ? `${formatDepositAmount(deposit?.amount)} deposit required` : "Deposit required"} — attach the payment receipt once it is received.
+              {formatDepositAmount(deposit?.amount) ? `${formatDepositAmount(deposit?.amount)} deposit required` : "Deposit required"} — mark it as received once paid. Attaching a receipt is optional.
             </>
           )}
         </Step>

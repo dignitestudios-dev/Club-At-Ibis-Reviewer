@@ -90,7 +90,7 @@ export function ApproveRequestDialog({
             </div>
 
             <div className="space-y-2">
-              <p className="text-sm font-semibold text-foreground">Security deposit</p>
+              <p className="text-sm font-semibold text-foreground">Deposit</p>
               <DepositFields
                 value={deposit}
                 onChange={(v) => {
@@ -103,7 +103,7 @@ export function ApproveRequestDialog({
             </div>
 
             <p className="text-xs text-muted-foreground">
-              After approving you&apos;ll finish up in one place: attach the deposit receipt (if required), upload the final approval letter, then complete the request.
+              After approving you&apos;ll finish up in one place: mark the deposit as received (if required; a receipt is optional), upload the final approval letter, then complete the request.
             </p>
           </div>
         )}

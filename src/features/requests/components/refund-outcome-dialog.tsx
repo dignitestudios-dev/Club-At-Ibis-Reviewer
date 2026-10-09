@@ -155,7 +155,7 @@ export function RefundOutcomeDialog({
                 <Label htmlFor="ref-refunded" className="cursor-pointer flex-1 font-normal">
                   <span className="font-medium text-foreground block">Deposit Refunded</span>
                   <span className="text-xs text-muted-foreground block mt-0.5">
-                    The security deposit was returned or disbursed to the resident.
+                    The deposit was returned or disbursed to the resident.
                   </span>
                 </Label>
               </div>

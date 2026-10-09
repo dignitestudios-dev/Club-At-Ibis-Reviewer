@@ -115,7 +115,7 @@ export function DepositConfigCard({ request, isOwner, onPreviewFile, readOnly = 
                 Deposit Requirement
               </CardTitle>
               <p className="text-xs text-muted-foreground">
-                Specify whether a security deposit is required for this approved project.
+                Specify whether a deposit is required for this approved project.
               </p>
             </div>
             <div className="flex items-center gap-2">
@@ -249,7 +249,7 @@ export function DepositConfigCard({ request, isOwner, onPreviewFile, readOnly = 
                   <div>
                     <p className="text-sm font-medium text-foreground">No Deposit Required</p>
                     <p className="text-xs text-muted-foreground">
-                      This project has been approved without a security deposit requirement.
+                      This project has been approved without a deposit requirement.
                     </p>
                   </div>
                   <DepositChip deposit={request.deposit} />
@@ -314,10 +314,10 @@ export function DepositConfigCard({ request, isOwner, onPreviewFile, readOnly = 
                     <div className="rounded-xl border border-amber-300/70 bg-amber-50/50 p-3.5 dark:border-amber-900/70 dark:bg-amber-950/20 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                       <div>
                         <p className="text-xs font-semibold text-amber-950 dark:text-amber-200">
-                          Awaiting Payment Receipt
+                          Awaiting Deposit
                         </p>
                         <p className="text-xs text-amber-900/80 dark:text-amber-300/80 mt-0.5">
-                          Deposit must be marked received with an uploaded payment receipt before this request can be completed.
+                          The deposit must be marked as received (in the Finish up panel) before this request can be completed. A receipt is optional.
                         </p>
                       </div>
                       {canEdit && (

@@ -23,6 +23,7 @@ import {
   requestRevision,
   retryCompletionEmail,
   setDepositRequirement,
+  recordDepositReceived,
   setRefundOutcome,
   startReview,
   withdrawRequestAsReviewer,
@@ -215,6 +216,7 @@ export const useRejectRequest = () => useRequestMutation(rejectRequest, { lists:
 
 /* Sprint 3 Reviewer Mutations */
 export const useSetDepositRequirement = () => useRequestMutation(setDepositRequirement, { lists: "stale" });
+export const useRecordDepositReceived = () => useRequestMutation(recordDepositReceived, { lists: "refetch" });
 export const useCompleteRequest = () => useRequestMutation(completeRequest, { lists: "refetch" });
 export const useRetryCompletionEmail = () => useRequestMutation(retryCompletionEmail, { lists: "none" });
 export const useWithdrawRequest = () => useRequestMutation(withdrawRequestAsReviewer, { lists: "refetch" });
