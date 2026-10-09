@@ -208,6 +208,15 @@ export default function RequestDetailPage({ id }: { id: string }) {
       }
     : residents?.find((r) => r.id === req.residentId);
   const owner = isOwner ? me : reviewers?.find((r) => r.id === req.assignedReviewerId);
+
+  // When the current reviewer got this request: the latest assign / reassign event.
+  const assignedAt = req.assignedReviewerId
+    ? req.history
+        .filter((h) => h.type === "assigned" || h.type === "reassigned")
+        .map((h) => h.createdAt)
+        .sort()
+        .pop()
+    : undefined;
   const category = categories?.find((c) => c.id === req.categoryId);
   const currentCategoryVersion = category?.version ?? req.formVersion;
 
@@ -808,6 +817,7 @@ export default function RequestDetailPage({ id }: { id: string }) {
                     {isOwner && <span className="font-normal text-muted-foreground"> (you)</span>}
                   </span>
                   <span className="block truncate text-xs text-muted-foreground">{owner.designation}</span>
+                  {assignedAt && <span className="block truncate text-xs text-muted-foreground">Assigned {formatDate(assignedAt)}</span>}
                 </span>
               </div>
             ) : (
@@ -829,6 +839,12 @@ export default function RequestDetailPage({ id }: { id: string }) {
                 <dt className="text-muted-foreground">Submitted</dt>
                 <dd className="font-medium">{formatDate(req.submittedAt)}</dd>
               </div>
+              {req.review?.startedAt && (
+                <div className="flex justify-between gap-2">
+                  <dt className="text-muted-foreground">Review started</dt>
+                  <dd className="font-medium">{formatDate(req.review.startedAt)}</dd>
+                </div>
+              )}
               <div className="flex justify-between gap-2">
                 <dt className="text-muted-foreground">Last update</dt>
                 <dd className="flex items-center gap-2 font-medium"><StatusBadge status={req.status} className="px-2 py-0 text-[11px]" />{formatDate(req.updatedAt)}</dd>
