@@ -239,7 +239,7 @@ export function UploadLetterDialog({ request, open, onOpenChange, isReplacing = 
           </div>
         </div>
 
-        <DialogFooter className="gap-2 sm:gap-0">
+        <DialogFooter className="gap-3">
           <Button
             type="button"
             variant="outline"

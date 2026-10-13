@@ -65,7 +65,7 @@ export function ApproveRequestDialog({
   return (
     <Dialog disablePointerDismissal open={open} onOpenChange={(o) => !isPending && onOpenChange(o)}>
       <DialogContent className="sm:max-w-lg w-full max-w-[calc(100vw-2rem)] max-h-[92svh] overflow-y-auto">
-        <DialogHeader className="min-w-0">
+        <DialogHeader className="min-w-0 items-center text-center">
           <div className="mb-1 flex size-10 items-center justify-center rounded-xl border border-emerald-300/80 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-300">
             <CheckCircle2 className="size-5" aria-hidden="true" />
           </div>
@@ -77,20 +77,20 @@ export function ApproveRequestDialog({
         </DialogHeader>
 
         {flaggedCount > 0 ? (
-          <div className="rounded-xl border border-destructive/40 bg-destructive/10 p-3.5 text-xs text-destructive min-w-0 break-words [overflow-wrap:anywhere]">
+          <div className="rounded-xl border border-destructive/40 bg-destructive/10 p-3.5 text-center text-xs text-destructive min-w-0 break-words [overflow-wrap:anywhere]">
             <p className="font-medium">
               This request has {flaggedCount} flagged item{flaggedCount === 1 ? "" : "s"} requiring correction. Clear all flags or click &ldquo;Request Revision&rdquo; instead.
             </p>
           </div>
         ) : (
           <div className="space-y-4">
-            <div className="rounded-xl border border-emerald-200/80 bg-emerald-50/40 p-3.5 text-xs text-emerald-900 dark:border-emerald-900/60 dark:bg-emerald-950/20 dark:text-emerald-300 min-w-0 break-words [overflow-wrap:anywhere]">
+            <div className="rounded-xl border border-emerald-200/80 bg-emerald-50/40 p-3.5 text-center text-xs text-emerald-900 dark:border-emerald-900/60 dark:bg-emerald-950/20 dark:text-emerald-300 min-w-0 break-words [overflow-wrap:anywhere]">
               <p className="font-medium">All form fields and submitted materials will be marked as accepted.</p>
               <p className="mt-1 text-muted-foreground">The resident will be notified that their request has been approved.</p>
             </div>
 
             <div className="space-y-2">
-              <p className="text-sm font-semibold text-foreground">Deposit</p>
+              <p className="text-center text-sm font-semibold text-foreground">Deposit</p>
               <DepositFields
                 value={deposit}
                 onChange={(v) => {
@@ -102,13 +102,13 @@ export function ApproveRequestDialog({
               />
             </div>
 
-            <p className="text-xs text-muted-foreground">
+            <p className="text-center text-xs text-muted-foreground">
               After approving you&apos;ll finish up in one place: mark the deposit as received (if required; a receipt is optional), upload the final approval letter, then complete the request.
             </p>
           </div>
         )}
 
-        <DialogFooter className="gap-2 sm:gap-0">
+        <DialogFooter className="gap-3 sm:justify-center">
           <Button
             type="button"
             variant="outline"
@@ -235,7 +235,7 @@ export function RequestRevisionDialog({
     <Dialog disablePointerDismissal open={open} onOpenChange={(o) => !isPending && onOpenChange(o)}>
       <DialogContent className="sm:max-w-lg w-full max-w-[calc(100vw-2rem)]">
         <form onSubmit={handleSubmit} className="space-y-4 min-w-0">
-          <DialogHeader className="min-w-0">
+          <DialogHeader className="min-w-0 items-center text-center">
             <div className="mb-1 flex size-10 items-center justify-center rounded-xl border border-amber-300/80 bg-amber-50 text-amber-700 dark:border-amber-800 dark:bg-amber-950/50 dark:text-amber-300">
               <FileEdit className="size-5" aria-hidden="true" />
             </div>
@@ -252,7 +252,7 @@ export function RequestRevisionDialog({
           <div className="space-y-2 min-w-0">
             <label
               htmlFor="revision-feedback-input"
-              className="text-xs font-semibold tracking-wider text-muted-foreground uppercase"
+              className="block text-center text-xs font-semibold tracking-wider text-muted-foreground uppercase"
             >
               Revision Feedback &amp; Instructions <span className="text-destructive">*</span>
             </label>
@@ -271,7 +271,7 @@ export function RequestRevisionDialog({
               rows={3}
               maxLength={2000}
               disabled={isPending}
-              className="resize-none break-words [overflow-wrap:anywhere]"
+              className="field-sizing-fixed max-h-40 resize-none overflow-y-auto break-words [overflow-wrap:anywhere]"
               autoFocus
             />
             <div className="flex justify-between text-[11px] text-muted-foreground">
@@ -281,7 +281,7 @@ export function RequestRevisionDialog({
           </div>
 
           <div className="space-y-2.5 max-h-48 overflow-y-auto pr-1 min-w-0">
-            <p className="text-xs font-semibold tracking-wider text-muted-foreground uppercase">
+            <p className="text-center text-xs font-semibold tracking-wider text-muted-foreground uppercase">
               Flagged Items to Correct ({flaggedItems.length})
             </p>
             {flaggedItems.map((item) => (
@@ -297,7 +297,7 @@ export function RequestRevisionDialog({
             ))}
           </div>
 
-          <DialogFooter className="gap-2 sm:gap-0">
+          <DialogFooter className="gap-3 sm:justify-center">
             <Button
               type="button"
               variant="outline"
@@ -374,7 +374,7 @@ export function RejectRequestDialog({
     <Dialog disablePointerDismissal open={open} onOpenChange={(o) => !isPending && onOpenChange(o)}>
       <DialogContent className="sm:max-w-md w-full max-w-[calc(100vw-2rem)]">
         <form onSubmit={handleSubmit} className="space-y-4 min-w-0">
-          <DialogHeader className="min-w-0">
+          <DialogHeader className="min-w-0 items-center text-center">
             <div className="mb-1 flex size-10 items-center justify-center rounded-xl border border-rose-300/80 bg-rose-50 text-rose-700 dark:border-rose-800 dark:bg-rose-950/50 dark:text-rose-300">
               <XCircle className="size-5" aria-hidden="true" />
             </div>
@@ -386,7 +386,7 @@ export function RejectRequestDialog({
           </DialogHeader>
 
           <div className="space-y-2 min-w-0">
-            <label htmlFor="rejection-reason-input" className="text-xs font-semibold tracking-wider text-muted-foreground uppercase">
+            <label htmlFor="rejection-reason-input" className="block text-center text-xs font-semibold tracking-wider text-muted-foreground uppercase">
               Rejection Reason <span className="text-destructive">*</span>
             </label>
             <Textarea
@@ -404,7 +404,7 @@ export function RejectRequestDialog({
               rows={4}
               maxLength={2000}
               disabled={isPending}
-              className="resize-none break-words [overflow-wrap:anywhere]"
+              className="field-sizing-fixed max-h-40 resize-none overflow-y-auto break-words [overflow-wrap:anywhere]"
               autoFocus
             />
             <div className="flex justify-between text-[11px] text-muted-foreground">
@@ -413,7 +413,7 @@ export function RejectRequestDialog({
             </div>
           </div>
 
-          <DialogFooter className="gap-2 sm:gap-0">
+          <DialogFooter className="gap-3 sm:justify-center">
             <Button
               type="button"
               variant="outline"

@@ -82,7 +82,7 @@ export function DepositDialog({
 
         <DepositFields value={value} onChange={(v) => { setValue(v); setError(null); }} error={error} disabled={mutation.isPending} />
 
-        <DialogFooter className="gap-2 sm:gap-0">
+        <DialogFooter className="gap-3">
           <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={mutation.isPending}>
             Cancel
           </Button>
