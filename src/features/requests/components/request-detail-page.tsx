@@ -871,7 +871,7 @@ export default function RequestDetailPage({ id }: { id: string }) {
               )}
               <div className="flex justify-between gap-2">
                 <dt className="text-muted-foreground">Last update</dt>
-                <dd className="flex items-center gap-2 font-medium"><StatusBadge status={req.status} className="px-2 py-0 text-[11px]" />{formatDate(req.updatedAt)}</dd>
+                <dd className="font-medium whitespace-nowrap">{formatDate(req.updatedAt)}</dd>
               </div>
             </dl>
           </CardContent>
