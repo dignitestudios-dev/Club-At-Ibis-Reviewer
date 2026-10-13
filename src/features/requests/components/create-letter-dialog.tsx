@@ -167,7 +167,7 @@ export function CreateLetterDialog({
   return (
     <Dialog disablePointerDismissal open={open} onOpenChange={(o) => !isUploading && onOpenChange(o)}>
       <DialogContent className="flex h-[94svh] w-[calc(100vw-1rem)] max-w-none flex-col gap-0 overflow-hidden p-0 text-left sm:max-w-6xl">
-        <DialogHeader className="shrink-0 items-start border-b border-border px-5 py-4 pr-12 text-left">
+        <DialogHeader className="shrink-0 items-start border-b border-border px-5 py-4 pr-12 text-left [&_[data-slot=dialog-title]]:text-left">
           <DialogTitle className="flex items-center gap-2 font-heading text-xl font-medium">
             <FilePenLine className="size-5 text-teal-600 dark:text-teal-400" aria-hidden="true" />
             {isReplacing ? "Create a new approval letter" : "Create approval letter"}
