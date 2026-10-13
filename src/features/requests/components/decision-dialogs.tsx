@@ -393,8 +393,12 @@ export function RejectRequestDialog({
               id="rejection-reason-input"
               value={reason}
               onChange={(e) => {
-                setReason(e.target.value);
+                // Single paragraph only: pasted line breaks become spaces.
+                setReason(e.target.value.replace(/\s*[\r\n]+\s*/g, " "));
                 if (error) setError(null);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") e.preventDefault();
               }}
               placeholder="State clearly why the request is rejected according to community rules..."
               rows={4}
