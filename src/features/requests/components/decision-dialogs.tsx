@@ -216,11 +216,8 @@ export function RequestRevisionDialog({
     if (e) e.preventDefault();
     if (isSubmittingRef.current || isPending) return;
 
+    // Feedback is optional: the flagged items already carry their own reasons.
     const trimmed = feedback.trim();
-    if (!trimmed) {
-      setError("Please provide instructions or feedback for the requested revision.");
-      return;
-    }
 
     isSubmittingRef.current = true;
     try {
@@ -254,7 +251,7 @@ export function RequestRevisionDialog({
               htmlFor="revision-feedback-input"
               className="text-xs font-semibold tracking-wider text-muted-foreground uppercase"
             >
-              Revision Feedback &amp; Instructions <span className="text-destructive">*</span>
+              Revision Feedback &amp; Instructions <span className="font-normal normal-case tracking-normal">(optional)</span>
             </label>
             <Textarea
               id="revision-feedback-input"
@@ -309,7 +306,7 @@ export function RequestRevisionDialog({
             <Button
               type="submit"
               className="bg-amber-600 hover:bg-amber-700 text-white dark:bg-amber-600 dark:hover:bg-amber-700"
-              disabled={isPending || flaggedItems.length === 0 || !feedback.trim()}
+              disabled={isPending || flaggedItems.length === 0}
             >
               {isPending ? <Spinner className="size-4 mr-2" /> : <FileEdit className="size-4 mr-2" />}
               Send Revision Request
