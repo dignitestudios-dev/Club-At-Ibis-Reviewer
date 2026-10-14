@@ -567,7 +567,6 @@ export default function RequestDetailPage({ id }: { id: string }) {
               request={req}
               residentName={residentFullName(resident)}
               residentIdNumber={resident?.residentIdNumber}
-              reviewerName={owner?.name}
             />
             {canWithdraw && !canReview && !isApproved && (
               <Button
