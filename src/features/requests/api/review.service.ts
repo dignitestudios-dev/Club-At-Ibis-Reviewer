@@ -326,6 +326,30 @@ export async function completeRequest({
 }
 
 /* ------------------------------------------------------------------ */
+/* Permit validity                                                    */
+/* ------------------------------------------------------------------ */
+
+export interface MarkPermitInUsePayload {
+  requestId: string;
+  expectedAssignmentVersion: number;
+  expectedWorkflowVersion: number;
+}
+
+/** One-way: marks an active permit as in use. Does not extend validity or stop reminders. */
+export async function markPermitInUse({
+  requestId,
+  expectedAssignmentVersion,
+  expectedWorkflowVersion,
+}: MarkPermitInUsePayload): Promise<RequestRecord> {
+  const { data } = await axiosInstance.post(`/reviewer/requests/${requestId}/permit/use`, {
+    expectedAssignmentVersion,
+    expectedWorkflowVersion,
+  });
+  const req = data?.data?.request ?? data?.request ?? data?.data;
+  return toReviewerRequestRecord(req);
+}
+
+/* ------------------------------------------------------------------ */
 /* Sprint 3: Completion Email Retry                                   */
 /* ------------------------------------------------------------------ */
 

@@ -56,6 +56,8 @@ import { FinalizeApprovalPanel } from "@/features/requests/components/finalize-a
 import { depositPayload, formatDepositAmount, isDepositSatisfied, type DepositValue } from "@/features/requests/components/deposit-fields";
 import { UploadReceiptDialog } from "@/features/requests/components/upload-receipt-dialog";
 import { ApprovalLetterCard } from "@/features/requests/components/approval-letter-card";
+import { PermitCard } from "@/features/requests/components/permit-card";
+import { MarkPermitDialog } from "@/features/requests/components/mark-permit-dialog";
 import { UploadLetterDialog } from "@/features/requests/components/upload-letter-dialog";
 import { CompleteRequestDialog } from "@/features/requests/components/complete-request-dialog";
 import { EmailStatusCard } from "@/features/requests/components/email-status-card";
@@ -151,6 +153,7 @@ export default function RequestDetailPage({ id }: { id: string }) {
   const [preview, setPreview] = useState<PreviewableFile | null>(null);
   const [assigning, setAssigning] = useState<RequestRecord | null>(null);
   const [approveOpen, setApproveOpen] = useState(false);
+  const [markPermitOpen, setMarkPermitOpen] = useState(false);
   const [revisionOpen, setRevisionOpen] = useState(false);
   const [rejectOpen, setRejectOpen] = useState(false);
   const [completeOpen, setCompleteOpen] = useState(false);
@@ -1060,19 +1063,22 @@ export default function RequestDetailPage({ id }: { id: string }) {
                 </CardContent>
               </Card>
 
-              <Card className="rounded-xl border border-border/70 bg-transparent shadow-none ring-0">
-                <CardContent className="flex items-start gap-3 pt-1">
-                  <span className="flex size-9 shrink-0 items-center justify-center rounded-xl border border-emerald-200/80 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-300">
-                    <CheckCircle2 className="size-4" aria-hidden="true" />
-                  </span>
-                  <div>
-                    <p className="text-sm font-semibold text-foreground">HOA Approval Confirmed</p>
-                    <p className="text-xs text-muted-foreground">
-                      Resident checked &ldquo;I have HOA Approval&rdquo; at submission · {formatDateTime(req.hoaConfirmedAt)}
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
+              {req.hoaApprovalRequired && (
+                <Card className="rounded-xl border border-border/70 bg-transparent shadow-none ring-0">
+                  <CardContent className="flex items-start gap-3 pt-1">
+                    <span className="flex size-9 shrink-0 items-center justify-center rounded-xl border border-emerald-200/80 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-300">
+                      <CheckCircle2 className="size-4" aria-hidden="true" />
+                    </span>
+                    <div>
+                      <p className="text-sm font-semibold text-foreground">HOA Approval Confirmed</p>
+                      <p className="text-xs text-muted-foreground">
+                        Resident checked &ldquo;I have HOA Approval&rdquo; at submission
+                        {req.hoaConfirmedAt ? <> · {formatDateTime(req.hoaConfirmedAt)}</> : null}. The HOA Approval Confirmation Letter is in Documents.
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
             </TabsContent>
 
             {/* Submission History: everything about earlier rounds lives here,
@@ -1131,6 +1137,13 @@ export default function RequestDetailPage({ id }: { id: string }) {
             {/* Decisions & deposit */}
             <TabsContent value="decisions" className="space-y-5 pt-4">
               <ApprovalLetterCard request={req} isOwner={isOwner} onPreviewFile={setPreview} readOnly />
+
+              {req.completion?.permit && (
+                <PermitCard
+                  permit={req.completion.permit}
+                  onMarkInUse={isOwner && req.status === "completed" ? () => setMarkPermitOpen(true) : undefined}
+                />
+              )}
 
               {req.status === "completed" && (
                 <EmailStatusCard request={req} isOwner={isOwner} />
@@ -1496,6 +1509,7 @@ export default function RequestDetailPage({ id }: { id: string }) {
         onOpenDepositDialog={() => document.getElementById("finalize-panel")?.scrollIntoView({ behavior: "smooth", block: "start" })}
         onOpenLetterDialog={() => document.getElementById("finalize-panel")?.scrollIntoView({ behavior: "smooth", block: "start" })}
       />
+      <MarkPermitDialog request={req} open={markPermitOpen} onOpenChange={setMarkPermitOpen} />
       <WithdrawRequestDialog
         request={req}
         open={withdrawOpen}

@@ -15,6 +15,10 @@ function toReviewerNotification(raw: any, reviewerId?: string): ReviewerNotifica
     type = "request_update";
   } else if (rawType === "withdrawal" || rawType === "withdrawn") {
     type = "withdrawal";
+  } else if (rawType === "request_permit_reminder") {
+    type = "permit_reminder";
+  } else if (rawType === "request_permit_expired") {
+    type = "permit_expired";
   } else if (rawType === "action_required") {
     type = "action_required";
   }

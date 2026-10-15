@@ -24,8 +24,9 @@ export default function NotificationsPage() {
 
   const all = data ?? [];
   const unread = all.filter((n) => !n.read).length;
-  const attention = all.filter((n) => n.type === "action_required").length;
-  const shown = all.filter((n) => (filter === "unread" ? !n.read : filter === "attention" ? n.type === "action_required" : true));
+  const needsAttention = (n: ReviewerNotification) => n.type === "action_required" || n.type === "permit_expired";
+  const attention = all.filter(needsAttention).length;
+  const shown = all.filter((n) => (filter === "unread" ? !n.read : filter === "attention" ? needsAttention(n) : true));
 
   return (
     <div className="space-y-6">

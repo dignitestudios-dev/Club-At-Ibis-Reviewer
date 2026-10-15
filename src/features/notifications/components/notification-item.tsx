@@ -23,6 +23,8 @@ const BADGE: Record<string, string> = {
   request_update: "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 border-emerald-200/80 dark:border-emerald-800/60",
   withdrawal: "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700",
   withdrawn: "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700",
+  permit_reminder: "bg-sky-50 dark:bg-sky-950/40 text-sky-900 dark:text-sky-300 border-sky-200/80 dark:border-sky-800/60",
+  permit_expired: "bg-rose-50 dark:bg-rose-950/40 text-rose-900 dark:text-rose-300 border-rose-200/80 dark:border-rose-800/60",
   action_required: "bg-amber-50 dark:bg-amber-950/40 text-amber-900 dark:text-amber-300 border-amber-200/80 dark:border-amber-800/60",
 };
 

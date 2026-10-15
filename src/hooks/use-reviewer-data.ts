@@ -19,6 +19,7 @@ import {
   assessReviewItems,
   assignRequest,
   completeRequest,
+  markPermitInUse,
   rejectRequest,
   requestRevision,
   retryCompletionEmail,
@@ -222,6 +223,7 @@ export const useRejectRequest = () => useRequestMutation(rejectRequest, { lists:
 export const useSetDepositRequirement = () => useRequestMutation(setDepositRequirement, { lists: "stale" });
 export const useRecordDepositReceived = () => useRequestMutation(recordDepositReceived, { lists: "refetch" });
 export const useCompleteRequest = () => useRequestMutation(completeRequest, { lists: "refetch" });
+export const useMarkPermitInUse = () => useRequestMutation(markPermitInUse, { lists: "stale" });
 export const useRetryCompletionEmail = () => useRequestMutation(retryCompletionEmail, { lists: "none" });
 export const useWithdrawRequest = () => useRequestMutation(withdrawRequestAsReviewer, { lists: "refetch" });
 export const useSetRefundOutcome = () => useRequestMutation(setRefundOutcome, { lists: "refetch" });

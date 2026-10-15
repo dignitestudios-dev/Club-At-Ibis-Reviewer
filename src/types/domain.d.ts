@@ -182,6 +182,9 @@ type HistoryEventType =
   | "completion_email_sent"
   | "completion_email_failed"
   | "completion_email_retry_requested"
+  | "permit_marked_in_use"
+  | "permit_reminder_sent"
+  | "permit_expired"
   | "refund_outcome_recorded"
   | "refund_outcome_corrected";
 
@@ -298,11 +301,26 @@ interface CompletionEmailRecord {
   lastErrorMessage?: string | null;
 }
 
+type PermitStatus = "active" | "in_use" | "expired";
+
+/** The one-year permit issued when a request is completed (staff view). */
+interface RequestPermit {
+  status: PermitStatus;
+  issuedAt: string;
+  expiresAt: string;
+  usedAt?: string | null;
+  usedBy?: { id?: string; actorId?: string; name?: string; displayName?: string } | string | null;
+  /** Reminders sent so far, out of 3 (at 3, 6 and 9 months). */
+  reminderCount?: number;
+  nextReminderAt?: string | null;
+}
+
 interface RequestCompletion {
   completedAt: string | null;
   completedBy?: { id?: string; actorId?: string; name?: string; email?: string; displayName?: string } | null;
   finalApprovalLetter?: AttachedFile | null;
   email?: CompletionEmailRecord | null;
+  permit?: RequestPermit | null;
 }
 
 interface RequestWithdrawal {
@@ -394,7 +412,10 @@ interface RequestRecord {
   /** Earlier submissions, oldest first, retained when the resident resubmits. */
   previousSubmissions?: SubmissionSnapshot[];
   hoaApproved: boolean;
-  hoaConfirmedAt: string;
+  /** Null when the category did not require HOA approval. */
+  hoaConfirmedAt?: string;
+  /** The category form version this request was submitted under required HOA approval + letter. */
+  hoaApprovalRequired: boolean;
   submittedAt: string;
   updatedAt: string;
   decidedAt?: string;
@@ -423,6 +444,8 @@ type ReviewerNotificationType =
   | "resubmission"
   | "request_update"
   | "withdrawal"
+  | "permit_reminder"
+  | "permit_expired"
   | "action_required";
 
 interface ReviewerNotification {

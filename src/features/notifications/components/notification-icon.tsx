@@ -1,4 +1,4 @@
-import { AlertTriangle, CheckCircle2, FileDiff, FilePlus2, Inbox, Repeat2, UserRoundCheck, UserX, type LucideIcon } from "lucide-react";
+import { AlertTriangle, BellRing, CheckCircle2, TimerOff, FileDiff, FilePlus2, Inbox, Repeat2, UserRoundCheck, UserX, type LucideIcon } from "lucide-react";
 import { cn } from "@/utils/cn";
 
 const CONFIG: Record<string, { icon: LucideIcon; className: string; label: string }> = {
@@ -71,6 +71,16 @@ const CONFIG: Record<string, { icon: LucideIcon; className: string; label: strin
     icon: UserX,
     className: "bg-slate-100 dark:bg-slate-800 border-slate-200/70 dark:border-slate-700 text-slate-700 dark:text-slate-300",
     label: "Withdrawn",
+  },
+  permit_reminder: {
+    icon: BellRing,
+    className: "bg-sky-50 dark:bg-sky-950/40 border-sky-200/70 dark:border-sky-800/60 text-sky-700 dark:text-sky-300",
+    label: "Permit check-in",
+  },
+  permit_expired: {
+    icon: TimerOff,
+    className: "bg-rose-50 dark:bg-rose-950/40 border-rose-200/70 dark:border-rose-800/60 text-rose-700 dark:text-rose-300",
+    label: "Permit expired",
   },
   action_required: {
     icon: AlertTriangle,
