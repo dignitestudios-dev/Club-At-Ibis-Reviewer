@@ -3,6 +3,9 @@
 import { useMemo } from "react";
 import { Filter, History, ListChecks, RefreshCw } from "lucide-react";
 import { PageHeader } from "@/components/shared/page-header";
+import { ErrorState } from "@/components/shared/error-state";
+import { ADVANCED_FILTER_DEFAULTS, StaffAdvancedFilters, advancedActiveCount, advancedCriteria, advancedParams, type AdvancedFilterValues } from "@/components/shared/staff-filters";
+import { ExportCsvButton } from "@/features/requests/components/export-csv-button";
 import { EmptyState } from "@/components/shared/empty-state";
 import { FilterCombobox } from "@/components/shared/filter-combobox";
 import { FilterSelect } from "@/components/shared/filter-select";
@@ -29,7 +32,7 @@ const HISTORY_STATUSES = "completed,rejected,withdrawn";
 export default function MyRequestsPage() {
   const toast = useToast();
   const { me, isDefault } = useMe();
-  const { values, set } = useUrlParams({ tab: "active", status: "all", category: "all", page: "1" });
+  const { values, set } = useUrlParams({ tab: "active", status: "all", category: "all", page: "1", ...ADVANCED_FILTER_DEFAULTS });
   const [search, setSearch] = useUrlSearch("q");
   const [pageSize, setPageSize] = usePageSize();
   const tab: Tab = values.tab === "history" ? "history" : "active";
@@ -37,22 +40,40 @@ export default function MyRequestsPage() {
   const page = Math.max(1, Number(values.page) || 1);
   const statusParam = values.status !== "all" ? values.status : tab === "active" ? ACTIVE_STATUSES : HISTORY_STATUSES;
 
-  const { data: pageData, isLoading, isFetching, refetch } = useRequestsPage(
+  const advanced: AdvancedFilterValues = {
+    categoryStatus: values.categoryStatus,
+    deposit: values.deposit,
+    refund: values.refund,
+    from: values.from,
+    to: values.to,
+  };
+
+  // The list's search and filters, also used by the CSV export (without page / limit).
+  const baseFilters = {
+    search: search.trim() || undefined,
+    categoryId: values.category !== "all" ? values.category : undefined,
+    ...advancedParams(advanced),
+    assignedReviewerId: isDefault ? me?.id : undefined,
+  };
+  const listFilters = { ...baseFilters, status: statusParam };
+
+  const { data: pageData, isLoading, isError, isFetching, refetch } = useRequestsPage(
     {
       page,
       limit: pageSize,
-      search: search.trim() || undefined,
-      status: statusParam,
-      categoryId: values.category !== "all" ? values.category : undefined,
-      assignedReviewerId: isDefault ? me?.id : undefined,
+      ...listFilters,
     },
     { enabled: !me ? false : true }
   );
 
-  // Tab badge counts come from the same paginated endpoint that powers the
-  // table — `pagination.total` for each status bucket — not a separately
-  // fetched, differently-capped "all mine" list that can drift from what's
-  // actually shown once there are more requests than one page holds.
+  // Tab badges follow the current search and filters, so the open tab's badge always equals the list's total.
+  // The open tab uses the list's own total; the other tab asks the same endpoint with the same filters.
+  const { data: otherTabPage } = useRequestsPage(
+    { limit: 1, ...baseFilters, status: tab === "active" ? HISTORY_STATUSES : ACTIVE_STATUSES },
+    { enabled: !me ? false : true }
+  );
+
+  // Unfiltered totals: only used to tell "nothing assigned yet" apart from "nothing matches the filters".
   const { data: activeTotalsPage } = useRequestsPage(
     { limit: 1, status: ACTIVE_STATUSES, assignedReviewerId: isDefault ? me?.id : undefined },
     { enabled: !me ? false : true }
@@ -66,11 +87,25 @@ export default function MyRequestsPage() {
   const rows = pageData?.requests ?? [];
   const total = pageData?.pagination?.total ?? 0;
   const q = search.trim();
-  const filtersOn = values.status !== "all" || values.category !== "all" || !!q;
+  const filtersOn = values.status !== "all" || values.category !== "all" || !!q || advancedActiveCount(advanced) > 0;
+  const criteriaText = [
+    q && `search "${q}"`,
+    values.status !== "all" && `status ${STATUS_LABEL[values.status as RequestStatus] ?? values.status}`,
+    values.category !== "all" && "the selected category",
+    ...advancedCriteria(advanced),
+  ]
+    .filter(Boolean)
+    .join(", ");
 
-  const activeCount = activeTotalsPage?.pagination?.total ?? 0;
-  const historyCount = historyTotalsPage?.pagination?.total ?? 0;
-  const totalMine = activeCount + historyCount;
+  const otherTabTotal = otherTabPage?.pagination?.total ?? 0;
+  const activeCount = tab === "active" ? total : otherTabTotal;
+  const historyCount = tab === "history" ? total : otherTabTotal;
+  const totalMine = (activeTotalsPage?.pagination?.total ?? 0) + (historyTotalsPage?.pagination?.total ?? 0);
+
+  function clearAll() {
+    setSearch("");
+    set({ status: "all", category: "all", page: "1", ...ADVANCED_FILTER_DEFAULTS });
+  }
 
   const categoryOptions = useMemo(
     () => [
@@ -99,6 +134,8 @@ export default function MyRequestsPage() {
         title="My Assigned Requests"
         description="Requests you own. Open one to review its information and documents, and to record your decision."
         actions={
+          <div className="flex items-center gap-2">
+            <ExportCsvButton filters={listFilters} />
           <Button
             variant="outline"
             size="sm"
@@ -118,6 +155,7 @@ export default function MyRequestsPage() {
             <RefreshCw className={cn("size-3.5", isFetching && "animate-spin")} />
             <span>Refresh</span>
           </Button>
+          </div>
         }
       />
 
@@ -134,9 +172,11 @@ export default function MyRequestsPage() {
         <SearchInput value={search} onChange={setSearch} placeholder="Search reference, resident, property or lot…" className="sm:max-w-sm" />
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2 lg:max-w-2xl">
-        <FilterSelect label="Status" value={values.status} onChange={(v) => set({ status: v, page: "1" })} options={statusOptions} />
-        <FilterCombobox label="Category" value={values.category} onChange={(v) => set({ category: v, page: "1" })} options={categoryOptions} placeholder="Search categories…" />
+      {/* Search and selects share one row with the Filters button. */}
+      <div className="flex flex-wrap items-end gap-3">
+        <FilterSelect className="w-full sm:w-56" label="Status" value={values.status} onChange={(v) => set({ status: v, page: "1" })} options={statusOptions} />
+        <FilterCombobox className="w-full sm:w-64" label="Category" value={values.category} onChange={(v) => set({ category: v, page: "1" })} options={categoryOptions} placeholder="Search categories…" />
+        <StaffAdvancedFilters values={advanced} onChange={(next) => set({ ...next, page: "1" })} anyFilterActive={filtersOn} onClearAll={clearAll} />
       </div>
 
       {isLoading ? (
@@ -145,20 +185,22 @@ export default function MyRequestsPage() {
             <Skeleton key={i} className="h-16 w-full rounded-xl" />
           ))}
         </div>
+      ) : isError ? (
+        <ErrorState title="We couldn't load your requests" onRetry={() => void refetch()} retrying={isFetching} />
       ) : rows.length === 0 ? (
         <EmptyState
           icon={filtersOn ? Filter : ListChecks}
           title={filtersOn ? "No requests match" : totalMine === 0 ? "Nothing assigned to you yet" : tab === "active" ? "No active requests" : "No history yet"}
           description={
             filtersOn
-              ? "Try a different search or clear the filters."
+              ? `No requests match: ${criteriaText}. Adjust the filters or clear them.`
               : totalMine === 0
                 ? "Requests assigned to you will appear here, and you'll be notified when one arrives."
                 : tab === "active" ? "Requests you are working on will appear here." : "Completed, rejected and withdrawn requests will appear here."
           }
           action={
             filtersOn ? (
-              <Button variant="outline" onClick={() => { setSearch(""); set({ status: "all", category: "all", page: "1" }); }}>
+              <Button variant="outline" onClick={clearAll}>
                 Clear filters
               </Button>
             ) : undefined
@@ -179,7 +221,7 @@ export default function MyRequestsPage() {
             />
           }
         >
-          <RequestsTable rows={rows} />
+          <RequestsTable rows={rows} query={search} />
         </TableFrame>
       )}
     </div>

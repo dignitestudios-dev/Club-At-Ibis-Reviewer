@@ -1,5 +1,6 @@
 "use client";
 
+import { ErrorState } from "@/components/shared/error-state";
 import { ProcessingChip } from "@/components/shared/processing-chip";
 import Link from "next/link";
 import { format } from "date-fns";
@@ -56,7 +57,7 @@ export default function DashboardOverview() {
   // keeps this page in sync with them and avoids a general-reviewer flash
   // of the shared-intake copy while the dashboard request is still loading.
   const { me, isDefault } = useMe();
-  const { data, isLoading } = useReviewerDashboard();
+  const { data, isLoading, isError, isFetching, refetch } = useReviewerDashboard();
 
   const attentionData = data?.attention;
   const workload = data?.workload;
@@ -123,6 +124,11 @@ export default function DashboardOverview() {
   ];
   const attentionTotal = attentionData?.total ?? attention.reduce((s, x) => s + x.count, 0);
   const firstName = me?.name.split(" ")[0] ?? "reviewer";
+
+  // A failed load must never look like zero counts: show the error with a retry instead.
+  if (isError && !data) {
+    return <ErrorState title="We couldn't load the dashboard" description="The counts and work lists could not be loaded. Try again." onRetry={() => void refetch()} retrying={isFetching} />;
+  }
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">

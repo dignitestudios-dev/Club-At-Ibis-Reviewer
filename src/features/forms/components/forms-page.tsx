@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ChevronRight, FileDiff, LayoutTemplate, RefreshCw } from "lucide-react";
 import { PageHeader } from "@/components/shared/page-header";
 import { EmptyState } from "@/components/shared/empty-state";
+import { Highlight } from "@/components/shared/highlight";
 import { SearchInput } from "@/components/shared/search-input";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -88,7 +89,7 @@ export default function FormsPage() {
                 )}
               >
                 <div className="flex items-start justify-between gap-2">
-                  <h2 className="font-heading text-lg leading-snug font-medium text-foreground">{cat.name}</h2>
+                  <h2 className="font-heading text-lg leading-snug font-medium text-foreground"><Highlight text={cat.name} query={search} /></h2>
                   <span className="rounded-full bg-muted px-2.5 py-1 font-mono text-[11px] text-muted-foreground">v{cat.version}</span>
                 </div>
                 {updated ? (

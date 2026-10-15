@@ -24,17 +24,11 @@ export function AppSidebar({ onNavigate }: { onNavigate?: () => void }) {
   const allItems = navGroups.flatMap((g) => g.items);
   const activeHref = findActiveHref(pathname, allItems);
 
-  // The badge counts come straight from `pagination.total` of filtered queries (not `.length` of a capped,
-  // unfiltered fetch), so they always match the list pages. `limit: 1` keeps them cheap, and every status
-  // that needs this reviewer to act shares ONE comma-separated query. `assigned` (just taken / assigned,
-  // review not started) and `under_review` must be in there; `changes_required` is waiting on the resident.
+  // The "Assigned Requests" badge is exactly the My Assigned Requests > Active tab total (same statuses, same
+  // assignee, no filters), so the sidebar, the tab and the list always agree. `limit: 1` keeps it cheap and
+  // `pagination.total` is the real count.
   const { data: actionPage } = useRequestsPage(
-    { status: "submitted,assigned,under_review,resubmitted,approved", assignedReviewerId: me?.id, limit: 1 },
-    { enabled: !!me }
-  );
-  // The backend's refundOutcome filter uses "awaiting_refund_action", not the shorter "awaiting" the UI uses internally.
-  const { data: refundsPage } = useRequestsPage(
-    { refundOutcome: "awaiting_refund_action", assignedReviewerId: me?.id, limit: 1 },
+    { status: "submitted,assigned,under_review,changes_required,resubmitted,approved", assignedReviewerId: isDefault ? me?.id : undefined, limit: 1 },
     { enabled: !!me }
   );
   // /reviewer/requests/incoming is the shared Default Reviewer intake queue —
@@ -42,9 +36,9 @@ export function AppSidebar({ onNavigate }: { onNavigate?: () => void }) {
   // backend returns 403, so this must stay gated behind `isDefault`.
   const { data: incomingPage } = useIncomingRequestsPage({ limit: 1 }, { enabled: isDefault });
   const { data: unreadNotifications } = useUnreadNotificationCount();
-  const mineCount = (actionPage?.pagination?.total ?? 0) + (refundsPage?.pagination?.total ?? 0);
+  const mineCount = actionPage?.pagination?.total ?? 0;
   const counts = {
-    // Work that needs this reviewer to act right now.
+    // Active requests assigned to this reviewer.
     mine: mineCount,
     incoming: incomingPage?.pagination?.total ?? 0,
     notifications: unreadNotifications ?? 0,

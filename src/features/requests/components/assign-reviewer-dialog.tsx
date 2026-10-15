@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Spinner } from "@/components/ui/spinner";
 import { PersonAvatar } from "@/components/shared/person-avatar";
+import { Highlight } from "@/components/shared/highlight";
 import { SearchInput } from "@/components/shared/search-input";
 import { isConflictError, useAssignRequest, useReviewers } from "@/hooks/use-reviewer-data";
 import { useDebounce } from "@/hooks/use-debounce";
@@ -141,16 +142,16 @@ export function AssignReviewerDialog({
                   </div>
                   <div className="min-w-0 flex-1 space-y-0.5">
                     <div className="flex min-w-0 items-center gap-2">
-                      <span className="truncate text-sm font-semibold text-foreground leading-tight">{r.name}</span>
+                      <span className="truncate text-sm font-semibold text-foreground leading-tight"><Highlight text={r.name} query={query} /></span>
                       {r.receiveNewRequests && (
                         <span className="shrink-0 rounded-full bg-brand-gold/15 px-1.5 py-px text-[9px] font-bold tracking-wider text-brand-gold uppercase">
                           Default
                         </span>
                       )}
                     </div>
-                    <p className="truncate text-xs text-muted-foreground font-mono leading-tight">{r.email}</p>
+                    <p className="truncate text-xs text-muted-foreground font-mono leading-tight"><Highlight text={r.email} query={query} /></p>
                     {r.designation && (
-                      <p className="truncate text-[11px] text-muted-foreground/80 leading-tight">{r.designation}</p>
+                      <p className="truncate text-[11px] text-muted-foreground/80 leading-tight"><Highlight text={r.designation} query={query} /></p>
                     )}
                   </div>
                   {isCurrent ? (

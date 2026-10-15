@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Crown, Inbox, RefreshCw, UserRoundPlus } from "lucide-react";
 import { PageHeader } from "@/components/shared/page-header";
 import { EmptyState } from "@/components/shared/empty-state";
+import { ErrorState } from "@/components/shared/error-state";
 import { Pagination } from "@/components/shared/pagination";
 import { SearchInput } from "@/components/shared/search-input";
 import { Button } from "@/components/ui/button";
@@ -40,7 +41,7 @@ export default function IncomingPage() {
   const take = useAssignRequest();
 
   const page = Math.max(1, Number(values.page) || 1);
-  const { data: pageData, isLoading, isFetching, refetch } = useIncomingRequestsPage(
+  const { data: pageData, isLoading, isError, isFetching, refetch } = useIncomingRequestsPage(
     {
       search: search.trim() || undefined,
       page,
@@ -114,6 +115,8 @@ export default function IncomingPage() {
             <Skeleton key={i} className="h-16 w-full rounded-xl" />
           ))}
         </div>
+      ) : isError ? (
+        <ErrorState title="We couldn't load incoming requests" onRetry={() => void refetch()} retrying={isFetching} />
       ) : rows.length === 0 ? (
         <EmptyState
           icon={Inbox}
@@ -137,6 +140,7 @@ export default function IncomingPage() {
         >
           <RequestsTable
             rows={rows}
+            query={search}
             renderActions={(req) => (
               <div className="flex items-center justify-end gap-2">
                 <Button size="sm" onClick={() => takeOwnership(req)} disabled={taking === req.id}>

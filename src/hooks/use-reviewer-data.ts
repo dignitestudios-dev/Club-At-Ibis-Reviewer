@@ -177,6 +177,7 @@ function useRequestMutation<TVars extends { requestId: string }>(
       announceRequestConflict();
       void qc.invalidateQueries({ queryKey: keys.requestDetail(vars.requestId) });
       void qc.invalidateQueries({ queryKey: keys.requestLists, refetchType: "active" });
+      void qc.invalidateQueries({ queryKey: ["dashboard"] });
       toast.warning(
         "Request updated",
         "This request was changed elsewhere (for example in another tab), so it has been refreshed. Review the latest details and try again."
@@ -189,6 +190,8 @@ function useRequestMutation<TVars extends { requestId: string }>(
         tasks.push(qc.invalidateQueries({ queryKey: keys.requestLists, refetchType: lists === "refetch" ? "active" : "none" }));
       }
       if (incoming) tasks.push(qc.invalidateQueries({ queryKey: keys.incomingRequests }));
+      // Dashboard counts and work lists change with any status or assignment change.
+      tasks.push(qc.invalidateQueries({ queryKey: ["dashboard"] }));
       return Promise.all(tasks);
     },
   });
@@ -199,6 +202,7 @@ export function useRefreshRequest() {
   const qc = useQueryClient();
   return (requestId: string, lists: ListImpact = "stale") =>
     Promise.all([
+      qc.invalidateQueries({ queryKey: ["dashboard"] }),
       qc.invalidateQueries({ queryKey: keys.requestDetail(requestId) }),
       lists === "none"
         ? undefined

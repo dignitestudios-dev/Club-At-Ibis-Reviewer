@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { format } from "date-fns";
 import { ChevronRight } from "lucide-react";
 import { PersonAvatar } from "@/components/shared/person-avatar";
+import { Highlight } from "@/components/shared/highlight";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useResidents, useReviewers } from "@/hooks/use-reviewer-data";
@@ -26,9 +27,12 @@ export function RequestsTable({
   rows,
   showReviewer = false,
   renderActions,
+  query,
 }: {
   rows: RequestRecord[];
   showReviewer?: boolean;
+  /** The current search text: matching parts of the row are highlighted. */
+  query?: string;
   renderActions?: (req: RequestRecord) => React.ReactNode;
 }) {
   const router = useRouter();
@@ -90,15 +94,15 @@ export function RequestsTable({
                     className="block font-mono text-xs font-semibold text-primary hover:underline dark:text-amber-300 whitespace-nowrap"
                     title={req.code}
                   >
-                    {req.code}
+                    <Highlight text={req.code} query={query} />
                   </Link>
-                  <span className="block max-w-[190px] truncate text-sm font-medium text-foreground" title={req.categoryName}>{req.categoryName}</span>
+                  <span className="block max-w-[190px] truncate text-sm font-medium text-foreground" title={req.categoryName}><Highlight text={req.categoryName} query={query} /></span>
                 </TableCell>
                 <TableCell className="text-sm max-w-[180px]">
-                  <span className="block truncate" title={resName}>{resName}</span>
+                  <span className="block truncate" title={resName}><Highlight text={resName} query={query} /></span>
                 </TableCell>
                 <TableCell className="max-w-[190px]">
-                  <span className="block max-w-[190px] truncate text-sm text-muted-foreground" title={propAddress}>{propAddress}</span>
+                  <span className="block max-w-[190px] truncate text-sm text-muted-foreground" title={propAddress}><Highlight text={propAddress} query={query} /></span>
                 </TableCell>
                 <TableCell className="min-w-[160px]">
                   <StatusBadge status={req.status} />

@@ -3,6 +3,9 @@
 import { useMemo, useState } from "react";
 import { Eye, Filter, History, Hourglass, ListChecks, RefreshCw, UserRoundPlus } from "lucide-react";
 import { PageHeader } from "@/components/shared/page-header";
+import { ErrorState } from "@/components/shared/error-state";
+import { ADVANCED_FILTER_DEFAULTS, StaffAdvancedFilters, advancedActiveCount, advancedCriteria, advancedParams, type AdvancedFilterValues } from "@/components/shared/staff-filters";
+import { ExportCsvButton } from "@/features/requests/components/export-csv-button";
 import { EmptyState } from "@/components/shared/empty-state";
 import { FilterCombobox } from "@/components/shared/filter-combobox";
 import { FilterSelect } from "@/components/shared/filter-select";
@@ -16,7 +19,7 @@ import { DefaultReviewersOnly } from "@/features/requests/components/incoming-pa
 import { AssignReviewerDialog } from "@/features/requests/components/assign-reviewer-dialog";
 import { TableFrame } from "@/components/shared/table-frame";
 import { RequestsTable } from "@/features/requests/components/requests-table";
-import { useRequestsPage, useReviewers } from "@/hooks/use-reviewer-data";
+import { useCategories, useRequestsPage, useReviewers } from "@/hooks/use-reviewer-data";
 import { useMe } from "@/hooks/use-current-user";
 import { usePageSize } from "@/hooks/use-page-size";
 import { useToast } from "@/hooks/use-toast";
@@ -33,7 +36,7 @@ const HISTORY_STATUSES = "completed,rejected,withdrawn";
 export default function OversightPage() {
   const toast = useToast();
   const { me, isDefault } = useMe();
-  const { values, set } = useUrlParams({ tab: "active", status: "all", reviewer: "all", page: "1" });
+  const { values, set } = useUrlParams({ tab: "active", status: "all", reviewer: "all", category: "all", page: "1", ...ADVANCED_FILTER_DEFAULTS });
   const [search, setSearch] = useUrlSearch("q");
   const [pageSize, setPageSize] = usePageSize();
   const [target, setTarget] = useState<RequestRecord | null>(null);
@@ -42,13 +45,28 @@ export default function OversightPage() {
   const page = Math.max(1, Number(values.page) || 1);
   const statusParam = values.status !== "all" ? values.status : tab === "active" ? ACTIVE_STATUSES : HISTORY_STATUSES;
 
-  const { data: pageData, isLoading, isFetching, refetch } = useRequestsPage(
+  const advanced: AdvancedFilterValues = {
+    categoryStatus: values.categoryStatus,
+    deposit: values.deposit,
+    refund: values.refund,
+    from: values.from,
+    to: values.to,
+  };
+
+  // The list's search and filters, also used by the CSV export (without page / limit).
+  const baseFilters = {
+    search: search.trim() || undefined,
+    categoryId: values.category !== "all" ? values.category : undefined,
+    ...advancedParams(advanced),
+    assignedReviewerId: values.reviewer !== "all" ? values.reviewer : undefined,
+  };
+  const listFilters = { ...baseFilters, status: statusParam };
+
+  const { data: pageData, isLoading, isError, isFetching, refetch } = useRequestsPage(
     {
       page,
       limit: pageSize,
-      search: search.trim() || undefined,
-      status: statusParam,
-      assignedReviewerId: values.reviewer !== "all" ? values.reviewer : undefined,
+      ...listFilters,
     },
     { enabled: isDefault }
   );
@@ -57,6 +75,12 @@ export default function OversightPage() {
   // endpoint's `pagination.total` for each status bucket — not a separately
   // fetched, 100-row-capped "all requests" list that silently undercounts
   // once there are more than 100 requests system-wide.
+  // Tab badges follow the current search and filters: the open tab uses the list's own total, the other tab asks
+  // the same endpoint with the same filters. (The stat cards above stay global.)
+  const { data: otherTabPage } = useRequestsPage(
+    { limit: 1, ...baseFilters, status: tab === "active" ? HISTORY_STATUSES : ACTIVE_STATUSES },
+    { enabled: isDefault }
+  );
   const { data: activeTotalsPage } = useRequestsPage({ limit: 1, status: ACTIVE_STATUSES }, { enabled: isDefault });
   const { data: historyTotalsPage } = useRequestsPage({ limit: 1, status: HISTORY_STATUSES }, { enabled: isDefault });
   const { data: changesRequiredPage } = useRequestsPage({ limit: 1, status: "changes_required" }, { enabled: isDefault });
@@ -68,6 +92,7 @@ export default function OversightPage() {
     { enabled: isDefault }
   );
   const { data: reviewers } = useReviewers(undefined, { enabled: isDefault });
+  const { data: categories } = useCategories();
 
   if (me && !isDefault) return <DefaultReviewersOnly />;
 
@@ -78,12 +103,33 @@ export default function OversightPage() {
 
   const rows = pageData?.requests ?? [];
   const total = pageData?.pagination?.total ?? 0;
+  const otherTabTotal = otherTabPage?.pagination?.total ?? 0;
+  const tabActiveCount = tab === "active" ? total : otherTabTotal;
+  const tabHistoryCount = tab === "history" ? total : otherTabTotal;
+
+  function clearAll() {
+    setSearch("");
+    set({ status: "all", reviewer: "all", category: "all", page: "1", ...ADVANCED_FILTER_DEFAULTS });
+  }
   const q = search.trim();
-  const filtersOn = values.status !== "all" || values.reviewer !== "all" || !!q;
+  const filtersOn = values.status !== "all" || values.reviewer !== "all" || values.category !== "all" || !!q || advancedActiveCount(advanced) > 0;
+  const criteriaText = [
+    q && `search "${q}"`,
+    values.status !== "all" && `status ${STATUS_LABEL[values.status as RequestStatus] ?? values.status}`,
+    values.reviewer !== "all" && `reviewer ${reviewers?.find((r) => r.id === values.reviewer)?.name ?? ""}`.trim(),
+    values.category !== "all" && `category ${categories?.find((c) => c.id === values.category)?.name ?? ""}`.trim(),
+    ...advancedCriteria(advanced),
+  ]
+    .filter(Boolean)
+    .join(", ");
 
   const reviewerOptions = [
     { label: "All reviewers", value: "all" },
     ...(reviewers ?? []).filter((r) => r.loginEnabled).map((r) => ({ label: r.name, value: r.id })).sort((a, b) => a.label.localeCompare(b.label)),
+  ];
+  const categoryOptions = [
+    { label: "All categories", value: "all" },
+    ...[...(categories ?? [])].sort((a, b) => a.name.localeCompare(b.name)).map((c) => ({ label: c.name, value: c.id })),
   ];
   const statusOptions = [
     { label: "All statuses", value: "all" },
@@ -99,6 +145,8 @@ export default function OversightPage() {
         title="Request Oversight"
         description="Track progress across every reviewer's requests and reassign work that is in progress."
         actions={
+          <div className="flex items-center gap-2">
+            <ExportCsvButton filters={listFilters} />
           <Button
             variant="outline"
             size="sm"
@@ -118,6 +166,7 @@ export default function OversightPage() {
             <RefreshCw className={cn("size-3.5", isFetching && "animate-spin")} />
             <span>Refresh</span>
           </Button>
+          </div>
         }
       />
 
@@ -134,16 +183,19 @@ export default function OversightPage() {
           value={tab}
           onChange={(v) => set({ tab: v, status: "all", page: "1" })}
           options={[
-            { value: "active", label: "Active Requests", icon: ListChecks, count: activeCount },
-            { value: "history", label: "History", icon: History, count: historyCount },
+            { value: "active", label: "Active Requests", icon: ListChecks, count: tabActiveCount },
+            { value: "history", label: "History", icon: History, count: tabHistoryCount },
           ]}
         />
         <SearchInput value={search} onChange={setSearch} placeholder="Search reference, resident, property or reviewer…" className="sm:max-w-sm" />
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2 lg:max-w-2xl">
-        <FilterSelect label="Status" value={values.status} onChange={(v) => set({ status: v, page: "1" })} options={statusOptions} />
-        <FilterCombobox label="Reviewer" value={values.reviewer} onChange={(v) => set({ reviewer: v, page: "1" })} options={reviewerOptions} placeholder="Search reviewers…" />
+      {/* Search and selects share one row with the Filters button. */}
+      <div className="flex flex-wrap items-end gap-3">
+        <FilterSelect className="w-full sm:w-56" label="Status" value={values.status} onChange={(v) => set({ status: v, page: "1" })} options={statusOptions} />
+        <FilterCombobox className="w-full sm:w-64" label="Reviewer" value={values.reviewer} onChange={(v) => set({ reviewer: v, page: "1" })} options={reviewerOptions} placeholder="Search reviewers…" />
+        <FilterCombobox className="w-full sm:w-64" label="Category" value={values.category} onChange={(v) => set({ category: v, page: "1" })} options={categoryOptions} placeholder="Search categories…" />
+        <StaffAdvancedFilters values={advanced} onChange={(next) => set({ ...next, page: "1" })} anyFilterActive={filtersOn} onClearAll={clearAll} />
       </div>
 
       {isLoading ? (
@@ -152,14 +204,16 @@ export default function OversightPage() {
             <Skeleton key={i} className="h-16 w-full rounded-xl" />
           ))}
         </div>
+      ) : isError ? (
+        <ErrorState title="We couldn't load the requests" onRetry={() => void refetch()} retrying={isFetching} />
       ) : rows.length === 0 ? (
         <EmptyState
           icon={filtersOn ? Filter : Eye}
           title={filtersOn ? "No requests match" : "Nothing to show"}
-          description={filtersOn ? "Try a different search or clear the filters." : "There are no requests in this list."}
+          description={filtersOn ? `No requests match: ${criteriaText}. Adjust the filters or clear them.` : "There are no requests in this list."}
           action={
             filtersOn ? (
-              <Button variant="outline" onClick={() => { setSearch(""); set({ status: "all", reviewer: "all", page: "1" }); }}>
+              <Button variant="outline" onClick={clearAll}>
                 Clear filters
               </Button>
             ) : undefined
@@ -182,6 +236,7 @@ export default function OversightPage() {
         >
           <RequestsTable
             rows={rows}
+            query={search}
             showReviewer
             renderActions={(req) =>
             IN_FLIGHT.includes(req.status) ? (
