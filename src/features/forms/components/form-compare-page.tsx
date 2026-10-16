@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
+import { BackButton } from "@/components/shared/back-button";
 import Link from "next/link";
 import { ArrowLeft, FileDiff, FileText, FilePlus2, GitCommitVertical, Minus, Pencil, Plus, RotateCcw, Tag } from "lucide-react";
 import { EmptyState } from "@/components/shared/empty-state";
@@ -129,10 +130,7 @@ export default function FormComparePage({ id }: { id: string }) {
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
-      <Link href="/forms" className="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">
-        <ArrowLeft className="size-4" aria-hidden="true" />
-        Form updates
-      </Link>
+      <BackButton fallbackHref="/forms" className="-ml-2" />
 
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>

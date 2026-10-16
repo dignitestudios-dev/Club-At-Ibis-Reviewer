@@ -1,6 +1,7 @@
 "use client";
 
 import { ExpandableText } from "@/components/shared/expandable-text";
+import { BackButton } from "@/components/shared/back-button";
 import { WithdrawnNotice } from "@/components/shared/withdrawn-notice";
 import { useState } from "react";
 import Link from "next/link";
@@ -521,13 +522,7 @@ export default function RequestDetailPage({ id }: { id: string }) {
     <div className="space-y-6 animate-in fade-in duration-500 pb-16">
       {/* Header */}
       <div className="space-y-4">
-        <Link
-          href={backHref}
-          className="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
-        >
-          <ArrowLeft className="size-4" aria-hidden="true" />
-          {backHref === "/my-requests" ? "My assigned requests" : "Request oversight"}
-        </Link>
+        <BackButton fallbackHref={backHref} className="-ml-2" />
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div className="min-w-0 space-y-2">
             <div className="flex flex-wrap items-center gap-3">
