@@ -7,8 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import ChangePasswordForm from "@/features/auth/components/change-password-form";
 import { useMe } from "@/hooks/use-current-user";
-import { useRequests } from "@/hooks/use-reviewer-data";
-import { IN_FLIGHT } from "@/lib/domain";
+import { useRequestsPage } from "@/hooks/use-reviewer-data";
 import { formatDate, formatDateTime } from "@/utils/format";
 
 function Detail({ icon: Icon, label, children }: { icon: React.ComponentType<{ className?: string }>; label: string; children: React.ReactNode }) {
@@ -26,11 +25,21 @@ function Detail({ icon: Icon, label, children }: { icon: React.ComponentType<{ c
 /** Read-only: the Super Admin configures these details. */
 export default function ProfilePage() {
   const { me, isDefault } = useMe();
-  const { data: requests } = useRequests();
+  // Same queries as the sidebar badge and the My Assigned Requests tabs, so the numbers always agree:
+  // "Assigned" is the Active tab total, "Closed" is the History tab total.
+  const assignee = isDefault ? me?.id : undefined;
+  const { data: activePage } = useRequestsPage(
+    { status: "submitted,assigned,under_review,changes_required,resubmitted,approved", assignedReviewerId: assignee, limit: 1 },
+    { enabled: !!me }
+  );
+  const { data: closedPage } = useRequestsPage(
+    { status: "completed,rejected,withdrawn", assignedReviewerId: assignee, limit: 1 },
+    { enabled: !!me }
+  );
 
   if (!me) return <Skeleton className="h-64 w-full rounded-2xl" />;
-  const mine = (requests ?? []).filter((r) => r.assignedReviewerId === me.id);
-  const active = mine.filter((r) => IN_FLIGHT.includes(r.status)).length;
+  const active = activePage?.pagination?.total ?? 0;
+  const closed = closedPage?.pagination?.total ?? 0;
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
@@ -53,11 +62,11 @@ export default function ProfilePage() {
           <dl className="flex gap-6 text-center sm:text-right">
             <div>
               <dd className="font-heading text-2xl font-semibold tabular-nums">{active}</dd>
-              <dt className="text-[11px] text-muted-foreground">In progress</dt>
+              <dt className="text-[11px] text-muted-foreground">Assigned requests</dt>
             </div>
             <div>
-              <dd className="font-heading text-2xl font-semibold tabular-nums">{mine.length}</dd>
-              <dt className="text-[11px] text-muted-foreground">Assigned overall</dt>
+              <dd className="font-heading text-2xl font-semibold tabular-nums">{closed}</dd>
+              <dt className="text-[11px] text-muted-foreground">Closed</dt>
             </div>
           </dl>
         </div>
