@@ -143,7 +143,7 @@ export default function OversightPage() {
     <div className="space-y-6 animate-in fade-in duration-500">
       <PageHeader
         title="Request Oversight"
-        description="Track progress across every reviewer's requests and reassign work that is in progress."
+        description="See the latest updates for your requests, including new submissions, resubmissions, and review activity."
         actions={
           <div className="flex items-center gap-2">
             <ExportCsvButton filters={listFilters} />

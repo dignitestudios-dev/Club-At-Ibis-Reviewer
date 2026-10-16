@@ -74,7 +74,7 @@ export default function DashboardOverview() {
             label: "Incoming requests",
             count: attentionData?.incoming ?? 0,
             icon: Inbox,
-            hint: "Waiting for someone to take ownership or assign them",
+            hint: "New requests waiting to be assigned.",
             href: "/incoming",
             bar: "bg-sky-500",
             tile: "bg-sky-50 text-sky-700 border-sky-200/80 dark:bg-sky-950/50 dark:text-sky-300 dark:border-sky-800",
@@ -83,40 +83,40 @@ export default function DashboardOverview() {
       : []),
     {
       key: "start",
-      label: "Ready to start review",
+      label: "Ready for review",
       count: attentionData?.readyToStart ?? 0,
       icon: PlayCircle,
-      hint: "Assigned to you. Open the request to begin your review.",
+      hint: "Requests assigned to you and ready to review.",
       href: "/my-requests?status=assigned",
       bar: "bg-slate-500",
       tile: "bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700",
     },
     {
       key: "resubmitted",
-      label: "Resubmitted by residents",
+      label: "Resubmitted Requests",
       count: attentionData?.resubmitted ?? 0,
       icon: Repeat2,
-      hint: "Corrected items are ready for you to review again",
+      hint: "Requests with resident corrections ready for review.",
       href: "/my-requests?status=resubmitted",
       bar: "bg-purple-500",
       tile: "bg-purple-50 text-purple-700 border-purple-200/80 dark:bg-purple-950/50 dark:text-purple-300 dark:border-purple-800",
     },
     {
       key: "approved",
-      label: "Approved: Finish completion",
+      label: "Ready to Complete",
       count: attentionData?.approvedForCompletion ?? 0,
       icon: FileCheck2,
-      hint: "Deposit, final letter or completion still outstanding",
+      hint: "Approved requests waiting for completion.",
       href: "/my-requests?status=approved",
       bar: "bg-emerald-500",
       tile: "bg-emerald-50 text-emerald-700 border-emerald-200/80 dark:bg-emerald-950/50 dark:text-emerald-300 dark:border-emerald-800",
     },
     {
       key: "refunds",
-      label: "Refund actions",
+      label: "Refunds Pending",
       count: attentionData?.refundActions ?? 0,
       icon: Undo2,
-      hint: "Withdrawn with a received deposit. Record or complete the refund.",
+      hint: "Withdrawn requests with refund actions pending.",
       href: "/my-requests?tab=history&status=withdrawn",
       bar: "bg-amber-500",
       tile: "bg-amber-50 text-amber-700 border-amber-200/80 dark:bg-amber-950/50 dark:text-amber-300 dark:border-amber-800",
@@ -140,7 +140,7 @@ export default function DashboardOverview() {
           </h1>
           <p className="max-w-2xl text-sm text-muted-foreground">
             {isDefault
-              ? "Your queue, plus the incoming requests waiting for an owner."
+              ? "Here’s a quick look at your current requests and new requests ready for assignment."
               : "The requests assigned to you and what each one needs next."}
           </p>
         </div>
@@ -163,9 +163,9 @@ export default function DashboardOverview() {
         <div className="flex flex-wrap items-end justify-between gap-2">
           <div>
             <h2 id="attention-heading" className="font-heading text-xl font-medium text-foreground">
-              Needs Your Attention
+              Pending Requests
             </h2>
-            <p className="text-xs text-muted-foreground">Work that is waiting on you right now.</p>
+            <p className="text-xs text-muted-foreground">Requests currently waiting for your review or action.</p>
           </div>
           <span
             className={cn(
@@ -234,8 +234,8 @@ export default function DashboardOverview() {
         {/* Up next */}
         <Card className="shadow-2xs lg:col-span-3">
           <CardHeader className="border-b border-border/70 pb-3">
-            <CardTitle className="font-heading text-lg font-medium">Up Next</CardTitle>
-            <p className="text-xs text-muted-foreground">Requests that need an action from you, longest-waiting first.</p>
+            <CardTitle className="font-heading text-lg font-medium">Recent Updates</CardTitle>
+            <p className="text-xs text-muted-foreground">Requests that require action, prioritized by waiting time.</p>
             <CardAction>
               <Button variant="ghost" size="sm" nativeButton={false} render={<Link href="/my-requests" />}>
                 All Requests

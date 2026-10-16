@@ -131,8 +131,8 @@ export default function MyRequestsPage() {
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
       <PageHeader
-        title="My Assigned Requests"
-        description="Requests you own. Open one to review its information and documents, and to record your decision."
+        title="Assigned Review Requests"
+        description="Manage your assigned requests. Open a request to review its details, view documents, and record your decision."
         actions={
           <div className="flex items-center gap-2">
             <ExportCsvButton filters={listFilters} />

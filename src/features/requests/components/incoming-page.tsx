@@ -76,8 +76,8 @@ export default function IncomingPage() {
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
       <PageHeader
-        title="Incoming Requests"
-        description="New submissions arrive here first. Take ownership yourself, or assign the request to another active reviewer."
+        title="New Requests to Assign"
+        description="New submissions are waiting here for assignment. Take a request for yourself or assign the request to another active reviewer."
         actions={
           <div className="flex items-center gap-2">
             <Button

@@ -39,7 +39,7 @@ export default function FormsPage() {
     <div className="space-y-6 animate-in fade-in duration-500">
       <PageHeader
         title="Form Updates"
-        description="When the Super Admin edits a category form, a new version is created. Compare what a form was with what it is now."
+        description="View the history of category form changes and compare previous versions with the current version."
         actions={
           <Button
             variant="outline"

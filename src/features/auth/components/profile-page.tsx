@@ -34,7 +34,7 @@ export default function ProfilePage() {
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
-      <PageHeader title="My Profile" description="Your reviewer account as configured by the Super Admin." />
+      <PageHeader title="My Profile" description="View the details and settings for your reviewer account." />
 
       <div className="relative overflow-hidden rounded-2xl border border-border/80 bg-card p-5 shadow-2xs sm:p-6">
         <span aria-hidden="true" className="absolute inset-x-0 top-0 h-[3px] bg-gradient-to-r from-brand-gold to-amber-600" />
