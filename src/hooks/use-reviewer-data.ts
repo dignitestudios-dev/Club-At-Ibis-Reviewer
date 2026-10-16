@@ -30,6 +30,7 @@ import {
   withdrawRequestAsReviewer,
 } from "@/features/requests/api/review.service";
 import {
+  getNotificationMeta,
   getNotifications,
   getUnreadNotificationCount,
   markAllNotificationsRead,
@@ -132,6 +133,12 @@ export const useUnreadNotificationCount = (options?: { enabled?: boolean }) =>
     enabled: options?.enabled ?? true,
     staleTime: 15 * 1000,
     refetchInterval: 60 * 1000,
+  });
+export const useNotificationMeta = () =>
+  useQuery({
+    queryKey: [...keys.notifications, "meta"] as const,
+    queryFn: getNotificationMeta,
+    staleTime: 15 * 1000,
   });
 export const useNotifications = (options?: { enabled?: boolean }) =>
   useQuery({

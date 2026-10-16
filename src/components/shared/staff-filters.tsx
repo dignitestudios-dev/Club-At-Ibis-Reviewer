@@ -57,7 +57,7 @@ export function advancedCriteria(v: AdvancedFilterValues): string[] {
 }
 
 /**
- * The "Filters" button plus the sidebar with the staff filters: submitted date / year, category status,
+ * The "Filters" button plus the sidebar with the staff filters: submitted date, category status,
  * deposit status and refund outcome. A "Clear all filters" link shows next to the button while any filter
  * or search is applied.
  */
