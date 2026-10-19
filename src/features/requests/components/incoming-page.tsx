@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Crown, Inbox, RefreshCw, UserRoundPlus } from "lucide-react";
+import { Crown, Inbox, RefreshCw, RotateCcw, UserRoundPlus } from "lucide-react";
 import { PageHeader } from "@/components/shared/page-header";
 import { EmptyState } from "@/components/shared/empty-state";
 import { ErrorState } from "@/components/shared/error-state";
@@ -33,7 +33,7 @@ export function DefaultReviewersOnly() {
 export default function IncomingPage() {
   const toast = useToast();
   const { me, isDefault } = useMe();
-  const { values, set } = useUrlParams({ page: "1" });
+  const { values, set, resetAll } = useUrlParams({ page: "1" });
   const [search, setSearch] = useUrlSearch("q");
   const [pageSize, setPageSize] = usePageSize();
   const [target, setTarget] = useState<RequestRecord | null>(null);
@@ -122,6 +122,14 @@ export default function IncomingPage() {
           icon={Inbox}
           title={q ? "No incoming requests match" : "Incoming is empty"}
           description={q ? "Try a different search." : "Every submitted request has an owner. New submissions will appear here until someone takes them."}
+          action={
+            q ? (
+              <Button variant="outline" size="sm" onClick={() => resetAll()}>
+                <RotateCcw className="size-3.5 mr-1" />
+                Clear search
+              </Button>
+            ) : undefined
+          }
         />
       ) : (
         <TableFrame

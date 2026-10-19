@@ -71,7 +71,18 @@ export default function FormsPage() {
           ))}
         </div>
       ) : list.length === 0 ? (
-        <EmptyState icon={LayoutTemplate} title="No forms found" description="Try a different search." />
+        <EmptyState
+          icon={LayoutTemplate}
+          title="No forms found"
+          description={q ? "Try a different search." : "No active forms found."}
+          action={
+            q ? (
+              <Button variant="outline" size="sm" onClick={() => setSearch("")}>
+                Clear search
+              </Button>
+            ) : undefined
+          }
+        />
       ) : (
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {list.map((cat) => {

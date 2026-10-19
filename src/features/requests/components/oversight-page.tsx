@@ -36,7 +36,7 @@ const HISTORY_STATUSES = "completed,rejected,withdrawn";
 export default function OversightPage() {
   const toast = useToast();
   const { me, isDefault } = useMe();
-  const { values, set } = useUrlParams({ tab: "active", status: "all", reviewer: "all", category: "all", page: "1", ...ADVANCED_FILTER_DEFAULTS });
+  const { values, set, resetAll } = useUrlParams({ tab: "active", status: "all", reviewer: "all", category: "all", page: "1", ...ADVANCED_FILTER_DEFAULTS });
   const [search, setSearch] = useUrlSearch("q");
   const [pageSize, setPageSize] = usePageSize();
   const [target, setTarget] = useState<RequestRecord | null>(null);
@@ -114,8 +114,7 @@ export default function OversightPage() {
 
   function clearAll() {
     tabStatusRef.current = { active: "all", history: "all" };
-    setSearch("");
-    set({ status: "all", reviewer: "all", category: "all", page: "1", ...ADVANCED_FILTER_DEFAULTS });
+    resetAll({ tab });
   }
   const q = search.trim();
   const filtersOn = values.status !== "all" || values.reviewer !== "all" || values.category !== "all" || !!q || advancedActiveCount(advanced) > 0;
