@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@/components/ui/button";
@@ -22,11 +22,25 @@ export default function ChangePasswordForm() {
     control,
     handleSubmit,
     reset,
+    watch,
+    trigger,
+    getValues,
     formState: { errors },
   } = useForm<ChangePasswordPayload>({
+    mode: "onChange",
     resolver: zodResolver(changePasswordSchema),
     defaultValues: { currentPassword: "", newPassword: "", confirmNewPassword: "" },
   });
+
+  // Re-validate confirmNewPassword in real-time when newPassword changes
+  useEffect(() => {
+    const subscription = watch((_value, { name }) => {
+      if (name === "newPassword" && getValues("confirmNewPassword")) {
+        trigger("confirmNewPassword");
+      }
+    });
+    return () => subscription.unsubscribe();
+  }, [watch, trigger, getValues]);
 
   function onSubmit(data: ChangePasswordPayload) {
     if (isSubmittingRef.current) return;

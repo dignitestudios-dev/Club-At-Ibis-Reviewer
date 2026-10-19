@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { Eye, Filter, History, Hourglass, ListChecks, RefreshCw, UserRoundPlus } from "lucide-react";
 import { PageHeader } from "@/components/shared/page-header";
 import { ErrorState } from "@/components/shared/error-state";
@@ -41,6 +41,11 @@ export default function OversightPage() {
   const [pageSize, setPageSize] = usePageSize();
   const [target, setTarget] = useState<RequestRecord | null>(null);
   const tab: Tab = values.tab === "history" ? "history" : "active";
+
+  const tabStatusRef = useRef<Record<Tab, string>>({
+    active: values.tab === "active" ? values.status : "all",
+    history: values.tab === "history" ? values.status : "all",
+  });
 
   const page = Math.max(1, Number(values.page) || 1);
   const statusParam = values.status !== "all" ? values.status : tab === "active" ? ACTIVE_STATUSES : HISTORY_STATUSES;
@@ -108,6 +113,7 @@ export default function OversightPage() {
   const tabHistoryCount = tab === "history" ? total : otherTabTotal;
 
   function clearAll() {
+    tabStatusRef.current = { active: "all", history: "all" };
     setSearch("");
     set({ status: "all", reviewer: "all", category: "all", page: "1", ...ADVANCED_FILTER_DEFAULTS });
   }
@@ -181,7 +187,12 @@ export default function OversightPage() {
         <SegmentedTabs
           label="Oversight lists"
           value={tab}
-          onChange={(v) => set({ tab: v, status: "all", page: "1" })}
+          onChange={(v) => {
+            const nextTab = v === "history" ? "history" : "active";
+            tabStatusRef.current[tab] = values.status;
+            const restoredStatus = tabStatusRef.current[nextTab] || "all";
+            set({ tab: nextTab, status: restoredStatus, page: "1" });
+          }}
           options={[
             { value: "active", label: "Active Requests", icon: ListChecks, count: tabActiveCount },
             { value: "history", label: "History", icon: History, count: tabHistoryCount },
@@ -192,7 +203,16 @@ export default function OversightPage() {
 
       {/* Search and selects share one row with the Filters button. */}
       <div className="flex flex-wrap items-end gap-3">
-        <FilterSelect className="w-full sm:w-56" label="Status" value={values.status} onChange={(v) => set({ status: v, page: "1" })} options={statusOptions} />
+        <FilterSelect
+          className="w-full sm:w-56"
+          label="Status"
+          value={values.status}
+          onChange={(v) => {
+            tabStatusRef.current[tab] = v;
+            set({ status: v, page: "1" });
+          }}
+          options={statusOptions}
+        />
         <FilterCombobox className="w-full sm:w-64" label="Reviewer" value={values.reviewer} onChange={(v) => set({ reviewer: v, page: "1" })} options={reviewerOptions} placeholder="Search reviewers…" />
         <FilterCombobox className="w-full sm:w-64" label="Category" value={values.category} onChange={(v) => set({ category: v, page: "1" })} options={categoryOptions} placeholder="Search categories…" />
         <StaffAdvancedFilters values={advanced} onChange={(next) => set({ ...next, page: "1" })} anyFilterActive={filtersOn} onClearAll={clearAll} />

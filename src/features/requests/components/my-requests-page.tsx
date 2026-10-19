@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useRef } from "react";
 import { Filter, History, ListChecks, RefreshCw } from "lucide-react";
 import { PageHeader } from "@/components/shared/page-header";
 import { ErrorState } from "@/components/shared/error-state";
@@ -36,6 +36,11 @@ export default function MyRequestsPage() {
   const [search, setSearch] = useUrlSearch("q");
   const [pageSize, setPageSize] = usePageSize();
   const tab: Tab = values.tab === "history" ? "history" : "active";
+
+  const tabStatusRef = useRef<Record<Tab, string>>({
+    active: values.tab === "active" ? values.status : "all",
+    history: values.tab === "history" ? values.status : "all",
+  });
 
   const page = Math.max(1, Number(values.page) || 1);
   const statusParam = values.status !== "all" ? values.status : tab === "active" ? ACTIVE_STATUSES : HISTORY_STATUSES;
@@ -103,6 +108,7 @@ export default function MyRequestsPage() {
   const totalMine = (activeTotalsPage?.pagination?.total ?? 0) + (historyTotalsPage?.pagination?.total ?? 0);
 
   function clearAll() {
+    tabStatusRef.current = { active: "all", history: "all" };
     setSearch("");
     set({ status: "all", category: "all", page: "1", ...ADVANCED_FILTER_DEFAULTS });
   }
@@ -163,7 +169,12 @@ export default function MyRequestsPage() {
         <SegmentedTabs
           label="Request lists"
           value={tab}
-          onChange={(v) => set({ tab: v, status: "all", page: "1" })}
+          onChange={(v) => {
+            const nextTab = v === "history" ? "history" : "active";
+            tabStatusRef.current[tab] = values.status;
+            const restoredStatus = tabStatusRef.current[nextTab] || "all";
+            set({ tab: nextTab, status: restoredStatus, page: "1" });
+          }}
           options={[
             { value: "active", label: "Active Requests", icon: ListChecks, count: activeCount },
             { value: "history", label: "History", icon: History, count: historyCount },
@@ -174,7 +185,16 @@ export default function MyRequestsPage() {
 
       {/* Search and selects share one row with the Filters button. */}
       <div className="flex flex-wrap items-end gap-3">
-        <FilterSelect className="w-full sm:w-56" label="Status" value={values.status} onChange={(v) => set({ status: v, page: "1" })} options={statusOptions} />
+        <FilterSelect
+          className="w-full sm:w-56"
+          label="Status"
+          value={values.status}
+          onChange={(v) => {
+            tabStatusRef.current[tab] = v;
+            set({ status: v, page: "1" });
+          }}
+          options={statusOptions}
+        />
         <FilterCombobox className="w-full sm:w-64" label="Category" value={values.category} onChange={(v) => set({ category: v, page: "1" })} options={categoryOptions} placeholder="Search categories…" />
         <StaffAdvancedFilters values={advanced} onChange={(next) => set({ ...next, page: "1" })} anyFilterActive={filtersOn} onClearAll={clearAll} />
       </div>
