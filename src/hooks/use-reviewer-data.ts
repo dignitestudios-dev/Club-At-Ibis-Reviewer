@@ -1,6 +1,6 @@
 "use client";
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { announceRequestConflict } from "@/hooks/use-close-on-conflict";
 import {
@@ -32,6 +32,7 @@ import {
 import {
   getNotificationMeta,
   getNotifications,
+  getNotificationsPage,
   getUnreadNotificationCount,
   markAllNotificationsRead,
   markNotificationRead,
@@ -144,6 +145,23 @@ export const useNotifications = (options?: { enabled?: boolean }) =>
   useQuery({
     queryKey: keys.notifications,
     queryFn: getNotifications,
+    enabled: options?.enabled ?? true,
+    staleTime: 15 * 1000,
+  });
+export const useInfiniteNotifications = (
+  status: "all" | "unread" | "read" = "all",
+  options?: { enabled?: boolean }
+) =>
+  useInfiniteQuery({
+    queryKey: [...keys.notifications, "infinite", status],
+    queryFn: ({ pageParam = 1 }) => getNotificationsPage({ page: pageParam, limit: 20, status }),
+    initialPageParam: 1,
+    getNextPageParam: (lastPage) => {
+      if (lastPage.pagination.page < lastPage.pagination.totalPages) {
+        return lastPage.pagination.page + 1;
+      }
+      return undefined;
+    },
     enabled: options?.enabled ?? true,
     staleTime: 15 * 1000,
   });
