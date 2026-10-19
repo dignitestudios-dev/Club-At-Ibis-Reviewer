@@ -85,8 +85,8 @@ export function CompleteRequestDialog({
             Complete Request
           </DialogTitle>
           <DialogDescription className="break-words [overflow-wrap:anywhere]">
-            Review prerequisites and finalize request{" "}
-            <span className="font-mono font-semibold text-foreground break-all">{request.code}</span>.
+            Confirm that permit work for request{" "}
+            <span className="font-mono font-semibold text-foreground break-all">{request.code}</span> is complete.
           </DialogDescription>
         </DialogHeader>
 
@@ -146,7 +146,7 @@ export function CompleteRequestDialog({
                   <p className="font-medium text-foreground">Final Approval Letter</p>
                   <p className="text-muted-foreground mt-0.5 break-words [overflow-wrap:anywhere]">
                     {hasLetter
-                      ? `Letter uploaded (${request.approvalLetter?.name || request.completion?.finalApprovalLetter?.name || "Ready"}).`
+                      ? `Letter uploaded and accessible to resident (${request.approvalLetter?.name || request.completion?.finalApprovalLetter?.name || "Ready"}).`
                       : "Final approval letter must be uploaded before completion."}
                   </p>
                 </div>
@@ -176,8 +176,8 @@ export function CompleteRequestDialog({
               </p>
               <ul className="list-disc list-inside space-y-0.5 text-emerald-900/90 dark:text-emerald-300/90 pl-1">
                 <li>Request status will change to <strong>Completed</strong>.</li>
-                <li>The final approval letter will be released for the resident to view and download.</li>
-                <li>An automated completion email will be queued for the resident.</li>
+                <li>Periodic 3-month reminder emails and expiration notices will stop.</li>
+                <li>Automated completion notification emails will be sent to the resident and all active Super Admins.</li>
               </ul>
             </div>
           ) : (

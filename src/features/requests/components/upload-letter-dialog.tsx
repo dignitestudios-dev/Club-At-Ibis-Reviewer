@@ -232,9 +232,9 @@ export function UploadLetterDialog({ request, open, onOpenChange, isReplacing = 
           )}
 
           <div className="rounded-xl border border-border/80 bg-muted/20 p-3 text-xs text-muted-foreground">
-            <p className="font-medium text-foreground">Staff Visibility Notice</p>
+            <p className="font-medium text-foreground">Resident Visibility Notice</p>
             <p className="mt-0.5">
-              This letter will remain hidden from the resident until the request is officially marked as <strong>Completed</strong>.
+              Upon upload, this letter will immediately become visible and downloadable by the resident, allowing them to use it as their valid permit.
             </p>
           </div>
         </div>
