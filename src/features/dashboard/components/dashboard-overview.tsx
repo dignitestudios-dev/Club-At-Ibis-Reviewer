@@ -1,5 +1,7 @@
 "use client";
 
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { ErrorState } from "@/components/shared/error-state";
 import { ProcessingChip } from "@/components/shared/processing-chip";
 import Link from "next/link";
@@ -56,6 +58,8 @@ export default function DashboardOverview() {
   // too (rather than the dashboard payload's `capabilities.sharedIntake`)
   // keeps this page in sync with them and avoids a general-reviewer flash
   // of the shared-intake copy while the dashboard request is still loading.
+  const router = useRouter();
+  const [hoveredStatus, setHoveredStatus] = useState<RequestStatus | null>(null);
   const { me, isDefault } = useMe();
   const { data, isLoading, isError, isFetching, refetch } = useReviewerDashboard();
 
@@ -283,16 +287,61 @@ export default function DashboardOverview() {
                 <DonutChart
                   centerLabel="Requests"
                   centerValue={workload?.totalAssigned ?? 0}
-                  segments={STATUS_ORDER.map((s) => ({ key: s, label: STATUS_LABEL[s], value: statusCounts[s] ?? 0, color: STATUS_COLOR[s] }))}
+                  hoveredKey={hoveredStatus}
+                  onHoverKeyChange={(k) => setHoveredStatus(k as RequestStatus | null)}
+                  onSegmentClick={(seg) => {
+                    if (seg.value > 0) {
+                      router.push(`/my-requests?status=${seg.key}`);
+                    }
+                  }}
+                  segments={STATUS_ORDER.map((s) => ({
+                    key: s,
+                    label: STATUS_LABEL[s],
+                    value: statusCounts[s] ?? 0,
+                    color: STATUS_COLOR[s],
+                  }))}
                 />
-                <ul className="grid w-full grid-cols-2 gap-x-4 gap-y-2 sm:grid-cols-1 lg:grid-cols-2 xl:grid-cols-1">
-                  {STATUS_ORDER.map((s) => (
-                    <li key={s} className="flex items-center gap-2 text-xs">
-                      <span className="size-2.5 shrink-0 rounded-sm" style={{ backgroundColor: STATUS_COLOR[s] }} />
-                      <span className="flex-1 truncate text-muted-foreground">{STATUS_LABEL[s]}</span>
-                      <span className="font-semibold tabular-nums text-foreground">{statusCounts[s] ?? 0}</span>
-                    </li>
-                  ))}
+                <ul className="grid w-full grid-cols-2 gap-x-2 gap-y-1 sm:grid-cols-1 lg:grid-cols-2 xl:grid-cols-1">
+                  {STATUS_ORDER.map((s) => {
+                    const count = statusCounts[s] ?? 0;
+                    const isHovered = hoveredStatus === s;
+                    return (
+                      <li
+                        key={s}
+                        onMouseEnter={() => setHoveredStatus(s)}
+                        onMouseLeave={() => setHoveredStatus(null)}
+                        onClick={() => {
+                          if (count > 0) {
+                            router.push(`/my-requests?status=${s}`);
+                          }
+                        }}
+                        className={cn(
+                          "flex items-center gap-2 rounded-md px-2 py-1 text-xs transition-all",
+                          count > 0 ? "cursor-pointer" : "cursor-default opacity-80",
+                          isHovered
+                            ? "bg-muted font-medium shadow-2xs"
+                            : "hover:bg-muted/50"
+                        )}
+                      >
+                        <span
+                          className="size-2.5 shrink-0 rounded-sm transition-transform"
+                          style={{
+                            backgroundColor: STATUS_COLOR[s],
+                            transform: isHovered ? "scale(1.2)" : "scale(1)",
+                          }}
+                        />
+                        <span
+                          className={cn(
+                            "flex-1 truncate transition-colors",
+                            isHovered ? "text-foreground font-semibold" : "text-muted-foreground"
+                          )}
+                        >
+                          {STATUS_LABEL[s]}
+                        </span>
+                        <span className="font-semibold tabular-nums text-foreground">{count}</span>
+                      </li>
+                    );
+                  })}
                 </ul>
               </div>
             </InView>
