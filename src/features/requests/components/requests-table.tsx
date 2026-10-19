@@ -118,7 +118,7 @@ export function RequestsTable({
                     {reviewer ? (
                       <div className="flex items-center gap-2 min-w-0" title={reviewer.name}>
                         <PersonAvatar name={reviewer.name} className="size-7 shrink-0" fallbackClassName="text-[10px]" />
-                        <span className="text-sm truncate">{reviewer.name}</span>
+                        <span className="text-sm truncate"><Highlight text={reviewer.name} query={query} /></span>
                       </div>
                     ) : (
                       <span className="text-xs text-muted-foreground italic">Unassigned</span>
