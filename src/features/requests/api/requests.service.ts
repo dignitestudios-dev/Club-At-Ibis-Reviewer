@@ -432,8 +432,18 @@ export async function getResidents(): Promise<Resident[]> {
   return Array.from(knownResidents.values());
 }
 
-export async function getCategories(): Promise<Category[]> {
-  const { data } = await axiosInstance.get("/categories");
+export async function getCategories(params?: {
+  includeArchived?: boolean;
+}): Promise<Category[]> {
+  const queryParams = new URLSearchParams();
+  if (params?.includeArchived !== undefined) {
+    queryParams.set("includeArchived", String(params.includeArchived));
+  } else {
+    queryParams.set("includeArchived", "true");
+  }
+  const qs = queryParams.toString();
+  const url = `/categories${qs ? `?${qs}` : ""}`;
+  const { data } = await axiosInstance.get(url);
   const list = data?.data?.categories ?? data?.categories ?? [];
   return list.map((c: any) => ({
     id: c.id || c._id,
@@ -462,11 +472,17 @@ export async function getReviewers(params?: {
   search?: string;
   page?: number;
   limit?: number;
+  includeDeactivated?: boolean;
 }): Promise<PublicReviewer[]> {
   const queryParams = new URLSearchParams();
   if (params?.page) queryParams.set("page", String(params.page));
   if (params?.limit) queryParams.set("limit", String(params.limit));
   if (params?.search?.trim()) queryParams.set("search", params.search.trim());
+  if (params?.includeDeactivated !== undefined) {
+    queryParams.set("includeDeactivated", String(params.includeDeactivated));
+  } else {
+    queryParams.set("includeDeactivated", "true");
+  }
 
   const qs = queryParams.toString();
   const url = `/reviewer/reviewers${qs ? `?${qs}` : ""}`;
@@ -481,6 +497,13 @@ export async function getReviewers(params?: {
     // skip it here too rather than showing "Riley Riley".
     const hasDistinctLastName = !!lastName && lastName.toLowerCase() !== firstName.toLowerCase();
     const builtName = hasDistinctLastName ? `${firstName} ${lastName}`.trim() : firstName;
+    const isDeactivated =
+      r.accountStatus === "deactivated" ||
+      r.accountStatus === "inactive" ||
+      r.status === "deactivated" ||
+      r.status === "inactive" ||
+      r.loginEnabled === false ||
+      r.isDeactivated === true;
     return {
       id: r.id || r._id,
       name: r.name || builtName || "Reviewer",
@@ -489,9 +512,10 @@ export async function getReviewers(params?: {
       designation: r.designation || undefined,
       receiveNewRequests: r.isDefaultReviewer ?? r.receiveNewRequests ?? false,
       inviteStatus: "active" as const,
-      loginEnabled: true,
+      loginEnabled: !isDeactivated,
       activeRequestsCount: r.activeRequestsCount,
       createdAt: r.createdAt || new Date().toISOString(),
     };
   });
 }
+

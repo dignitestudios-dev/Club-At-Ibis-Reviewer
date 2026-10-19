@@ -139,8 +139,8 @@ export default function RequestDetailPage({ id }: { id: string }) {
   const { me, isDefault } = useMe();
   const { data: req, isLoading } = useRequest(id);
   const { data: residents } = useResidents();
-  const { data: reviewers } = useReviewers(undefined, { enabled: isDefault });
-  const { data: categories } = useCategories();
+  const { data: reviewers } = useReviewers({ includeDeactivated: true }, { enabled: isDefault });
+  const { data: categories } = useCategories({ includeArchived: true });
 
   const takeOwnership = useAssignRequest();
   const startReviewMutation = useStartReview();

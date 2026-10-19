@@ -96,8 +96,8 @@ export default function OversightPage() {
     { limit: 1, status: "assigned,under_review,changes_required,resubmitted,approved" },
     { enabled: isDefault }
   );
-  const { data: reviewers } = useReviewers(undefined, { enabled: isDefault });
-  const { data: categories } = useCategories();
+  const { data: reviewers } = useReviewers({ includeDeactivated: true }, { enabled: isDefault });
+  const { data: categories } = useCategories({ includeArchived: true });
 
   if (me && !isDefault) return <DefaultReviewersOnly />;
 
@@ -131,11 +131,21 @@ export default function OversightPage() {
 
   const reviewerOptions = [
     { label: "All reviewers", value: "all" },
-    ...(reviewers ?? []).filter((r) => r.loginEnabled).map((r) => ({ label: r.name, value: r.id })).sort((a, b) => a.label.localeCompare(b.label)),
+    ...(reviewers ?? [])
+      .map((r) => ({
+        label: !r.loginEnabled ? `${r.name} (deactivated)` : r.name,
+        value: r.id,
+      }))
+      .sort((a, b) => a.label.localeCompare(b.label)),
   ];
   const categoryOptions = [
     { label: "All categories", value: "all" },
-    ...[...(categories ?? [])].sort((a, b) => a.name.localeCompare(b.name)).map((c) => ({ label: c.name, value: c.id })),
+    ...[...(categories ?? [])]
+      .map((c) => ({
+        label: c.status === "archived" ? `${c.name} (archived)` : c.name,
+        value: c.id,
+      }))
+      .sort((a, b) => a.label.localeCompare(b.label)),
   ];
   const statusOptions = [
     { label: "All statuses", value: "all" },

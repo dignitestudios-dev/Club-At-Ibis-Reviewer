@@ -38,7 +38,7 @@ export function RequestsTable({
   const router = useRouter();
   const { isDefault } = useMe();
   const { data: residents } = useResidents();
-  const { data: reviewers } = useReviewers(undefined, { enabled: showReviewer && isDefault });
+  const { data: reviewers } = useReviewers({ includeDeactivated: true }, { enabled: showReviewer && isDefault });
   const residentById = useMemo(() => new Map((residents ?? []).map((r) => [r.id, r])), [residents]);
   const reviewerById = useMemo(() => new Map((reviewers ?? []).map((r) => [r.id, r])), [reviewers]);
 

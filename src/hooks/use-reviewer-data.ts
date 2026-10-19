@@ -55,11 +55,11 @@ export const keys = {
 /* ------------------------------ queries ------------------------------ */
 
 export const useReviewers = (
-  params?: { search?: string; page?: number; limit?: number },
+  params?: { search?: string; page?: number; limit?: number; includeDeactivated?: boolean },
   options?: { enabled?: boolean }
 ) =>
   useQuery({
-    queryKey: params?.search ? [...keys.reviewers, params.search] : keys.reviewers,
+    queryKey: params ? [...keys.reviewers, params] : keys.reviewers,
     queryFn: () => getReviewers(params),
     enabled: options?.enabled ?? true,
     staleTime: 60 * 1000,
@@ -71,10 +71,13 @@ export const useResidents = (options?: { enabled?: boolean }) =>
     enabled: options?.enabled ?? true,
     staleTime: 60 * 1000,
   });
-export const useCategories = (options?: { enabled?: boolean }) =>
+export const useCategories = (
+  params?: { includeArchived?: boolean },
+  options?: { enabled?: boolean }
+) =>
   useQuery({
-    queryKey: keys.categories,
-    queryFn: getCategories,
+    queryKey: params ? [...keys.categories, params] : keys.categories,
+    queryFn: () => getCategories(params),
     enabled: options?.enabled ?? true,
     staleTime: 5 * 60 * 1000,
   });

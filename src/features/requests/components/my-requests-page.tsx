@@ -87,7 +87,7 @@ export default function MyRequestsPage() {
     { limit: 1, status: HISTORY_STATUSES, assignedReviewerId: isDefault ? me?.id : undefined },
     { enabled: !me ? false : true }
   );
-  const { data: categories } = useCategories();
+  const { data: categories } = useCategories({ includeArchived: true });
 
   const rows = pageData?.requests ?? [];
   const total = pageData?.pagination?.total ?? 0;
@@ -117,8 +117,11 @@ export default function MyRequestsPage() {
     () => [
       { label: "All categories", value: "all" },
       ...(categories ?? [])
-        .sort((a, b) => a.name.localeCompare(b.name))
-        .map((c) => ({ label: c.name, value: c.id })),
+        .map((c) => ({
+          label: c.status === "archived" ? `${c.name} (archived)` : c.name,
+          value: c.id,
+        }))
+        .sort((a, b) => a.label.localeCompare(b.label)),
     ],
     [categories]
   );
