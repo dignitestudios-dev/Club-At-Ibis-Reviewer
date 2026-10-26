@@ -16,6 +16,7 @@ import { resetPasswordSchema, forgotPasswordSchema } from "@/features/auth/schem
 import { useResetPasswordMutation, useForgotPasswordMutation } from "@/features/auth/api/auth.mutations";
 import { useInspectInvitationQuery } from "@/features/auth/api/auth.queries";
 import { useToast } from "@/hooks/use-toast";
+import { completePasswordReset } from "@/features/auth/lib/password-reset-notice";
 import { useAppDispatch } from "@/store";
 import { setUser } from "@/store/slices/auth.slice";
 import { DEFAULT_REDIRECT } from "@/config/routes";
@@ -363,8 +364,7 @@ export default function ResetPasswordForm({ token, mode = "reset" }: { token: st
             { token, ...data, invite: false },
             {
               onSuccess: () => {
-                toast.success("Password updated", "Sign in with your new password.");
-                router.push("/auth/login");
+                completePasswordReset();
               },
               onError: (e: Error) => {
                 const msg = e.message.toLowerCase();
