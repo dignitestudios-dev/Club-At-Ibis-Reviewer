@@ -262,7 +262,14 @@ export default function RequestDetailPage({ id }: { id: string }) {
     // (rejected / withdrawn) can't be withdrawn.
     "completed",
   ];
-  const canWithdraw = isOwner && WITHDRAWABLE_STATUSES.includes(req.status);
+  // Once a completed request's permit has expired there is nothing left to withdraw.
+  const completionPermit = req.completion?.permit;
+  const permitExpired =
+    !!completionPermit &&
+    (completionPermit.status === "expired" ||
+      (!!completionPermit.expiresAt && new Date(completionPermit.expiresAt).getTime() <= Date.now()));
+  const canWithdraw =
+    isOwner && WITHDRAWABLE_STATUSES.includes(req.status) && !(req.status === "completed" && permitExpired);
 
   // Deposit / Refund only exist for some requests: the Deposit tab when a deposit is required, the Refund
   // tab once a request with a received deposit has been withdrawn.

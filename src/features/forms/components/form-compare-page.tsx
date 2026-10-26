@@ -12,7 +12,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { FIELD_TYPE_BY_ID, describeAccept, isChoiceType } from "@/features/forms/components/field-types";
 import type { CategoryVersionDetail, VersionActor } from "@/features/forms/api/forms.service";
-import { useCategoryVersions, useRequests, useResidents } from "@/hooks/use-reviewer-data";
+import { useCategoryVersions, useRequestsWithFormVersions, useResidents } from "@/hooks/use-reviewer-data";
 import { useMe } from "@/hooks/use-current-user";
 import { useUrlParams } from "@/hooks/use-url-params";
 import { fieldDiffStates } from "@/lib/category-diff";
@@ -40,7 +40,7 @@ function getActorName(actor?: VersionActor | null): string {
 export default function FormComparePage({ id }: { id: string }) {
   const { me, isDefault } = useMe();
   const { data: versionData, isLoading } = useCategoryVersions(id);
-  const { data: requests } = useRequests();
+  const { data: requests, versionsReady } = useRequestsWithFormVersions({ categoryId: id });
   const { data: residents } = useResidents();
   const { values, set } = useUrlParams({ v: "" });
 
@@ -48,7 +48,7 @@ export default function FormComparePage({ id }: { id: string }) {
   const versions = useMemo(() => [...(versionData?.versions ?? [])].sort((a, b) => b.version - a.version), [versionData]);
   const counts = useMemo(() => {
     const map = new Map<number, number>();
-    (requests ?? []).filter((r) => r.categoryId === id).forEach((r) => map.set(r.formVersion, (map.get(r.formVersion) ?? 0) + 1));
+    (requests ?? []).filter((r) => r.categoryId === id && r.formVersion > 0).forEach((r) => map.set(r.formVersion, (map.get(r.formVersion) ?? 0) + 1));
     return map;
   }, [requests, id]);
 
@@ -125,7 +125,7 @@ export default function FormComparePage({ id }: { id: string }) {
       : ["Initial form"];
 
   const visibleRequests = (requests ?? []).filter((r) => r.categoryId === id && (isDefault || r.assignedReviewerId === me?.id));
-  const outdated = visibleRequests.filter((r) => r.formVersion < currentVersionNumber);
+  const outdated = visibleRequests.filter((r) => r.formVersion > 0 && r.formVersion < currentVersionNumber);
   const residentById = new Map((residents ?? []).map((r) => [r.id, r]));
 
   return (
@@ -185,7 +185,7 @@ export default function FormComparePage({ id }: { id: string }) {
                         <span className="mt-1 line-clamp-2 block break-words text-xs text-foreground/80">{firstChange}{extraChangesCount > 0 ? ` +${extraChangesCount} more` : ""}</span>
                         <span className="mt-1.5 inline-flex items-center gap-1 text-[11px] text-muted-foreground">
                           <FileText className="size-3" aria-hidden="true" />
-                          {used} request{used === 1 ? "" : "s"} submitted on this version
+                          {versionsReady ? `${used} request${used === 1 ? "" : "s"} submitted on this version` : "Counting requests…"}
                         </span>
                       </span>
                     </button>
@@ -332,7 +332,7 @@ export default function FormComparePage({ id }: { id: string }) {
                         <span className="block truncate text-sm text-foreground">{residentFullName(residentById.get(r.residentId))}</span>
                       </span>
                       <span className={cn("rounded-full px-2 py-0.5 text-[11px] font-semibold", r.formVersion < currentVersionNumber ? "bg-amber-100 text-amber-900 dark:bg-amber-950/50 dark:text-amber-300" : "bg-muted text-muted-foreground")}>
-                        Submitted on v{r.formVersion}
+                        {r.formVersion > 0 ? `Submitted on v${r.formVersion}` : "Loading version…"}
                       </span>
                       <StatusBadge status={r.status} />
                     </Link>

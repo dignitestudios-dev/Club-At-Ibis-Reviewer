@@ -10,7 +10,7 @@ import { PersonAvatar } from "@/components/shared/person-avatar";
 import { Highlight } from "@/components/shared/highlight";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { useResidents, useReviewers } from "@/hooks/use-reviewer-data";
+import { useLetterUploadedIds, useResidents, useReviewers } from "@/hooks/use-reviewer-data";
 import { useMe } from "@/hooks/use-current-user";
 import { nextStep, residentFullName } from "@/lib/domain";
 import { formatRelative } from "@/utils/format";
@@ -41,6 +41,7 @@ export function RequestsTable({
   const { data: reviewers } = useReviewers({ includeDeactivated: true }, { enabled: showReviewer && isDefault });
   const residentById = useMemo(() => new Map((residents ?? []).map((r) => [r.id, r])), [residents]);
   const reviewerById = useMemo(() => new Map((reviewers ?? []).map((r) => [r.id, r])), [reviewers]);
+  const letterUploaded = useLetterUploadedIds(rows);
 
   return (
     <Table>
@@ -66,7 +67,7 @@ export function RequestsTable({
         </TableHeader>
         <TableBody>
           {rows.map((req) => {
-            const step = nextStep(req);
+            const step = nextStep(req, { letterUploaded: letterUploaded.has(req.id) });
             const reviewer = req.assignedReviewerId ? reviewerById.get(req.assignedReviewerId) : undefined;
             const resident = req.resident
               ? {

@@ -35,7 +35,7 @@ export function ApprovalLetterCard({ request, isOwner, onPreviewFile, readOnly =
                 Final Approval Letter
               </CardTitle>
               <p className="text-xs text-muted-foreground">
-                Official ARB approval letter delivered to the resident upon completion.
+                Official ARB approval letter, emailed to the resident and available to view and download as soon as it is uploaded.
               </p>
             </div>
             <div className="flex items-center gap-2">
@@ -94,11 +94,9 @@ export function ApprovalLetterCard({ request, isOwner, onPreviewFile, readOnly =
                 )}
               </div>
 
-              {request.status !== "completed" && (
-                <p className="text-xs text-muted-foreground px-1">
-                  Note: The resident cannot view or download this document until the request is officially marked as Completed.
-                </p>
-              )}
+              <p className="text-xs text-muted-foreground px-1">
+                Note: The resident receives this letter by email and can view and download it as soon as it is uploaded.
+              </p>
             </div>
           ) : (
             <div className="space-y-3">

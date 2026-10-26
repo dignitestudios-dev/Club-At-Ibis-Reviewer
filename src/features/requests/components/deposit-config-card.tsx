@@ -317,7 +317,7 @@ export function DepositConfigCard({ request, isOwner, onPreviewFile, readOnly = 
                           Awaiting Deposit
                         </p>
                         <p className="text-xs text-amber-900/80 dark:text-amber-300/80 mt-0.5">
-                          The deposit must be marked as received (in the Finish up panel) before this request can be completed. A receipt is optional.
+                          The deposit must be marked as received (in the Finish up panel) before this request can be completed. The receipt can be uploaded only after that (optional).
                         </p>
                       </div>
                       {canEdit && (
@@ -325,6 +325,8 @@ export function DepositConfigCard({ request, isOwner, onPreviewFile, readOnly = 
                           type="button"
                           size="sm"
                           className="bg-amber-600 hover:bg-amber-700 text-white dark:bg-amber-600 dark:hover:bg-amber-700 text-xs shrink-0"
+                          disabled
+                          title="Mark the deposit as received first, then upload the receipt"
                           onClick={() => setUploadReceiptOpen(true)}
                         >
                           <UploadCloud className="size-3.5 mr-1.5" />

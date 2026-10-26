@@ -252,7 +252,8 @@ export function attentionFor(requests: RequestRecord[], reviewerId: string) {
 
 export type NextTone = "action" | "waiting" | "done";
 
-export function nextStep(req: RequestRecord): { label: string; tone: NextTone } {
+/** `letterUploaded`: the letter is known to be uploaded even though the (list) row does not carry it. */
+export function nextStep(req: RequestRecord, opts: { letterUploaded?: boolean } = {}): { label: string; tone: NextTone } {
   const progress = reviewProgress(req);
   switch (req.status) {
     case "submitted":
@@ -270,7 +271,7 @@ export function nextStep(req: RequestRecord): { label: string; tone: NextTone } 
     case "approved": {
       if (!depositDecided(req.deposit)) return { label: "Set deposit requirement", tone: "action" };
       if (req.deposit.required && req.deposit.status !== "received") return { label: "Mark deposit as received", tone: "action" };
-      if (!req.approvalLetter) return { label: "Upload final letter", tone: "action" };
+      if (!req.approvalLetter && !opts.letterUploaded) return { label: "Upload final letter", tone: "action" };
       return { label: "Ready to mark Completed", tone: "action" };
     }
     case "completed":

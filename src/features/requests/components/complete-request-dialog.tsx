@@ -58,7 +58,7 @@ export function CompleteRequestDialog({
 
       toast.success(
         "Request completed",
-        `Request ${request.code} is marked as completed and final letter has been released to the resident.`
+        `Request ${request.code} is marked as completed and the final letter has been marked as used.`
       );
       onOpenChange(false);
     } catch (err: any) {

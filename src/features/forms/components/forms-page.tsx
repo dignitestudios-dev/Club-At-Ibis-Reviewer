@@ -9,7 +9,7 @@ import { Highlight } from "@/components/shared/highlight";
 import { SearchInput } from "@/components/shared/search-input";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useCategories, useRequests } from "@/hooks/use-reviewer-data";
+import { useCategories, useRequestsWithFormVersions } from "@/hooks/use-reviewer-data";
 import { useMe } from "@/hooks/use-current-user";
 import { useToast } from "@/hooks/use-toast";
 import { useUrlSearch } from "@/hooks/use-url-params";
@@ -21,7 +21,7 @@ export default function FormsPage() {
   const toast = useToast();
   const { me, isDefault } = useMe();
   const { data: categories, isLoading, isFetching, refetch } = useCategories();
-  const { data: requests } = useRequests();
+  const { data: requests } = useRequestsWithFormVersions();
   const [search, setSearch] = useUrlSearch("q");
 
   const q = search.trim().toLowerCase();
@@ -88,7 +88,7 @@ export default function FormsPage() {
           {list.map((cat) => {
             const updated = cat.version > 1;
             const latest = cat.versions[cat.versions.length - 1];
-            const onOlder = (requests ?? []).filter((r) => r.categoryId === cat.id && r.formVersion < cat.version && (isDefault || r.assignedReviewerId === me?.id)).length;
+            const onOlder = (requests ?? []).filter((r) => r.categoryId === cat.id && r.formVersion > 0 && r.formVersion < cat.version && (isDefault || r.assignedReviewerId === me?.id)).length;
             const href = `/forms/${cat.id}?v=${cat.version}`;
             return (
               <Link

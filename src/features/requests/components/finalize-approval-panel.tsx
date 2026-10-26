@@ -108,7 +108,7 @@ export function FinalizeApprovalPanel({
           <h2 className="font-heading text-lg font-medium text-emerald-950 dark:text-emerald-200">Finish up this approval</h2>
           <p className="text-xs text-emerald-900/80 dark:text-emerald-300/80">
             {canComplete
-              ? "Everything is ready — complete the request to release the letter to the resident."
+              ? "Everything is ready — mark the request as completed."
               : "Complete these steps, then mark the request as completed."}
           </p>
         </div>
@@ -151,6 +151,8 @@ export function FinalizeApprovalPanel({
                   variant="outline"
                   size="sm"
                   className="text-xs"
+                  disabled={!receiptReceived}
+                  title={receiptReceived ? undefined : "Mark the deposit as received first, then attach the receipt"}
                   onClick={() => {
                     setReplacingReceipt(false);
                     setReceiptOpen(true);
@@ -195,7 +197,7 @@ export function FinalizeApprovalPanel({
             </>
           ) : (
             <>
-              {formatDepositAmount(deposit?.amount) ? `${formatDepositAmount(deposit?.amount)} deposit required` : "Deposit required"} — mark it as received once paid. Attaching a receipt is optional.
+              {formatDepositAmount(deposit?.amount) ? `${formatDepositAmount(deposit?.amount)} deposit required` : "Deposit required"} — mark it as received once paid; the receipt can be attached after that (optional).
             </>
           )}
         </Step>
@@ -279,7 +281,7 @@ export function FinalizeApprovalPanel({
               <span>· {formatFileSize(letter.size)}</span>
             </span>
           ) : (
-            "Upload the signed final letter (PDF or image). The resident sees it once the request is completed."
+            "Upload the signed final letter (PDF or image). It is emailed to the resident as soon as it is uploaded."
           )}
         </Step>
       </ol>
@@ -287,7 +289,7 @@ export function FinalizeApprovalPanel({
       <footer className="flex flex-col gap-3 border-t border-border/70 bg-muted/30 px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between sm:px-5">
         <p className={cn("text-xs sm:text-sm", canComplete ? "text-emerald-800 dark:text-emerald-300" : "text-muted-foreground")}>
           {canComplete
-            ? "Completing sends the approval letter to the resident by email."
+            ? "The approval letter was already sent to the resident when it was uploaded."
             : `Still to do: ${missing.join(" and ")}.`}
         </p>
         <div className="flex flex-wrap items-center gap-2">

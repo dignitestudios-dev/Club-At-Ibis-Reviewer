@@ -11,8 +11,9 @@ import { Spinner } from "@/components/ui/spinner";
 import { useToast } from "@/hooks/use-toast";
 import { getUnfinishedUpload, uploadProcessingFile } from "../api/processing-upload";
 import { formatFileSize } from "@/utils/format";
+import { validateFileIntegrity } from "@/utils/file-integrity";
 
-const MAX_FILE_SIZE = 52428800; // 50 MiB
+const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100 MiB
 const ALLOWED_TYPES = ["application/pdf", "image/png", "image/jpeg", "image/jpg"];
 const ALLOWED_EXTS = [".pdf", ".png", ".jpg", ".jpeg"];
 
@@ -64,14 +65,19 @@ export function UploadReceiptDialog({ request, open, onOpenChange, isReplacing =
     onOpenChange(nextOpen);
   }
 
-  function validateAndSetFile(file: File) {
+  async function validateAndSetFile(file: File) {
     setErrorMessage(null);
     if (!isFileTypeAllowed(file)) {
       setErrorMessage("Invalid file type. Please upload a PDF or image (PNG, JPG, JPEG).");
       return;
     }
     if (file.size > MAX_FILE_SIZE) {
-      setErrorMessage(`File exceeds maximum size of 50 MB (selected: ${formatFileSize(file.size)}).`);
+      setErrorMessage(`File exceeds maximum size of 100 MB (selected: ${formatFileSize(file.size)}).`);
+      return;
+    }
+    const integrity = await validateFileIntegrity(file);
+    if (!integrity.valid) {
+      setErrorMessage(integrity.error || `"${file.name}" is corrupted or unreadable. Please check the file and try again.`);
       return;
     }
     setSelectedFile(file);
@@ -187,7 +193,7 @@ export function UploadReceiptDialog({ request, open, onOpenChange, isReplacing =
             >
               <UploadCloud className="size-8 text-muted-foreground mb-2" />
               <p className="text-sm font-medium text-foreground">Click to browse or drag & drop</p>
-              <p className="text-xs text-muted-foreground mt-1">PDF, PNG, JPG or JPEG (up to 50 MB)</p>
+              <p className="text-xs text-muted-foreground mt-1">PDF, PNG, JPG or JPEG (up to 100 MB)</p>
             </div>
           ) : (
             <div className="rounded-xl border border-border/80 bg-muted/30 p-3.5 flex items-center justify-between gap-3">

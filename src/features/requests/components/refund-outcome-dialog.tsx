@@ -15,8 +15,9 @@ import { useToast } from "@/hooks/use-toast";
 import { useSetRefundOutcome, useRefreshRequest } from "@/hooks/use-reviewer-data";
 import { uploadProcessingFile } from "../api/processing-upload";
 import { formatFileSize } from "@/utils/format";
+import { validateFileIntegrity } from "@/utils/file-integrity";
 
-const MAX_RECEIPT_SIZE = 52428800; // 50 MiB
+const MAX_RECEIPT_SIZE = 100 * 1024 * 1024; // 100 MiB
 const RECEIPT_EXTS = [".pdf", ".png", ".jpg", ".jpeg"];
 
 interface RefundOutcomeDialogProps {
@@ -77,7 +78,7 @@ export function RefundOutcomeDialog({
 
   const busy = setRefundMutation.isPending || uploading;
 
-  function pickReceipt(file: File | undefined) {
+  async function pickReceipt(file: File | undefined) {
     if (!file) return;
     const name = file.name.toLowerCase();
     if (!RECEIPT_EXTS.some((ext) => name.endsWith(ext))) {
@@ -85,7 +86,12 @@ export function RefundOutcomeDialog({
       return;
     }
     if (file.size > MAX_RECEIPT_SIZE) {
-      setReceiptError(`File exceeds maximum size of 50 MB (selected: ${formatFileSize(file.size)}).`);
+      setReceiptError(`File exceeds maximum size of 100 MB (selected: ${formatFileSize(file.size)}).`);
+      return;
+    }
+    const integrity = await validateFileIntegrity(file);
+    if (!integrity.valid) {
+      setReceiptError(integrity.error || `"${file.name}" is corrupted or unreadable. Please check the file and try again.`);
       return;
     }
     setReceiptError(null);
