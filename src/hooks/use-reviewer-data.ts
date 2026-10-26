@@ -1,8 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
-
-import { useInfiniteQuery, useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { announceRequestConflict } from "@/hooks/use-close-on-conflict";
 import {
@@ -99,54 +97,13 @@ export const useRequests = (params?: ReviewerRequestsQueryParams, options?: { en
     enabled: options?.enabled ?? true,
     staleTime: 15 * 1000,
   });
-/**
- * Every request (all pages) with its real form version. The list endpoint's rows don't carry the form
- * version they were submitted on (only the detail does), so it is resolved per request; `formVersion` is 0
- * until that request's detail has loaded and `versionsReady` flips true once all of them have.
- */
-export const useRequestsWithFormVersions = (params?: Omit<ReviewerRequestsQueryParams, "page" | "limit">) => {
-  const list = useQuery({
+/** Every request matching `params`, all pages (rows carry their form version, so counts can be made from them). */
+export const useAllRequests = (params?: Omit<ReviewerRequestsQueryParams, "page" | "limit">) =>
+  useQuery({
     queryKey: [...keys.requestLists, "all-pages", params ?? "all"],
     queryFn: () => getAllRequests(params),
     staleTime: 15 * 1000,
   });
-  const details = useQueries({
-    queries: (list.data ?? []).map((r) => ({
-      queryKey: keys.requestDetail(r.id),
-      queryFn: () => getRequestById(r.id),
-      staleTime: 60 * 1000,
-    })),
-  });
-  const data = useMemo(
-    () => (list.data ?? []).map((r, i) => ({ ...r, formVersion: details[i]?.data?.formVersion ?? 0 })),
-    [list.data, details]
-  );
-  const versionsReady = !!list.data && details.every((d) => !d.isLoading);
-  return { data, isLoading: list.isLoading, versionsReady };
-};
-/**
- * Ids of the given list rows whose final approval letter is already uploaded. The list endpoint's rows carry no
- * letter info (only the detail does), so approved rows are resolved through their (cached) detail; this keeps
- * the "Next step" column right after an upload without refetching every row.
- */
-export const useLetterUploadedIds = (rows: RequestRecord[]) => {
-  const approvedIds = rows.filter((r) => r.status === "approved" && !r.approvalLetter).map((r) => r.id);
-  const details = useQueries({
-    queries: approvedIds.map((id) => ({
-      queryKey: keys.requestDetail(id),
-      queryFn: () => getRequestById(id),
-      staleTime: 15 * 1000,
-    })),
-  });
-  return useMemo(() => {
-    const ids = new Set<string>();
-    details.forEach((d, i) => {
-      if (d.data?.approvalLetter) ids.add(approvedIds[i]);
-    });
-    return ids;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [details]);
-};
 export const useRequestsPage = (params: ReviewerRequestsQueryParams, options?: { enabled?: boolean }) =>
   useQuery({
     queryKey: [...keys.requestLists, "page", params],

@@ -11,7 +11,6 @@ import { Spinner } from "@/components/ui/spinner";
 import { useToast } from "@/hooks/use-toast";
 import { getUnfinishedUpload, uploadProcessingFile } from "../api/processing-upload";
 import { formatFileSize } from "@/utils/format";
-import { validateFileIntegrity } from "@/utils/file-integrity";
 
 const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100 MiB
 const ALLOWED_TYPES = ["application/pdf", "image/png", "image/jpeg", "image/jpg"];
@@ -69,11 +68,6 @@ export function UploadLetterDialog({ request, open, onOpenChange, isReplacing = 
     }
     if (file.size > MAX_FILE_SIZE) {
       setErrorMessage(`File exceeds maximum size of 100 MB (selected: ${formatFileSize(file.size)}).`);
-      return;
-    }
-    const integrity = await validateFileIntegrity(file);
-    if (!integrity.valid) {
-      setErrorMessage(integrity.error || `"${file.name}" is corrupted or unreadable. Please check the file and try again.`);
       return;
     }
     setSelectedFile(file);

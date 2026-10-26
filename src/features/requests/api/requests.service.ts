@@ -261,6 +261,7 @@ export function toReviewerRequestRecord(raw: any): RequestRecord {
       proof: raw.refundProof,
     } : null),
     approvalLetter: raw.approvalLetter || raw.completion?.finalApprovalLetter,
+    hasApprovalLetter: !!raw.hasFinalApprovalLetter || !!(raw.approvalLetter || raw.completion?.finalApprovalLetter),
     letterEmail: raw.letterEmail || raw.completion?.email ? {
       status: (raw.completion?.email?.status || raw.letterEmail?.status || "sent") as any,
       at: raw.completion?.email?.sentAt || raw.letterEmail?.at || raw.completedAt || new Date().toISOString(),
@@ -279,7 +280,7 @@ export function toReviewerRequestRecord(raw: any): RequestRecord {
         role: ((): ActorRole => {
           // The backend sends upper-case roles (REVIEWER, RESIDENT, SUPER_ADMIN).
           const r = String(h.actor?.role || "").toLowerCase();
-          return r === "super_admin" || r === "admin" ? "super_admin" : r === "reviewer" ? "reviewer" : r === "resident" ? "resident" : "system";
+          return r === "super_admin" || r === "admin" ? "super_admin" : r === "reviewer" ? "reviewer" : r === "resident_admin" ? "resident_admin" : r === "resident" ? "resident" : "system";
         })(),
       },
       message: h.message || "",

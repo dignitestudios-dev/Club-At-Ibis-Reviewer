@@ -188,7 +188,7 @@ type HistoryEventType =
   | "refund_outcome_recorded"
   | "refund_outcome_corrected";
 
-type ActorRole = "resident" | "reviewer" | "super_admin" | "system";
+type ActorRole = "resident" | "resident_admin" | "reviewer" | "super_admin" | "system";
 
 interface HistoryEvent {
   id: string;
@@ -429,6 +429,8 @@ interface RequestRecord {
   withdrawal?: RequestWithdrawal | null;
   refund?: RefundRecord | null;
   approvalLetter?: AttachedFile | null;
+  /** The list endpoint only says whether a final letter exists (`hasFinalApprovalLetter`); the file itself comes with the detail. */
+  hasApprovalLetter?: boolean;
   letterEmail?: LetterEmailRecord | null;
   history: HistoryEvent[];
 }

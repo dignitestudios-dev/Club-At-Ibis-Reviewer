@@ -15,7 +15,6 @@ import { useToast } from "@/hooks/use-toast";
 import { useSetRefundOutcome, useRefreshRequest } from "@/hooks/use-reviewer-data";
 import { uploadProcessingFile } from "../api/processing-upload";
 import { formatFileSize } from "@/utils/format";
-import { validateFileIntegrity } from "@/utils/file-integrity";
 
 const MAX_RECEIPT_SIZE = 100 * 1024 * 1024; // 100 MiB
 const RECEIPT_EXTS = [".pdf", ".png", ".jpg", ".jpeg"];
@@ -87,11 +86,6 @@ export function RefundOutcomeDialog({
     }
     if (file.size > MAX_RECEIPT_SIZE) {
       setReceiptError(`File exceeds maximum size of 100 MB (selected: ${formatFileSize(file.size)}).`);
-      return;
-    }
-    const integrity = await validateFileIntegrity(file);
-    if (!integrity.valid) {
-      setReceiptError(integrity.error || `"${file.name}" is corrupted or unreadable. Please check the file and try again.`);
       return;
     }
     setReceiptError(null);
