@@ -151,8 +151,6 @@ export function FinalizeApprovalPanel({
                   variant="outline"
                   size="sm"
                   className="text-xs"
-                  disabled={!receiptReceived}
-                  title={receiptReceived ? undefined : "Mark the deposit as received first, then attach the receipt"}
                   onClick={() => {
                     setReplacingReceipt(false);
                     setReceiptOpen(true);
@@ -197,7 +195,7 @@ export function FinalizeApprovalPanel({
             </>
           ) : (
             <>
-              {formatDepositAmount(deposit?.amount) ? `${formatDepositAmount(deposit?.amount)} deposit required` : "Deposit required"} — mark it as received once paid; the receipt can be attached after that (optional).
+              {formatDepositAmount(deposit?.amount) ? `${formatDepositAmount(deposit?.amount)} deposit required` : "Deposit required"} — mark it as received once paid. Attaching a receipt is optional.
             </>
           )}
         </Step>
@@ -260,6 +258,8 @@ export function FinalizeApprovalPanel({
                   type="button"
                   variant="outline"
                   size="sm"
+                  disabled={!depositDone}
+                  title={depositDone ? undefined : "Set the deposit and mark it as received (if required) before uploading the letter"}
                   onClick={() => {
                     setReplacingLetter(false);
                     setLetterOpen(true);
@@ -281,7 +281,9 @@ export function FinalizeApprovalPanel({
               <span>· {formatFileSize(letter.size)}</span>
             </span>
           ) : (
-            "Upload the signed final letter (PDF or image). It is emailed to the resident as soon as it is uploaded."
+            depositDone
+              ? "Upload the signed final letter (PDF or image). It is emailed to the resident as soon as it is uploaded."
+              : "Locked until the deposit is set and, if required, marked as received."
           )}
         </Step>
       </ol>

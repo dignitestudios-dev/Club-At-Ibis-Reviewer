@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { formatFileSize, formatDateTime } from "@/utils/format";
 import { UploadLetterDialog } from "./upload-letter-dialog";
+import { isDepositConfigured } from "./deposit-fields";
 
 interface ApprovalLetterCardProps {
   request: RequestRecord;
@@ -21,6 +22,8 @@ export function ApprovalLetterCard({ request, isOwner, onPreviewFile, readOnly =
 
   const isApproved = request.status === "approved";
   const canManage = isOwner && isApproved && !readOnly;
+  // The final letter can only be uploaded once the deposit is set and, if required, marked as received.
+  const depositReady = isDepositConfigured(request.deposit) && (request.deposit?.required !== true || request.deposit?.status === "received");
 
   const letterFile = request.approvalLetter || request.completion?.finalApprovalLetter;
 
@@ -109,7 +112,7 @@ export function ApprovalLetterCard({ request, isOwner, onPreviewFile, readOnly =
                         Final Approval Letter Required
                       </p>
                       <p className="text-xs text-amber-900/80 dark:text-amber-300/80 mt-0.5">
-                        Upload the signed/final approval letter to prepare this request for completion.
+                        {depositReady ? "Upload the signed/final approval letter to prepare this request for completion." : "Locked until the deposit is set and, if required, marked as received."}
                       </p>
                     </div>
                   </div>
@@ -118,6 +121,8 @@ export function ApprovalLetterCard({ request, isOwner, onPreviewFile, readOnly =
                       type="button"
                       size="sm"
                       className="bg-teal-600 hover:bg-teal-700 text-white dark:bg-teal-600 dark:hover:bg-teal-700 text-xs shrink-0"
+                      disabled={!depositReady}
+                      title={depositReady ? undefined : "Set the deposit and mark it as received (if required) first"}
                       onClick={() => {
                         setIsReplacing(false);
                         setUploadDialogOpen(true);
