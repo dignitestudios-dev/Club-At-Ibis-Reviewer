@@ -108,7 +108,7 @@ function FileReviewRow({
             : "border-border/80 bg-muted/30"
       )}
     >
-      <div className="flex items-center gap-3">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-2.5">
         <span className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-border bg-card">
           {/\.(jpe?g|png)$/i.test(file.name) ? (
             <FileImage className="size-4 text-sky-600" />
@@ -116,17 +116,20 @@ function FileReviewRow({
             <FileText className="size-4 text-rose-600" />
           )}
         </span>
-        <div className="min-w-0 flex-1">
+        {/* On phones the name takes the rest of the first row; the status and Preview drop to their own row below. */}
+        <div className="min-w-0 flex-1 basis-[calc(100%-3rem)] sm:basis-0">
           <p className="truncate text-sm font-medium text-foreground">{file.name}</p>
           <p className="text-[11px] text-muted-foreground">
             {formatFileSize(file.size)} · uploaded {formatDate(file.uploadedAt)}
           </p>
         </div>
-        <ReviewState review={review} canReview={canReview} />
-        <Button variant="outline" size="sm" onClick={() => onPreview(file)}>
-          <Eye />
-          Preview
-        </Button>
+        <div className="flex w-full items-center justify-between gap-2 sm:w-auto sm:justify-end">
+          <ReviewState review={review} canReview={canReview} />
+          <Button variant="outline" size="sm" className="h-9 shrink-0 sm:h-8" onClick={() => onPreview(file)}>
+            <Eye />
+            Preview
+          </Button>
+        </div>
       </div>
 
       {isFlagged && review?.reason && !isEditing && (
@@ -166,22 +169,22 @@ function FileReviewRow({
               placeholder="Optional: explain what's wrong with this document..."
               maxLength={1000}
               disabled={isSubmitting || isAssessing}
-              className="bg-background text-xs h-9"
+              className="bg-background text-base sm:text-xs h-11 sm:h-9"
               autoFocus
             />
           </div>
           <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
-            <p className="text-[11px] text-muted-foreground">
+            <p className="hidden text-[11px] text-muted-foreground sm:block">
               Press <kbd className="rounded bg-muted px-1.5 py-0.5 font-mono text-[10px]">Enter</kbd> to save
             </p>
-            <div className="flex items-center gap-2">
-              <Button type="button" variant="outline" size="sm" className="h-7 text-xs" onClick={handleCancelEdit} disabled={isSubmitting || isAssessing}>
+            <div className="flex w-full items-center gap-2 sm:w-auto max-sm:[&>button]:flex-1">
+              <Button type="button" variant="outline" size="sm" className="h-9 sm:h-7 text-xs" onClick={handleCancelEdit} disabled={isSubmitting || isAssessing}>
                 Cancel
               </Button>
               <Button
                 type="button"
                 size="sm"
-                className="h-7 text-xs bg-amber-600 hover:bg-amber-700 text-white dark:bg-amber-600 dark:hover:bg-amber-700"
+                className="h-9 sm:h-7 text-xs bg-amber-600 hover:bg-amber-700 text-white dark:bg-amber-600 dark:hover:bg-amber-700"
                 onClick={handleSave}
                 disabled={isSubmitting || isAssessing}
               >
@@ -194,14 +197,14 @@ function FileReviewRow({
       )}
 
       {canReview && !isEditing && (
-        <div className="mt-2.5 flex flex-wrap items-center justify-end gap-2 border-t border-border/50 pt-2.5">
+        <div className="mt-2.5 flex flex-wrap items-center justify-end gap-2 border-t border-border/50 pt-2.5 max-sm:[&>button]:flex-1">
           {isFlagged ? (
             <>
               <Button
                 type="button"
                 variant="outline"
                 size="sm"
-                className="text-xs h-7 text-muted-foreground hover:text-foreground"
+                className="text-xs h-9 sm:h-7 text-muted-foreground hover:text-foreground"
                 onClick={handleClear}
                 disabled={isSubmitting || isAssessing}
               >
@@ -212,7 +215,7 @@ function FileReviewRow({
                 type="button"
                 variant="outline"
                 size="sm"
-                className="text-xs h-7 border-amber-300 text-amber-900 hover:bg-amber-50 dark:border-amber-800 dark:text-amber-300 dark:hover:bg-amber-950/40"
+                className="text-xs h-9 sm:h-7 border-amber-300 text-amber-900 hover:bg-amber-50 dark:border-amber-800 dark:text-amber-300 dark:hover:bg-amber-950/40"
                 onClick={handleOpenEdit}
                 disabled={isSubmitting || isAssessing}
               >
@@ -225,7 +228,7 @@ function FileReviewRow({
               type="button"
               variant="outline"
               size="sm"
-              className="text-xs h-7 text-amber-700 hover:text-amber-800 hover:bg-amber-50 hover:border-amber-300 dark:text-amber-400 dark:hover:bg-amber-950/40 dark:hover:border-amber-800"
+              className="text-xs h-9 sm:h-7 text-amber-700 hover:text-amber-800 hover:bg-amber-50 hover:border-amber-300 dark:text-amber-400 dark:hover:bg-amber-950/40 dark:hover:border-amber-800"
               onClick={handleOpenEdit}
               disabled={isSubmitting || isAssessing}
             >
@@ -312,7 +315,7 @@ export function ReviewItem({
   return (
     <div
       className={cn(
-        "space-y-3 rounded-xl border p-4 transition-colors",
+        "space-y-3 rounded-xl border p-3.5 transition-colors sm:p-4",
         isFlagged
           ? "border-amber-300/90 bg-amber-50/60 dark:border-amber-800/80 dark:bg-amber-950/20"
           : state?.state === "accepted" || canReview
@@ -321,8 +324,8 @@ export function ReviewItem({
       )}
     >
       <div className="flex flex-wrap items-start justify-between gap-2">
-        <div className="min-w-0 space-y-1">
-          <p className="flex flex-wrap items-center gap-2 text-[11px] font-semibold tracking-wider uppercase">
+        <div className="min-w-0 flex-1 space-y-1">
+          <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] font-semibold tracking-wider uppercase break-words [overflow-wrap:anywhere]">
             <span className="text-foreground">{field.label}</span>
             <span className="font-normal tracking-normal normal-case text-muted-foreground">
               {field.required ? "Required" : "Optional"}
@@ -415,20 +418,20 @@ export function ReviewItem({
               placeholder="Optional: explain what the resident needs to correct for this field..."
               maxLength={1000}
               disabled={isSubmitting || isAssessing}
-              className="bg-background text-xs h-9"
+              className="bg-background text-base sm:text-xs h-11 sm:h-9"
               autoFocus
             />
           </div>
           <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
-            <p className="text-[11px] text-muted-foreground">
+            <p className="hidden text-[11px] text-muted-foreground sm:block">
               Press <kbd className="rounded bg-muted px-1.5 py-0.5 font-mono text-[10px]">Enter</kbd> to save
             </p>
-            <div className="flex items-center gap-2">
+            <div className="flex w-full items-center gap-2 sm:w-auto max-sm:[&>button]:flex-1">
               <Button
                 type="button"
                 variant="outline"
                 size="sm"
-                className="h-7 text-xs"
+                className="h-9 sm:h-7 text-xs"
                 onClick={handleCancelEdit}
                 disabled={isSubmitting || isAssessing}
               >
@@ -437,7 +440,7 @@ export function ReviewItem({
               <Button
                 type="button"
                 size="sm"
-                className="h-7 text-xs bg-amber-600 hover:bg-amber-700 text-white dark:bg-amber-600 dark:hover:bg-amber-700"
+                className="h-9 sm:h-7 text-xs bg-amber-600 hover:bg-amber-700 text-white dark:bg-amber-600 dark:hover:bg-amber-700"
                 onClick={handleSave}
                 disabled={isSubmitting || isAssessing}
               >
@@ -455,14 +458,14 @@ export function ReviewItem({
 
       {/* Reviewer Action Buttons when in Active Review and not actively editing */}
       {canReview && !isFile && !isEditing && (
-        <div className="flex flex-wrap items-center justify-end gap-2 pt-1 border-t border-border/50">
+        <div className="flex flex-wrap items-center justify-end gap-2 pt-2.5 border-t border-border/50 max-sm:[&>button]:flex-1">
           {isFlagged ? (
             <>
               <Button
                 type="button"
                 variant="outline"
                 size="sm"
-                className="text-xs h-7 text-muted-foreground hover:text-foreground"
+                className="text-xs h-9 sm:h-7 text-muted-foreground hover:text-foreground"
                 onClick={handleClear}
                 disabled={isSubmitting || isAssessing}
               >
@@ -473,7 +476,7 @@ export function ReviewItem({
                 type="button"
                 variant="outline"
                 size="sm"
-                className="text-xs h-7 border-amber-300 text-amber-900 hover:bg-amber-50 dark:border-amber-800 dark:text-amber-300 dark:hover:bg-amber-950/40"
+                className="text-xs h-9 sm:h-7 border-amber-300 text-amber-900 hover:bg-amber-50 dark:border-amber-800 dark:text-amber-300 dark:hover:bg-amber-950/40"
                 onClick={handleOpenEdit}
                 disabled={isSubmitting || isAssessing}
               >
@@ -486,7 +489,7 @@ export function ReviewItem({
               type="button"
               variant="outline"
               size="sm"
-              className="text-xs h-7 text-amber-700 hover:text-amber-800 hover:bg-amber-50 hover:border-amber-300 dark:text-amber-400 dark:hover:bg-amber-950/40 dark:hover:border-amber-800"
+              className="text-xs h-9 sm:h-7 text-amber-700 hover:text-amber-800 hover:bg-amber-50 hover:border-amber-300 dark:text-amber-400 dark:hover:bg-amber-950/40 dark:hover:border-amber-800"
               onClick={handleOpenEdit}
               disabled={isSubmitting || isAssessing}
             >

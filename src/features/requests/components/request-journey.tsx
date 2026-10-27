@@ -79,13 +79,40 @@ function journey(req: RequestRecord): Step[] {
   return steps;
 }
 
+function StepDot({ step, index }: { step: Step; index: number }) {
+  return (
+    <span
+      className={cn(
+        "relative z-10 flex size-8 shrink-0 items-center justify-center rounded-full border-2 text-xs font-bold transition-colors",
+        step.state === "done" && "border-emerald-500 bg-emerald-500 text-white",
+        step.state === "current" && "border-primary bg-card text-primary ring-4 ring-primary/15 dark:border-amber-400 dark:text-amber-300 dark:ring-amber-400/20",
+        step.state === "todo" && "border-border bg-card text-muted-foreground",
+        step.state === "skipped" && "border-dashed border-border bg-muted text-muted-foreground",
+        // Fully opaque in both themes — a translucent fill here lets
+        // the connector line behind the circle show through it.
+        step.state === "stopped" && "border-rose-400 bg-rose-50 text-rose-600 dark:border-rose-400 dark:bg-rose-100 dark:text-rose-700"
+      )}
+    >
+      {step.state === "done" ? (
+        <Check className="size-4" aria-hidden="true" />
+      ) : step.state === "skipped" ? (
+        <Minus className="size-4" aria-hidden="true" />
+      ) : step.state === "stopped" ? (
+        <X className="size-4" aria-hidden="true" />
+      ) : (
+        index + 1
+      )}
+    </span>
+  );
+}
+
 export function RequestJourney({ request }: { request: RequestRecord }) {
   const steps = journey(request);
   const withdrawn = request.status === "withdrawn";
 
   return (
     <div className="rounded-2xl border border-border/80 bg-card p-4 shadow-2xs sm:p-5">
-      <div className="mb-4 flex items-center justify-between">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
         <p className="text-[11px] font-semibold tracking-wider text-muted-foreground uppercase">Request journey</p>
         {withdrawn && (
           <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-[11px] font-medium text-slate-700 dark:bg-slate-800 dark:text-slate-300">
@@ -93,7 +120,29 @@ export function RequestJourney({ request }: { request: RequestRecord }) {
           </span>
         )}
       </div>
-      <div className="overflow-x-auto pt-2 pb-2 -mx-1 px-1 custom-scrollbar">
+
+      {/* Phones: a vertical timeline (a seven-step horizontal row would need sideways scrolling). */}
+      <ol className="sm:hidden">
+        {steps.map((step, i) => (
+          <li key={step.key} className="relative flex gap-3 pb-4 last:pb-0">
+            {i < steps.length - 1 && (
+              <span
+                aria-hidden="true"
+                className={cn("absolute top-8 bottom-0 left-4 w-0.5 -translate-x-1/2", step.state === "done" ? "bg-emerald-500" : "bg-border")}
+              />
+            )}
+            <StepDot step={step} index={i} />
+            <div className="min-w-0 pt-1">
+              <p className={cn("text-sm leading-tight font-semibold", step.state === "todo" || step.state === "skipped" ? "text-muted-foreground" : "text-foreground")}>
+                {step.label}
+              </p>
+              {step.detail && <p className="text-xs text-muted-foreground">{step.detail}</p>}
+            </div>
+          </li>
+        ))}
+      </ol>
+
+      <div className="hidden overflow-x-auto pt-2 pb-2 -mx-1 px-1 custom-scrollbar sm:block">
         <ol className="flex items-start min-w-[560px] sm:min-w-[620px] lg:min-w-0">
           {steps.map((step, i) => (
             <li key={step.key} className="relative flex-1 flex flex-col items-center gap-1.5 text-center min-w-[76px]">
@@ -106,28 +155,7 @@ export function RequestJourney({ request }: { request: RequestRecord }) {
                   )}
                 />
               )}
-              <span
-                className={cn(
-                  "relative z-10 flex size-8 shrink-0 items-center justify-center rounded-full border-2 text-xs font-bold transition-colors",
-                  step.state === "done" && "border-emerald-500 bg-emerald-500 text-white",
-                  step.state === "current" && "border-primary bg-card text-primary ring-4 ring-primary/15 dark:border-amber-400 dark:text-amber-300 dark:ring-amber-400/20",
-                  step.state === "todo" && "border-border bg-card text-muted-foreground",
-                  step.state === "skipped" && "border-dashed border-border bg-muted text-muted-foreground",
-                  // Fully opaque in both themes — a translucent fill here lets
-                  // the connector line behind the circle show through it.
-                  step.state === "stopped" && "border-rose-400 bg-rose-50 text-rose-600 dark:border-rose-400 dark:bg-rose-100 dark:text-rose-700"
-                )}
-              >
-                {step.state === "done" ? (
-                  <Check className="size-4" aria-hidden="true" />
-                ) : step.state === "skipped" ? (
-                  <Minus className="size-4" aria-hidden="true" />
-                ) : step.state === "stopped" ? (
-                  <X className="size-4" aria-hidden="true" />
-                ) : (
-                  i + 1
-                )}
-              </span>
+              <StepDot step={step} index={i} />
               <span className={cn("text-xs font-semibold leading-tight", step.state === "todo" || step.state === "skipped" ? "text-muted-foreground" : "text-foreground")}>
                 {step.label}
               </span>

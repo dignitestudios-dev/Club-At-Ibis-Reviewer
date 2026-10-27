@@ -46,7 +46,7 @@ export const NotificationItem = memo(function NotificationItem({
       aria-label={`${notification.title} - ${notification.read ? "Read" : "Unread"}`}
       className={cn(
         "group relative flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-xl border bg-white dark:bg-card p-4.5 sm:p-5 shadow-2xs transition-all duration-200",
-        "hover:-translate-y-0.5 hover:bg-slate-50 dark:hover:bg-slate-800/60 hover:border-slate-300 dark:hover:border-slate-700 hover:shadow-md",
+        "sm:hover:-translate-y-0.5 hover:bg-slate-50 dark:hover:bg-slate-800/60 hover:border-slate-300 dark:hover:border-slate-700 hover:shadow-md",
         !notification.read ? "border-l-4 border-l-primary border-slate-200 dark:border-slate-700 shadow-xs" : "border-border/80"
       )}
     >
@@ -79,7 +79,7 @@ export const NotificationItem = memo(function NotificationItem({
         </div>
       </div>
 
-      <div className="flex shrink-0 items-center gap-2 sm:self-center pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-100 dark:border-slate-800">
+      <div className="flex shrink-0 items-center gap-2 sm:self-center pt-3 sm:pt-0 border-t sm:border-t-0 border-slate-100 dark:border-slate-800 max-sm:[&>*]:h-10 max-sm:[&>*]:flex-1">
         {!notification.read && (
           <Button
             variant="ghost"

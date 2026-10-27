@@ -136,6 +136,31 @@
   --sidebar-ring: #a0874a;
 }
 
+/* Mobile-app chrome: height of the fixed bottom tab bar (excludes the device safe-area inset). */
+:root {
+  --bottom-nav-h: 4rem;
+}
+
+/* Device safe-area helpers (notch / home indicator): only non-zero under viewport-fit=cover or when installed as an app. */
+@utility pt-safe {
+  padding-top: env(safe-area-inset-top);
+}
+@utility pb-safe {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+@utility pb-nav {
+  padding-bottom: calc(var(--bottom-nav-h) + env(safe-area-inset-bottom));
+}
+@utility bottom-nav {
+  bottom: calc(var(--bottom-nav-h) + env(safe-area-inset-bottom));
+}
+@utility scrollbar-none {
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;

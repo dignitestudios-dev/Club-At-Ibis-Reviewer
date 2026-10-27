@@ -202,9 +202,9 @@ export function FilePreviewDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-4xl max-h-[90vh] h-[85vh] flex flex-col p-0 text-left overflow-hidden border border-border shadow-2xl rounded-2xl">
+      <DialogContent className="sm:max-w-4xl max-h-[90vh] h-[85vh] max-sm:h-dvh max-sm:max-h-dvh max-sm:rounded-none flex flex-col p-0 max-sm:pb-0 text-left overflow-hidden border border-border shadow-2xl rounded-2xl">
         {/* Header */}
-        <DialogHeader className="flex flex-row items-center justify-between text-left [&_[data-slot=dialog-title]]:text-left border-b border-border bg-slate-50/90 dark:bg-card px-5 py-3 shrink-0">
+        <DialogHeader className="flex flex-row items-center justify-between text-left [&_[data-slot=dialog-title]]:text-left border-b border-border bg-slate-50/90 dark:bg-card px-5 py-3 shrink-0 max-sm:flex-wrap max-sm:gap-2 max-sm:px-4 max-sm:pr-12 max-sm:pt-[calc(0.75rem+env(safe-area-inset-top))]">
           <div className="flex items-center gap-2.5 min-w-0">
             <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary dark:bg-primary/20 dark:text-primary">
               {isImage ? <ImageIcon className="size-4" /> : <FileText className="size-4" />}
@@ -227,7 +227,7 @@ export function FilePreviewDialog({
             </div>
           </div>
 
-          <div className="flex items-center gap-1.5 pr-8">
+          <div className="flex items-center gap-1.5 pr-8 max-sm:w-full max-sm:justify-end max-sm:pr-0">
             {isImage && (
               <>
                 <Button
@@ -270,7 +270,7 @@ export function FilePreviewDialog({
               onClick={handleDownload}
               disabled={downloading || (!rawUrl && !objectUrl && !file.id && !file.fileId)}
               aria-label={`Download ${file.name}`}
-              className="gap-1.5 text-xs h-8 ml-2 shadow-2xs font-medium"
+              className="gap-1.5 text-xs h-8 ml-2 max-sm:ml-0 max-sm:h-10 shadow-2xs font-medium"
             >
               {downloading ? <Loader2 className="size-3.5 animate-spin" /> : <Download className="size-3.5" />}
               Download

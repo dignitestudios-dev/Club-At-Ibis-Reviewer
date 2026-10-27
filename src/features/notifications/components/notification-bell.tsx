@@ -42,7 +42,7 @@ export function NotificationBell() {
           </span>
         )}
       </PopoverTrigger>
-      <PopoverContent align="end" className="w-92 gap-0 overflow-hidden p-0 shadow-xl border-border/80 sm:w-[26rem]">
+      <PopoverContent align="end" className="w-[min(23rem,calc(100vw-1.5rem))] gap-0 overflow-hidden p-0 shadow-xl border-border/80 sm:w-[26rem]">
         <div className="flex items-center justify-between border-b border-border/80 bg-slate-50/50 dark:bg-slate-900/50 px-4 py-3">
           <div className="flex items-center gap-2">
             <p className="font-heading text-base font-semibold text-foreground">Notifications</p>

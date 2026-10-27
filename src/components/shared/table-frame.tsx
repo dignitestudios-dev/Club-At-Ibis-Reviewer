@@ -8,7 +8,7 @@ const MIN_HEIGHT = 380;
 /**
  * Sizes a table to its rows, up to the rest of the screen: a few rows make a short table, and once the rows
  * need more room than is left below where the table starts (never less than MIN_HEIGHT) they scroll inside it
- * with a sticky header, while `footer` (pagination) stays right underneath. On very short screens the page
+ * with a sticky header, while `footer` (pagination) stays right underneath. On very short screens (and on phones, where each row is a card) the page
  * itself scrolls instead.
  * Wrap any table-based list in this so they all behave the same.
  */
@@ -45,10 +45,16 @@ export function TableFrame({
   }, []);
 
   return (
-    <div ref={ref} style={{ maxHeight: height }} className={cn("flex flex-col gap-3", className)}>
+    <div
+      ref={ref}
+      style={{ "--tf-h": height ? `${height}px` : undefined } as React.CSSProperties}
+      // Only md+ caps the table to the screen and scrolls inside it; on phones the list is cards and the page scrolls.
+      className={cn("flex flex-col gap-3 md:max-h-(--tf-h)", className)}
+    >
       <div
         className={cn(
           "min-h-0 overflow-auto rounded-2xl border border-border/80 bg-card shadow-2xs",
+          "max-md:overflow-visible max-md:rounded-none max-md:border-0 max-md:bg-transparent max-md:shadow-none",
           "[&_[data-slot=table-container]]:overflow-visible",
           "[&_thead_th]:sticky [&_thead_th]:top-0 [&_thead_th]:z-10 [&_thead_th]:bg-muted"
         )}

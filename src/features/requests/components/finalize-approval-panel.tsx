@@ -34,7 +34,7 @@ function Step({
   action?: React.ReactNode;
 }) {
   return (
-    <li className="flex items-start gap-3 px-4 py-3.5 sm:px-5">
+    <li className="flex flex-wrap items-start gap-x-3 gap-y-2.5 px-4 py-3.5 sm:flex-nowrap sm:px-5">
       <span className="mt-0.5 shrink-0" aria-hidden="true">
         {done ? (
           <CheckCircle2 className="size-5 text-emerald-600 dark:text-emerald-400" />
@@ -42,14 +42,16 @@ function Step({
           <Circle className="size-5 text-amber-500 dark:text-amber-400" />
         )}
       </span>
-      <div className="min-w-0 flex-1">
+      <div className="min-w-0 flex-1 basis-[calc(100%-2.25rem)] sm:basis-0">
         <p className="text-sm font-semibold text-foreground">
           {title}
           <span className="sr-only">{done ? " — done" : " — to do"}</span>
         </p>
         <div className="mt-0.5 text-xs text-muted-foreground sm:text-sm">{children}</div>
       </div>
-      {action && <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">{action}</div>}
+      {action && (
+        <div className="flex w-full flex-wrap items-center gap-2 pl-8 max-sm:[&>button]:h-10 sm:w-auto sm:shrink-0 sm:justify-end sm:pl-0">{action}</div>
+      )}
     </li>
   );
 }

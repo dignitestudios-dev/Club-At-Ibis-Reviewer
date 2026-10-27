@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Raleway, Playfair_Display } from "next/font/google";
 import Providers from "@/providers";
 import "./globals.css";
@@ -26,6 +26,20 @@ export const metadata: Metadata = {
     shortcut: "/brand/club-at-ibis-logo.png",
     apple: "/brand/club-at-ibis-logo.png",
   },
+};
+
+// viewportFit "cover" lets the layout paint under the notch / home indicator (the safe-area utilities in
+// globals.css then pad the fixed bars); "resizes-content" makes the on-screen keyboard shrink the layout so
+// sheets and sticky bars ride above it.
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+  interactiveWidget: "resizes-content",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#112636" },
+    { media: "(prefers-color-scheme: dark)", color: "#0d1522" },
+  ],
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

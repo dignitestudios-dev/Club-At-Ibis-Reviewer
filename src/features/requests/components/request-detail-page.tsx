@@ -559,7 +559,7 @@ export default function RequestDetailPage({ id }: { id: string }) {
             </div>
           </div>
 
-          <div className="flex shrink-0 flex-wrap items-center gap-2 pt-1">
+          <div className="flex flex-wrap items-center gap-2 pt-1 sm:shrink-0">
             <DownloadRequestPdfButton
               request={req}
               residentName={residentFullName(resident)}
@@ -596,7 +596,7 @@ export default function RequestDetailPage({ id }: { id: string }) {
           <Button
             disabled={startReviewMutation.isPending}
             onClick={handleStartReview}
-            className="shrink-0"
+            className="shrink-0 max-sm:w-full"
           >
             {startReviewMutation.isPending ? <Spinner className="size-4 mr-2" /> : <PlayCircle className="size-4 mr-2" />}
             Start Review
@@ -1393,7 +1393,7 @@ export default function RequestDetailPage({ id }: { id: string }) {
 
       {/* Sticky Bottom Review Action Bar for Active Review */}
       {canReview && (
-        <div className="sticky bottom-4 z-20 mt-6 flex flex-col gap-3 rounded-2xl border border-border/80 bg-background/95 p-4 shadow-xl backdrop-blur-md sm:flex-row sm:items-center sm:justify-between">
+        <div className="sticky bottom-4 max-lg:bottom-[calc(var(--bottom-nav-h)+env(safe-area-inset-bottom)+0.5rem)] z-20 mt-6 flex flex-col gap-3 rounded-2xl border border-border/80 bg-background/95 p-3 shadow-xl backdrop-blur-md sm:p-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-2.5">
             {flaggedCount === 0 ? (
               <span className="flex size-8 items-center justify-center rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300">
@@ -1410,14 +1410,14 @@ export default function RequestDetailPage({ id }: { id: string }) {
                   ? "All fields & documents verified · Ready for approval"
                   : `${flaggedCount} item${flaggedCount === 1 ? "" : "s"} flagged for correction`}
               </p>
-              <p className="text-xs text-muted-foreground">
+              <p className="hidden text-xs text-muted-foreground sm:block">
                 {flaggedCount === 0
                   ? "Unflagged fields and documents are accepted automatically."
                   : "Submit revision request or clear flags to approve."}
               </p>
             </div>
           </div>
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center">
             {canWithdraw && (
               <Button
                 type="button"
@@ -1433,7 +1433,7 @@ export default function RequestDetailPage({ id }: { id: string }) {
             <Button
               type="button"
               variant="outline"
-              className="text-rose-600 hover:bg-rose-50 hover:text-rose-700 dark:text-rose-400 dark:hover:bg-rose-950/40"
+              className={cn("text-rose-600 hover:bg-rose-50 hover:text-rose-700 dark:text-rose-400 dark:hover:bg-rose-950/40", !canWithdraw && "max-sm:col-span-2")}
               onClick={() => setRejectOpen(true)}
               disabled={isProcessingDecision}
             >
@@ -1443,7 +1443,7 @@ export default function RequestDetailPage({ id }: { id: string }) {
             {flaggedCount > 0 ? (
               <Button
                 type="button"
-                className="bg-amber-600 hover:bg-amber-700 text-white dark:bg-amber-600 dark:hover:bg-amber-700"
+                className="bg-amber-600 hover:bg-amber-700 text-white dark:bg-amber-600 dark:hover:bg-amber-700 max-sm:col-span-2 max-sm:order-first"
                 onClick={() => setRevisionOpen(true)}
                 disabled={isProcessingDecision || isAssessingField}
                 title={isAssessingField ? "Wait for the flagged item to finish saving." : undefined}
@@ -1454,7 +1454,7 @@ export default function RequestDetailPage({ id }: { id: string }) {
             ) : (
               <Button
                 type="button"
-                className="bg-emerald-600 hover:bg-emerald-700 text-white dark:bg-emerald-600 dark:hover:bg-emerald-700"
+                className="bg-emerald-600 hover:bg-emerald-700 text-white dark:bg-emerald-600 dark:hover:bg-emerald-700 max-sm:col-span-2 max-sm:order-first"
                 onClick={() => setApproveOpen(true)}
                 disabled={isProcessingDecision}
               >

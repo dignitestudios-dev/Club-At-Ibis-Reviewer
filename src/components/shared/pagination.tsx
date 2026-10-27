@@ -56,13 +56,13 @@ export function Pagination({
         )}
       </div>
       {pages > 1 && (
-        <nav className="flex items-center gap-1" aria-label="Pagination">
-          <Button variant="outline" size="icon-sm" onClick={() => onPageChange(page - 1)} disabled={page <= 1} aria-label="Previous page">
+        <nav className="flex items-center gap-1 max-sm:w-full max-sm:justify-between" aria-label="Pagination">
+          <Button variant="outline" size="icon-sm" className="max-sm:size-11" onClick={() => onPageChange(page - 1)} disabled={page <= 1} aria-label="Previous page">
             <ChevronLeft />
           </Button>
           {numbers.map((n, i) =>
             n === "…" ? (
-              <span key={`gap-${i}`} className="px-1 text-xs text-muted-foreground">…</span>
+              <span key={`gap-${i}`} className="px-1 text-xs text-muted-foreground max-sm:hidden">…</span>
             ) : (
               <Button
                 key={n}
@@ -70,13 +70,14 @@ export function Pagination({
                 size="icon-sm"
                 onClick={() => onPageChange(n)}
                 aria-current={n === page ? "page" : undefined}
-                className="text-xs tabular-nums"
+                className="text-xs tabular-nums max-sm:hidden"
               >
                 {n}
               </Button>
             )
           )}
-          <Button variant="outline" size="icon-sm" onClick={() => onPageChange(page + 1)} disabled={page >= pages} aria-label="Next page">
+          <span className="text-xs font-medium tabular-nums text-muted-foreground sm:hidden">Page {page} of {pages}</span>
+          <Button variant="outline" size="icon-sm" className="max-sm:size-11" onClick={() => onPageChange(page + 1)} disabled={page >= pages} aria-label="Next page">
             <ChevronRight />
           </Button>
         </nav>

@@ -28,7 +28,7 @@ export function FilterPills<T extends string>({
   className?: string;
 }) {
   return (
-    <div role="tablist" aria-label={label} className={cn("flex flex-wrap items-center gap-2 border-b border-border/80 pb-3", className)}>
+    <div role="tablist" aria-label={label} className={cn("flex flex-wrap items-center gap-2 border-b border-border/80 pb-3 max-sm:flex-nowrap max-sm:overflow-x-auto max-sm:[scrollbar-width:none] max-sm:[&::-webkit-scrollbar]:hidden", className)}>
       {options.map((o) => {
         const active = value === o.value;
         const Icon = o.icon;
@@ -40,7 +40,7 @@ export function FilterPills<T extends string>({
             aria-selected={active}
             onClick={() => onChange(o.value)}
             className={cn(
-              "inline-flex cursor-pointer items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-medium transition-all outline-none focus-visible:ring-2 focus-visible:ring-primary",
+              "inline-flex shrink-0 cursor-pointer items-center gap-1.5 rounded-full px-3.5 py-2 text-xs font-medium transition-all outline-none focus-visible:ring-2 focus-visible:ring-primary",
               active
                 ? "bg-primary text-white shadow-xs dark:text-primary-foreground"
                 : "border border-border/80 bg-white text-slate-700 hover:bg-slate-50 hover:text-foreground dark:bg-card dark:text-slate-300 dark:hover:bg-slate-800"

@@ -16,7 +16,7 @@ export function TabWithTooltip({ value, tip, children }: { value: string; tip: s
         <Tooltip>
           <TooltipTrigger
             render={<span role="img" aria-label={tip} tabIndex={-1} />}
-            className="inline-flex size-4 shrink-0 cursor-help items-center justify-center rounded-full text-muted-foreground/60 transition-colors hover:text-foreground"
+            className="inline-flex size-4 shrink-0 cursor-help max-sm:hidden items-center justify-center rounded-full text-muted-foreground/60 transition-colors hover:text-foreground"
           >
             <Info className="size-3.5" aria-hidden="true" />
           </TooltipTrigger>

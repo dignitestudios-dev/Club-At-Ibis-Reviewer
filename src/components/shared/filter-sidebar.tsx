@@ -49,12 +49,12 @@ export function FilterSidebar({
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="right" className="w-full gap-0 p-0 sm:max-w-md">
-        <SheetHeader className="border-b border-border px-5 py-4 pr-12">
+        <SheetHeader className="border-b border-border px-5 pb-4 pt-[calc(1rem+env(safe-area-inset-top))] pr-12">
           <SheetTitle className="font-heading text-lg font-medium">{title}</SheetTitle>
           <SheetDescription>{description}</SheetDescription>
         </SheetHeader>
-        <div className="min-h-0 flex-1 space-y-5 overflow-y-auto px-5 py-5">{children}</div>
-        <SheetFooter className="flex-row items-center justify-between gap-3 border-t border-border bg-muted/40 px-5 py-3">
+        <div className="min-h-0 flex-1 space-y-5 overflow-y-auto overscroll-contain px-5 py-5">{children}</div>
+        <SheetFooter className="flex-row items-center justify-between gap-3 border-t border-border bg-muted/40 px-5 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
           {footer ?? (
             <>
               {onClear ? (

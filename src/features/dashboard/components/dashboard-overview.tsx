@@ -148,7 +148,7 @@ export default function DashboardOverview() {
               : "The requests assigned to you and what each one needs next."}
           </p>
         </div>
-        <div className="flex shrink-0 flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2 sm:shrink-0 max-sm:w-full max-sm:[&>*]:flex-1">
           {isDefault && (
             <Button variant="outline" nativeButton={false} render={<Link href="/incoming" />}>
               <Inbox className="size-4" />
@@ -256,7 +256,7 @@ export default function DashboardOverview() {
                   <li key={req.id}>
                     <Link href={`/requests/${req.id}`} className="group flex items-center gap-3 py-3 outline-none hover:bg-muted/40 focus-visible:bg-muted/40">
                       <span className="min-w-0 flex-1">
-                        <span className="flex items-center gap-2">
+                        <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
                           <span className="font-mono text-xs font-semibold text-primary dark:text-amber-300">{req.reference}</span>
                           <StatusBadge status={req.status} />
                           <ProcessingChip request={req} />
