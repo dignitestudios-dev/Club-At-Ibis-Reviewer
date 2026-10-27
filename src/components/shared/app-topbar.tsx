@@ -56,7 +56,7 @@ export function AppTopbar() {
   return (
     <header className="sticky top-0 z-30 flex min-h-14 items-center gap-3 border-b border-border bg-card px-4 pt-safe transition-colors duration-200 max-lg:bg-card/85 max-lg:backdrop-blur-xl lg:px-6">
       <div className="lg:hidden">
-        <Logo variant="navy" size={30} titleClassName="whitespace-nowrap text-lg" />
+        <Logo variant="navy" size={22} href="/dashboard" />
       </div>
 
       <button
