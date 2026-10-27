@@ -3,7 +3,7 @@
 import { createContext, useContext, useMemo, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Bell, FileDiff, House, Inbox, ListChecks, Menu } from "lucide-react";
+import { Bell, FileDiff, House, Inbox, ListChecks, User } from "lucide-react";
 import { useMe } from "@/hooks/use-current-user";
 import { useNavCounts } from "@/hooks/use-nav-counts";
 import { cn } from "@/utils/cn";
@@ -63,13 +63,12 @@ function TabLabel({ active, children }: { active: boolean; children: React.React
 
 /**
  * Phone / tablet tab bar (hidden at lg+ where the sidebar takes over): Home, the reviewer's work lists,
- * Alerts and a Menu tab that opens the full navigation sheet.
+ * Alerts and Profile. The full navigation lives in the side menu, opened from the avatar in the header.
  */
 export function MobileBottomNav() {
   const pathname = usePathname();
   const { isDefault } = useMe();
   const counts = useNavCounts();
-  const { menuOpen, setMenuOpen } = useMobileMenu();
 
   const is = (href: string) => pathname === href || pathname.startsWith(`${href}/`);
   // Open request pages belong to the work lists, so highlight "Assigned" (or "Incoming" for a Default Reviewer's intake).
@@ -78,6 +77,7 @@ export function MobileBottomNav() {
   const middleIsIncoming = isDefault;
   const middle = middleIsIncoming ? is("/incoming") : is("/forms");
   const alerts = is("/notifications");
+  const profile = is("/profile");
 
   const MiddleIcon = middleIsIncoming ? Inbox : FileDiff;
 
@@ -136,21 +136,12 @@ export function MobileBottomNav() {
             </Link>
           </li>
           <li>
-            <button
-              type="button"
-              onClick={() => {
-                tap();
-                setMenuOpen(true);
-              }}
-              aria-haspopup="dialog"
-              aria-expanded={menuOpen}
-              className={tabClass}
-            >
-              <TabIcon active={menuOpen}>
-                <Menu className="size-[22px]" strokeWidth={menuOpen ? 2.4 : 2} aria-hidden="true" />
+            <Link href="/profile" onClick={tap} aria-current={profile ? "page" : undefined} className={tabClass}>
+              <TabIcon active={profile}>
+                <User className="size-[22px]" strokeWidth={profile ? 2.4 : 2} aria-hidden="true" />
               </TabIcon>
-              <TabLabel active={menuOpen}>Menu</TabLabel>
-            </button>
+              <TabLabel active={profile}>Profile</TabLabel>
+            </Link>
           </li>
         </ul>
       </div>
