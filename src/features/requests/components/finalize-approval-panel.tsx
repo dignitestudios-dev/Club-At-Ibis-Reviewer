@@ -147,7 +147,7 @@ export function FinalizeApprovalPanel({
                 </Button>
               )}
               {depositRequired && !receiptReceived && <MarkReceivedButton request={request} />}
-              {depositRequired && !deposit?.receipt && (
+              {depositRequired && receiptReceived && !deposit?.receipt && (
                 <Button
                   type="button"
                   variant="outline"
@@ -197,7 +197,7 @@ export function FinalizeApprovalPanel({
             </>
           ) : (
             <>
-              {formatDepositAmount(deposit?.amount) ? `${formatDepositAmount(deposit?.amount)} deposit required` : "Deposit required"} — mark it as received once paid. Attaching a receipt is optional.
+              {formatDepositAmount(deposit?.amount) ? `${formatDepositAmount(deposit?.amount)} deposit required` : "Deposit required"} — mark it as received once paid.
             </>
           )}
         </Step>
