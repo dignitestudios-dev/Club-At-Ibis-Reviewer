@@ -78,6 +78,7 @@ export default function LoginForm() {
     setAccountDisabled(false);
     login(data, {
       onSuccess: ({ token, user }) => {
+        rateLimit.clear();
         isSubmittingRef.current = false;
         localStorage.removeItem("carv.logged-out");
         localStorage.setItem("rv-auth-token", token);
@@ -89,8 +90,11 @@ export default function LoginForm() {
       },
       onError: (error: Error & { code?: string }) => {
         isSubmittingRef.current = false;
-        // Rate limited: start/re-sync the visible countdown from the backend's retryAfterSeconds.
-        if (rateLimit.handleError(error)) return;
+        // Throttled: (re)start the visible countdown from the backend's wait time and show its message.
+        if (rateLimit.handleError(error)) {
+          toast.error(error.message || "Too many attempts. Please try again later.");
+          return;
+        }
         if (error.code === "ACCOUNT_DISABLED") {
           setAccountDisabled(true);
           return;
